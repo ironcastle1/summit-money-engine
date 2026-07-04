@@ -1,44 +1,40 @@
-# Summit Money Engine - Part 6
+# Summit Money Engine — Part 7
 
-Map-first live money intelligence prototype.
+Map-first live world monitoring build.
 
-Version expected at `/health`:
+Health check:
 
 ```text
-SUMMIT-MONEY-ENGINE-PART6-BLUE-MAP-ROUTES-SIDEINFO
+SUMMIT-MONEY-ENGINE-PART7-LIVE-WORLD-MAP-BLUE
 ```
 
-## Key fixes in Part 6
+## Changes in Part 7
 
-- Blue-toned map layer: dark blue ocean/land treatment with visible labels.
-- Map fills the viewport when zoomed out using fractional minimum zoom and no map repetition.
-- Side panels are overlays; map remains the main product area.
-- Marker details open in the side panel, not over the map.
-- Toggle buttons can open/close panels without relying on the X button.
-- Local city nodes appear when zoomed in.
-- More port, energy, finance, city, commodity and risk nodes.
-- More route lines with route descriptions, goods carried and watch assets.
-- Slower moving route-flow dots.
-- Charts have x/y axis labels and real line charts.
-- Event feeds use GDELT/ReliefWeb and optional X API token; unsupported/unguessed crime data is not fabricated.
-- Wikipedia/Wikimedia location images are used only when a verified page thumbnail is available; no random stock images.
+- Map colour corrected toward mid/dark navy blue instead of black/pink.
+- Top ticker arrows now render green/red based on live percentage direction.
+- Map starts at a zoom that fills the viewport without duplicate worlds.
+- Route animation changed from fast dots to slower moving line flow.
+- Added more shipping and land-trade corridors with route goods, direction, watched assets and verification notes.
+- Added a much denser global city monitoring grid so city dots appear when zooming in.
+- Clicked map/city/route/event information opens in the side panel, not in a popup covering the map.
+- City cards attempt to show accurate Wikipedia/Wikimedia location thumbnails only. If not verified, no image is shown.
+- UK crime check added through data.police.uk when coordinates are inside the UK. No global crime scores are fabricated.
+- Context panels clearly state when a feed is unavailable instead of inventing data.
+- Charts have labelled axes and real chart canvases only.
+
+## Optional live feeds
+
+For X data, add this Render environment variable:
+
+```text
+X_BEARER_TOKEN=your_official_x_api_bearer_token
+```
+
+Without it the app uses GDELT, ReliefWeb, Polymarket and market feeds.
 
 ## Render
 
-Build command:
-
 ```text
-npm install --package-lock=false --no-audit --no-fund
-```
-
-Start command:
-
-```text
-npm start
-```
-
-Optional env:
-
-```text
-X_BEARER_TOKEN=<official X API bearer token>
+Build Command: npm install --package-lock=false --no-audit --no-fund
+Start Command: npm start
 ```

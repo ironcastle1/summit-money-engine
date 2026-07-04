@@ -10,9 +10,9 @@ router.get('/snapshot', (req,res) => res.json(snapshot()));
 router.get('/stream', subscribe);
 router.post('/refresh', async (req,res) => res.json(await refreshNow()));
 router.get('/map', (req,res) => res.json({ nodes: mapNodes, cityNodes, routes }));
-router.get('/context', (req,res) => {
+router.get('/context', async (req,res) => {
   const lat = Number(req.query.lat); const lng = Number(req.query.lng);
-  res.json(getCountryContext(lat,lng, snapshot()));
+  res.json(await getCountryContext(lat,lng, snapshot()));
 });
 router.get('/reverse', async (req,res)=>{
   const lat=Number(req.query.lat), lng=Number(req.query.lng);
