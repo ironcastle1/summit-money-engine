@@ -1,4 +1,4 @@
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART7-LIVE-WORLD-MAP-BLUE';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART8-SAFETY-WAR-ROUTES-TABS';
 const state = {
   version: VERSION,
   lastRefresh: null,
@@ -8,6 +8,7 @@ const state = {
   polymarket: [],
   rapid: [],
   signals: [],
+  xfeed: [],
   history: [],
   refreshCount: 0,
 };

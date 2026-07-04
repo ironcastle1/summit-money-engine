@@ -16,37 +16,49 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>live money map · events · routes · rapid movers</p></div></div>
-      <div id="ticker" class="ticker">loading market tape...</div>
+      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>money map · safety · events · routes</p></div></div>
+      <div id="ticker" class="ticker">loading live market tape...</div>
       <div id="status" class="status">booting</div>
     </header>
-    <nav class="menu">
+
+    <nav class="menu" id="menu">
       <button data-panel="markets">MARKETS</button>
-      <button data-panel="signals">SIGNALS</button>
-      <button data-panel="rapid">RAPID RISE</button>
-      <button data-panel="charts">CHARTS</button>
-      <button data-layer="sea">SEA ROUTES</button>
-      <button data-layer="land">LAND ROUTES</button>
-      <button data-filter="all" class="active">ALL</button>
+      <button data-panel="crypto">CRYPTO</button>
+      <button data-panel="commodities">COMMODITIES</button>
+      <button data-panel="polymarket">POLYMARKET</button>
+      <button data-panel="xfeed">X LIVE</button>
+      <button data-panel="war">WAR</button>
+      <button data-panel="safety">SAFETY</button>
+      <button data-panel="routes">ROUTES</button>
+      <button data-panel="rapid">RAPID MOVERS</button>
+      <button data-filter="all" class="active">ALL DOTS</button>
       <button data-filter="war">WAR</button>
+      <button data-filter="terror">TERROR</button>
       <button data-filter="disaster">DISASTER</button>
       <button data-filter="election">ELECTION</button>
       <button data-filter="shipping">SHIPPING</button>
-      <button data-filter="tech">TECH</button>
+      <button data-filter="ai">AI</button>
       <button id="refresh">REFRESH</button>
     </nav>
+
     <main class="stage">
       <section id="map"></section>
-      <aside id="marketsPanel" class="panel left"><button class="close" data-close="markets">×</button><h2>MARKETS</h2><div id="markets"></div><h3>POLYMARKET</h3><div id="poly"></div></aside>
-      <aside id="signalsPanel" class="panel right"><button class="close" data-close="signals">×</button><h2>SIGNALS</h2><div id="signals"></div></aside>
-      <aside id="rapidPanel" class="drawer"><button class="close" data-close="rapid">×</button><h2>RAPID RISE</h2><p class="sub">Assets moving now. Each card lists reason, odds estimate, source status and checks.</p><div id="rapid"></div></aside>
-      <aside id="chartsPanel" class="drawer charts"><button class="close" data-close="charts">×</button><h2>CHARTS</h2><div id="charts"></div></aside>
-      <aside id="contextPanel" class="context"><button class="close" data-close="context">×</button><h2 id="contextTitle">COUNTRY</h2><div id="contextBody"></div></aside>
+      <aside id="infoPanel" class="panel side-panel">
+        <button class="close" data-close="info">×</button>
+        <h2 id="infoTitle">INFO</h2>
+        <div id="infoBody"></div>
+      </aside>
+      <aside id="drawerPanel" class="drawer">
+        <button class="close" data-close="drawer">×</button>
+        <h2 id="drawerTitle">DETAIL</h2>
+        <div id="drawerBody"></div>
+      </aside>
       <div id="legend" class="legend"></div>
       <div id="toast" class="toast"></div>
+      <div id="mapStatus" class="map-status">source-backed dots only · optional X/ACLED feeds require API keys</div>
     </main>
-    <footer><div id="marquee">waiting for live signals...</div></footer>
   </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="/js/components/panels.js"></script>

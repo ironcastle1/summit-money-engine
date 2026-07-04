@@ -1,40 +1,48 @@
-# Summit Money Engine — Part 7
+# Summit Money Engine Part 8
 
-Map-first live world monitoring build.
+Map-first safety and money intelligence build.
 
-Health check:
+Health check should return:
 
-```text
-SUMMIT-MONEY-ENGINE-PART7-LIVE-WORLD-MAP-BLUE
+```
+SUMMIT-MONEY-ENGINE-PART8-SAFETY-WAR-ROUTES-TABS
 ```
 
-## Changes in Part 7
+## Upload
+Upload the folder contents into the existing `summit-money-engine` repo. Do not upload `node_modules` or `package-lock.json`.
 
-- Map colour corrected toward mid/dark navy blue instead of black/pink.
-- Top ticker arrows now render green/red based on live percentage direction.
-- Map starts at a zoom that fills the viewport without duplicate worlds.
-- Route animation changed from fast dots to slower moving line flow.
-- Added more shipping and land-trade corridors with route goods, direction, watched assets and verification notes.
-- Added a much denser global city monitoring grid so city dots appear when zooming in.
-- Clicked map/city/route/event information opens in the side panel, not in a popup covering the map.
-- City cards attempt to show accurate Wikipedia/Wikimedia location thumbnails only. If not verified, no image is shown.
-- UK crime check added through data.police.uk when coordinates are inside the UK. No global crime scores are fabricated.
-- Context panels clearly state when a feed is unavailable instead of inventing data.
-- Charts have labelled axes and real chart canvases only.
+## Render
+Build Command:
 
-## Optional live feeds
+```
+npm install --package-lock=false --no-audit --no-fund
+```
 
-For X data, add this Render environment variable:
+Start Command:
 
-```text
+```
+npm start
+```
+
+## Optional live data keys
+
+```
 X_BEARER_TOKEN=your_official_x_api_bearer_token
 ```
 
-Without it the app uses GDELT, ReliefWeb, Polymarket and market feeds.
+Without that, the X tab will correctly say the feed is not connected. It will not fake scraped X data.
 
-## Render
+## Part 8 changes
 
-```text
-Build Command: npm install --package-lock=false --no-audit --no-fund
-Start Command: npm start
-```
+- Removes bottom scrolling tape. The top ticker stays.
+- Adds top-menu tabs: Markets, Crypto, Commodities, Polymarket, X Live, War, Safety, Routes, Rapid Movers.
+- Merges sea and land route controls into one Routes tab.
+- Replaces Tech with AI.
+- Uses darker blue-only map treatment. Dots remain multicoloured.
+- Opens information in a right-side panel, not map popups.
+- Clicking an active tab closes it; opening another tab closes any current panel.
+- Adds source-backed event dots from GDELT/ReliefWeb/X API when available.
+- Adds UK local crime lookup through data.police.uk only where available.
+- Adds safety light logic based on nearby verified events and UK crime feed.
+- Adds rapid mover projection charts with labelled axes.
+- Keeps war/terror dots for current feed and highlights war-pressure clusters without inventing battlelines or territory control.

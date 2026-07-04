@@ -50,7 +50,7 @@ async function fetchMarkets(){
   return out;
 }
 async function fetchCharts(){
-  const wanted = ['BTCUSDT','ETHUSDT','SOLUSDT','HG=F','BZ=F','VRT','PWR','LMT'];
+  const wanted = ['BTCUSDT','ETHUSDT','SOLUSDT','HG=F','BZ=F','GC=F','SI=F','URA','VRT','PWR','ETN','LMT','ZIM'];
   const obj = {};
   for(const s of wanted) obj[s] = await fetchKlines(s);
   return obj;
