@@ -1,5 +1,10 @@
-# Summit Money Engine Part 12
+# Summit Money Engine Part 13
 
-Actual Natural Earth country-boundary overlay patch. Conflict countries are tinted by national outlines rather than hand-drawn blobs. Safety Map includes country-level green/yellow/orange/red overlays with no-street-crime-data caveat.
+Fixes France missing from the Safety Map by adding a Natural Earth country-boundary augmentation layer.
 
-Health: SUMMIT-MONEY-ENGINE-PART12-ACTUAL-COUNTRY-BOUNDARIES
+Also improves country/city context cards:
+- English country name added where Nominatim/local names are not obvious.
+- Safety cards now explain confidence, source, data limits and how to use the information.
+- Context cards show nearby events, nearby nodes, closest tracked cities, local crime-feed status and practical verification steps.
+
+Health check: `SUMMIT-MONEY-ENGINE-PART13-FRANCE-ENGLISH-CARDS`.
