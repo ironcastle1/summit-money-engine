@@ -1,5 +1,12 @@
-# Summit Money Engine Part 10
+# Summit Money Engine Part 11
 
-Health: SUMMIT-MONEY-ENGINE-PART10-SAFETY-X-MAP-CLEANUP
+Health: SUMMIT-MONEY-ENGINE-PART11-COUNTRY-SAFETY-BOUNDARIES
 
-Changes: removes Markets tab, adds safety land-colour overlay toggle, keeps routes off by default, improves X API status, and clarifies exact conflict-frontline limits.
+Part 11 adds border-shaped country conflict overlays and safety-country overlays. It separates:
+
+- country/region conflict colouring
+- event dots
+- safety country colours
+- route layers
+
+It does not fake exact live frontlines or global street-level crime.

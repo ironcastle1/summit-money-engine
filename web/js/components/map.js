@@ -1,5 +1,5 @@
 window.MoneyMap = (() => {
-  let map, nodesLayer, cityLayer, eventsLayer, seaLayer, landLayer, riskLayer, safetyLayer;
+  let map, nodesLayer, cityLayer, eventsLayer, seaLayer, landLayer, riskLayer, safetyLayer, conflictCountryLayer, safetyCountryLayer;
   let currentFilter = 'all';
   window.SHOW_SEA = false;
   window.SHOW_LAND = false;
@@ -13,10 +13,10 @@ window.MoneyMap = (() => {
     map=L.map('map',{worldCopyJump:false,zoomSnap:.25,zoomDelta:.5,minZoom:2.62,maxZoom:16,zoomControl:true,attributionControl:true,maxBounds:[[-82,-179.95],[82,179.95]],maxBoundsViscosity:1}).setView([20,12],2.75);
     // CARTO dark layer gives a real HD map with labels; CSS makes it blue/navy rather than black/grey.
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',noWrap:true,bounds:[[-85,-180],[85,180]],attribution:'&copy; OpenStreetMap &copy; CARTO', updateWhenIdle:false, updateWhenZooming:false, keepBuffer:4}).addTo(map);
-    riskLayer=L.layerGroup().addTo(map); safetyLayer=L.layerGroup(); seaLayer=L.layerGroup(); landLayer=L.layerGroup(); nodesLayer=L.layerGroup().addTo(map); cityLayer=L.layerGroup().addTo(map); eventsLayer=L.layerGroup().addTo(map);
+    riskLayer=L.layerGroup(); safetyLayer=L.layerGroup(); conflictCountryLayer=L.layerGroup().addTo(map); safetyCountryLayer=L.layerGroup(); seaLayer=L.layerGroup(); landLayer=L.layerGroup(); nodesLayer=L.layerGroup().addTo(map); cityLayer=L.layerGroup().addTo(map); eventsLayer=L.layerGroup().addTo(map);
     map.on('zoomend moveend',()=>{ renderEvents(window.APP_STATE?.events||[]); renderCities(window.MAP_DATA?.cityNodes||[]); resize(); });
     map.on('click', async e => { const d=await fetch(`/api/context?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); try{ const rev=await fetch(`/api/reverse?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); d.reverse=rev; }catch(_){} Renderers.renderContext(d); });
-    document.addEventListener('change', e=>{ if(e.target?.id==='seaToggle'){ window.SHOW_SEA=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.id==='landToggle'){ window.SHOW_LAND=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.dataset?.layer){ document.body.classList.toggle('hide-'+e.target.dataset.layer, !e.target.checked); } if(e.target?.id==='safetyToggle'){ window.SHOW_SAFETY=!!e.target.checked; renderSafetyRegions(window.MAP_DATA?.safetyRegions||[]); }});
+    document.addEventListener('change', e=>{ if(e.target?.id==='seaToggle'){ window.SHOW_SEA=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.id==='landToggle'){ window.SHOW_LAND=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.dataset?.layer){ document.body.classList.toggle('hide-'+e.target.dataset.layer, !e.target.checked); } if(e.target?.id==='safetyToggle'){ window.SHOW_SAFETY=!!e.target.checked; renderSafetyCountries(window.MAP_DATA?.safetyCountries||[]); }});
     setTimeout(resize,250);
   }
   function renderLegend(){ const el=document.getElementById('legend'); const keys={war:'war',terror:'terror',disaster:'disaster',election:'election',shipping:'shipping',ai:'AI',commodity:'commodity',energy:'energy',finance:'finance',city:'city'}; el.innerHTML=Object.entries(keys).map(([k,v])=>`<span><i style="background:${colors[k]}"></i>${v}</span>`).join(''); }
@@ -27,6 +27,27 @@ window.MoneyMap = (() => {
       const opts={pane:'overlayPane',color:fill,weight:2,opacity:.95,fillColor:fill,fillOpacity:r.level==='darkred'?.28:r.level==='red'?.22:.16,className:`risk-poly risk-${r.level||'red'}`};
       const layer = Array.isArray(r.poly) && r.poly.length ? L.polygon(r.poly, opts) : L.rectangle(r.bounds, opts);
       layer.on('click',()=>Renderers.renderRiskRegion(r)).addTo(riskLayer);
+    }
+  }
+  function renderConflictCountries(countries){
+    conflictCountryLayer.clearLayers();
+    for(const c of countries||[]){
+      const fill=c.color || (c.level==='active-war'?'#ff174f':'#ff6b00');
+      const layer=L.polygon(c.poly,{color:fill,weight:1.6,opacity:.95,fillColor:fill,fillOpacity:c.level==='active-war'?.34:.22,className:`country-conflict country-${c.level||'risk'}`});
+      layer.on('click',()=>Renderers.renderCountryConflict ? Renderers.renderCountryConflict(c) : Renderers.renderRiskRegion(c));
+      layer.addTo(conflictCountryLayer);
+    }
+  }
+  function renderSafetyCountries(countries){
+    if(map.hasLayer(safetyCountryLayer)) map.removeLayer(safetyCountryLayer);
+    safetyCountryLayer.clearLayers();
+    if(!window.SHOW_SAFETY) return;
+    safetyCountryLayer.addTo(map);
+    for(const c of countries||[]){
+      const fill={red:'#ff174f',yellow:'#ffd447',green:'#12e680'}[c.level] || '#ffd447';
+      const layer=L.polygon(c.poly,{color:fill,weight:1.3,opacity:.85,fillColor:fill,fillOpacity:c.level==='red'?.28:c.level==='yellow'?.18:.12,className:`country-safety country-safety-${c.level}`});
+      layer.on('click',()=>Renderers.renderSafetyCountry ? Renderers.renderSafetyCountry(c) : Renderers.renderSafetyRegion(c));
+      layer.addTo(safetyCountryLayer);
     }
   }
   function renderSafetyRegions(regions){
@@ -53,9 +74,9 @@ window.MoneyMap = (() => {
     const add = r => { const layer=r.type==='sea'?seaLayer:landLayer; const pts=r.points.map(p=>[p[0],p[1]]); const cls=r.type==='sea'?'moving-route sea-route':'moving-route land-route'; L.polyline(pts,{color:r.color,weight:r.type==='sea'?8:7,opacity:.18,className:'route-shadow'}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); L.polyline(pts,{color:r.color,weight:r.type==='sea'?3:3,opacity:.92,className:cls}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); if(map.getZoom()>=4.2){ const mid=pts[Math.floor(pts.length/2)]; L.marker(mid,{icon:L.divIcon({className:'route-label',html:`${r.name}<br><span>${r.goods}</span>`,iconSize:null})}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); } };
     for(const r of routes||[]){ if(r.type==='sea' && window.SHOW_SEA) add(r); if(r.type==='land' && window.SHOW_LAND) add(r); }
   }
-  function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderRiskRegions(mapData.riskRegions||[]); renderSafetyRegions(mapData.safetyRegions||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
+  function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderConflictCountries(mapData.conflictCountries||[]); renderSafetyCountries(mapData.safetyCountries||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
   function newEvent(e){ if(!e || lastEventIds.has(e.id)) return; lastEventIds.add(e.id); showToast(e.title); sound(); renderEvents(window.APP_STATE?.events||[], new Set([e.id])); }
   function showToast(text){ const t=document.getElementById('toast'); t.textContent='NEW MAP EVENT: '+String(text||'').slice(0,155); t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),6500); }
   function resize(){ if(!map) return; const w=document.getElementById('map')?.clientWidth||1200; const min=Math.max(2.62, Math.log2((w+260)/256)); map.setMinZoom(Math.min(3.05,min)); map.invalidateSize(); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); setTimeout(()=>map.invalidateSize(),220); }
-  return { init,setData,newEvent,resize,renderEvents,renderCities,renderRoutes,renderRiskRegions,renderSafetyRegions };
+  return { init,setData,newEvent,resize,renderEvents,renderCities,renderRoutes,renderRiskRegions,renderSafetyRegions,renderConflictCountries,renderSafetyCountries };
 })();
