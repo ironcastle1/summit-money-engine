@@ -130,4 +130,18 @@ const riskRegions = [
     note:'Storm and insurance risk. Watch rebuild, generators, utilities and property insurers.', sources:['GDELT live events','baseline disaster belt'] }
 ];
 
-module.exports = { mapNodes, cityNodes, routes, countries, riskRegions };
+
+const safetyRegions = [
+  { id:'north-america-low', name:'North America baseline safety', level:'green', kind:'safety', poly:[[72,-168],[72,-52],[15,-52],[7,-83],[17,-122],[35,-130],[55,-140]], note:'Baseline lower event-pressure zone in this app. Local crime still varies by city; use source-backed local feeds where available.' },
+  { id:'western-europe-low', name:'Western Europe baseline safety', level:'green', kind:'safety', poly:[[61,-11],[61,18],[36,18],[35,-10]], note:'Baseline lower event-pressure zone. Check city-level crime and protest feeds before travel.' },
+  { id:'eastern-europe-monitor', name:'Eastern Europe monitor zone', level:'yellow', kind:'safety', poly:[[61,18],[58,35],[46,39],[42,26],[45,18]], note:'Higher event pressure because of war spillover, sanctions, border and energy risk.' },
+  { id:'ukraine-red', name:'Ukraine active-war safety zone', level:'red', kind:'safety', poly:[[52.4,22.2],[51.7,25.2],[51.5,30.6],[52.4,34.0],[51.2,38.2],[49.7,40.2],[47.7,39.2],[46.0,36.7],[45.1,33.4],[45.3,29.5],[46.5,26.8],[48.2,24.5],[50.2,23.0]], note:'Active war zone. Use official travel advice and conflict feeds; do not treat this as a precise frontline polygon.' },
+  { id:'middle-east-red', name:'Middle East high event-pressure zone', level:'red', kind:'safety', poly:[[38,28],[38,60],[12,60],[10,35],[24,28]], note:'War, terror, shipping and energy event pressure elevated across several corridors. Check local official guidance before movement.' },
+  { id:'sahel-red', name:'Sahel high event-pressure zone', level:'red', kind:'safety', poly:[[23,-18],[23,18],[9,18],[8,-17]], note:'Terror/coup/security corridor. Use verified local security and travel feeds.' },
+  { id:'east-africa-monitor', name:'East Africa / Horn monitor zone', level:'yellow', kind:'safety', poly:[[17,29],[17,52],[-8,52],[-8,29]], note:'Conflict, disaster, maritime and food-security event pressure varies by country.' },
+  { id:'south-america-monitor', name:'Northern South America monitor zone', level:'yellow', kind:'safety', poly:[[13,-82],[13,-50],[-12,-50],[-12,-82]], note:'Political, crime and commodity-disruption risks vary strongly by city and border region.' },
+  { id:'east-asia-monitor', name:'East Asia monitor zone', level:'yellow', kind:'safety', poly:[[46,112],[46,146],[20,146],[20,112]], note:'Korea/Taiwan/South China Sea risk can move shipping, FX, chip and gold assets.' },
+  { id:'oceania-low', name:'Oceania baseline safety', level:'green', kind:'safety', poly:[[-10,110],[-10,180],[-48,180],[-48,110]], note:'Baseline lower event-pressure zone. Disaster risk still matters locally.' }
+];
+
+module.exports = { mapNodes, cityNodes, routes, countries, riskRegions, safetyRegions };

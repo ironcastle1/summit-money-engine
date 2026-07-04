@@ -13,11 +13,12 @@ async function refreshNow(){
     const [markets, klines, polymarket, eventBundle] = await Promise.all([fetchMarkets(), fetchCharts(), fetchPolymarket(), fetchEvents()]);
     const events = Array.isArray(eventBundle) ? eventBundle : (eventBundle.events || []);
     const xfeed = Array.isArray(eventBundle) ? [] : (eventBundle.xfeed || []);
+    const xStatus = Array.isArray(eventBundle) ? {connected:false, reason:'legacy bundle'} : (eventBundle.xStatus || {connected:false, reason:'not configured'});
     const newOnes = events.filter(e => !knownEvents.has(e.id));
     for(const e of events) knownEvents.add(e.id);
     const rapid = buildRapid(markets, klines, polymarket, events);
     const signals = buildSignals(events, markets, polymarket);
-    setState({ markets, klines, polymarket, events, xfeed, rapid, signals });
+    setState({ markets, klines, polymarket, events, xfeed, xStatus, rapid, signals });
     if(state.refreshCount > 1){ for(const e of newOnes.slice(0,3)) pushEvent(e); }
     return { ok:true, markets:markets.length, events:events.length, rapid:rapid.length, signals:signals.length };
   } finally { running = false; }

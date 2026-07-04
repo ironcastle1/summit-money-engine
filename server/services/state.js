@@ -1,4 +1,4 @@
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART9D-API-STATE-FIX';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART10-SAFETY-X-MAP-CLEANUP';
 
 const state = {
   markets: [],
@@ -9,6 +9,7 @@ const state = {
   rapid: [],
   mapData: null,
   xfeed: [],
+  xStatus: { connected:false, reason:'not checked' },
   updatedAt: null,
   lastRefresh: null,
   updateCount: 0,
@@ -28,6 +29,7 @@ function snapshot(){
     signals: state.signals,
     rapid: state.rapid,
     xfeed: state.xfeed,
+    xStatus: state.xStatus,
     updatedAt: state.updatedAt,
     lastRefresh: state.lastRefresh,
     updateCount: state.updateCount,

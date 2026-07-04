@@ -1,11 +1,5 @@
-# Summit Money Engine Part 9C
+# Summit Money Engine Part 10
 
-Health check: `SUMMIT-MONEY-ENGINE-PART9C-RISK-POLYGONS-LAND-LIGHTER`
+Health: SUMMIT-MONEY-ENGINE-PART10-SAFETY-X-MAP-CLEANUP
 
-Changes:
-- Land layer is slightly lighter/readable; sea remains dark blue/navy overall.
-- Active-risk regions changed from square rectangles to approximate polygon overlays.
-- War/high-risk overlays are brighter and glowing so they are visible on the blue map.
-- Routes remain off by default from Part 9A/9B.
-
-Upload into the existing `summit-money-engine` repo. Do not upload `node_modules` or `package-lock.json`.
+Changes: removes Markets tab, adds safety land-colour overlay toggle, keeps routes off by default, improves X API status, and clarifies exact conflict-frontline limits.
