@@ -12,55 +12,53 @@
   <link rel="stylesheet" href="/styles/panels.css" />
 </head>
 <body>
-  <div id="app" class="app map-first left-closed right-closed charts-closed">
+  <div id="app" class="app map-first left-closed right-closed charts-closed rapid-closed">
     <header class="topbar">
       <div class="brand-row">
         <span class="brand-dot"></span>
         <span class="brand">SITUATION ROOM</span>
-        <span class="subbrand">money engine · map · signals · verification</span>
+        <span class="subbrand">live money map · events · routes · rapid movers</span>
       </div>
       <div id="ticker" class="ticker">Loading markets...</div>
+      <div id="liveStatus" class="live-status">LIVE</div>
     </header>
 
-    <button id="leftTab" class="edge-tab left-tab">MARKETS</button>
-    <button id="rightTab" class="edge-tab right-tab">SIGNALS</button>
+    <nav class="map-menu" aria-label="Map controls">
+      <button id="marketsMenu" class="menu-tab">MARKETS</button>
+      <button id="signalsMenu" class="menu-tab">SIGNALS</button>
+      <button id="rapidMenu" class="menu-tab hot">RAPID RISE</button>
+      <button id="chartsToggle" class="menu-tab">CHARTS</button>
+      <button id="shippingRoutes" class="menu-tab active">SEA ROUTES</button>
+      <button id="landRoutes" class="menu-tab active">LAND ROUTES</button>
+      <button data-filter="all" class="menu-tab filter active">ALL DOTS</button>
+      <button data-filter="war" class="menu-tab filter">WAR</button>
+      <button data-filter="disaster" class="menu-tab filter">DISASTER</button>
+      <button data-filter="shipping" class="menu-tab filter">SHIPPING</button>
+      <button data-filter="tech" class="menu-tab filter">TECH</button>
+      <button id="refreshBtn" class="menu-tab">REFRESH</button>
+    </nav>
 
     <aside id="leftPanel" class="side-panel left-panel">
       <section class="panel-head">
         <div>
-          <h2>Market Pressure</h2>
+          <h2>Markets</h2>
           <p id="statusText">Booting engine</p>
         </div>
         <button id="leftClose" class="mini-close">×</button>
       </section>
       <section id="prices" class="price-list"></section>
-      <section class="report-card">
-        <h3>Morning Money Report</h3>
-        <p>Scan for liquid confirmation, event-probability movement, route pressure, commodity strength and asset reaction. If confirmation fails, do nothing.</p>
-      </section>
       <section id="polymarketPanel" class="poly-list"></section>
     </aside>
 
     <main class="map-shell">
-      <div class="map-controls">
-        <button data-filter="all" class="filter active">ALL</button>
-        <button data-filter="finance" class="filter">FINANCE</button>
-        <button data-filter="port" class="filter">PORTS</button>
-        <button data-filter="tech" class="filter">TECH</button>
-        <button data-filter="commodity" class="filter">COMMODITY</button>
-        <button data-filter="energy" class="filter">ENERGY</button>
-        <button data-filter="risk" class="filter">RISK</button>
-        <button id="chartsToggle" class="filter utility">CHARTS</button>
-        <button id="refreshBtn" class="filter utility">REFRESH</button>
-      </div>
       <div id="map" class="map"></div>
       <div class="legend">
-        <span><i class="dot finance"></i>finance</span>
-        <span><i class="dot port"></i>ports</span>
+        <span><i class="dot war"></i>war</span>
+        <span><i class="dot disaster"></i>disaster</span>
+        <span><i class="dot shipping"></i>shipping</span>
         <span><i class="dot tech"></i>tech</span>
-        <span><i class="dot commodity"></i>commodities</span>
+        <span><i class="dot commodity"></i>commodity</span>
         <span><i class="dot energy"></i>energy</span>
-        <span><i class="dot risk"></i>risk</span>
       </div>
       <section id="chartsDrawer" class="charts-drawer">
         <div class="chart-card"><h4>BTC 15m</h4><canvas id="chartBTC"></canvas></div>
@@ -68,13 +66,18 @@
         <div class="chart-card"><h4>VRT / AI Grid</h4><canvas id="chartVRT"></canvas></div>
         <div class="chart-card"><h4>Copper</h4><canvas id="chartCOPPER"></canvas></div>
       </section>
+      <section id="rapidDrawer" class="rapid-drawer">
+        <div class="drawer-title">Rapid Rise Projection</div>
+        <div id="rapidList" class="rapid-list"></div>
+        <canvas id="rapidChart" class="rapid-chart"></canvas>
+      </section>
     </main>
 
     <aside id="rightPanel" class="side-panel right-panel">
       <section class="panel-head">
         <div>
-          <h2>Opportunity Engine</h2>
-          <p>Ranked by asset confirmation, event evidence and liquidity.</p>
+          <h2>Signals</h2>
+          <p>Only signals with market confirmation and a verification step.</p>
         </div>
         <button id="rightClose" class="mini-close">×</button>
       </section>

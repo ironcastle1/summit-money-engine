@@ -1,17 +1,21 @@
+function toggleClass(root, openClass, closedClass){
+  const open = root.classList.contains(openClass);
+  root.classList.toggle(openClass, !open);
+  root.classList.toggle(closedClass, open);
+}
 export function setupPanels(){
-  const app = document.getElementById('app');
-  const openLeft = () => { app.classList.add('left-open'); localStorage.setItem('sme-left','open'); setTimeout(()=>window.dispatchEvent(new Event('resize')), 250); };
-  const closeLeft = () => { app.classList.remove('left-open'); localStorage.setItem('sme-left','closed'); setTimeout(()=>window.dispatchEvent(new Event('resize')), 250); };
-  const openRight = () => { app.classList.add('right-open'); localStorage.setItem('sme-right','open'); setTimeout(()=>window.dispatchEvent(new Event('resize')), 250); };
-  const closeRight = () => { app.classList.remove('right-open'); localStorage.setItem('sme-right','closed'); setTimeout(()=>window.dispatchEvent(new Event('resize')), 250); };
+  const root = document.getElementById('app');
+  const markets = document.getElementById('marketsMenu');
+  const signals = document.getElementById('signalsMenu');
+  const lClose = document.getElementById('leftClose');
+  const rClose = document.getElementById('rightClose');
+  const charts = document.getElementById('chartsToggle');
+  const rapid = document.getElementById('rapidMenu');
 
-  document.getElementById('leftTab').onclick = () => app.classList.contains('left-open') ? closeLeft() : openLeft();
-  document.getElementById('rightTab').onclick = () => app.classList.contains('right-open') ? closeRight() : openRight();
-  document.getElementById('leftClose').onclick = closeLeft;
-  document.getElementById('rightClose').onclick = closeRight;
-  document.getElementById('chartsToggle').onclick = () => { app.classList.toggle('charts-open'); setTimeout(()=>window.dispatchEvent(new Event('resize')), 250); };
-
-  // Start map-first by default. Restore only if the user explicitly opened panels before.
-  if (localStorage.getItem('sme-left') === 'open') app.classList.add('left-open');
-  if (localStorage.getItem('sme-right') === 'open') app.classList.add('right-open');
+  markets?.addEventListener('click', () => toggleClass(root, 'left-open', 'left-closed'));
+  signals?.addEventListener('click', () => toggleClass(root, 'right-open', 'right-closed'));
+  lClose?.addEventListener('click', () => { root.classList.remove('left-open'); root.classList.add('left-closed'); });
+  rClose?.addEventListener('click', () => { root.classList.remove('right-open'); root.classList.add('right-closed'); });
+  charts?.addEventListener('click', () => { root.classList.toggle('charts-closed'); charts.classList.toggle('active', !root.classList.contains('charts-closed')); });
+  rapid?.addEventListener('click', () => { root.classList.toggle('rapid-closed'); rapid.classList.toggle('active', !root.classList.contains('rapid-closed')); });
 }

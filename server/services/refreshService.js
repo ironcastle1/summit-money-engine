@@ -2,6 +2,8 @@ const { performance } = require('perf_hooks');
 const { fetchMarketPrices } = require('./marketService');
 const { fetchPolymarketEvents } = require('./polymarketService');
 const { fetchNews } = require('./newsService');
+const { fetchEventDots } = require('./eventDotService');
+const { buildRapidMoves } = require('./projectionService');
 const { buildSignals } = require('../engines/signalEngine');
 const { setState } = require('./stateService');
 
@@ -18,12 +20,18 @@ async function refreshAll(force = false) {
       fetchPolymarketEvents().catch(err => { notes.push(`polymarket: ${err.message}`); return []; }),
       fetchNews().catch(err => { notes.push(`news: ${err.message}`); return []; })
     ]);
+    const [eventDots, rapidMoves] = await Promise.all([
+      fetchEventDots(news).catch(err => { notes.push(`event dots: ${err.message}`); return []; }),
+      Promise.resolve(buildRapidMoves(prices))
+    ]);
     const signals = buildSignals({ prices, predictionMarkets, news });
     setState({
       prices,
       predictionMarkets,
       news,
       signals,
+      eventDots,
+      rapidMoves,
       engine: {
         status: 'live',
         lastRefreshMs: Math.round(performance.now() - t0),

@@ -38,7 +38,12 @@ router.get('/chart/:symbol', async (req, res) => {
 });
 
 router.get('/map/nodes', (req, res) => {
-  res.json({ nodes: mapNodes, routes: routeLines });
+  const state = getState();
+  res.json({ nodes: mapNodes, routes: routeLines, eventDots: state.eventDots || [] });
+});
+
+router.get('/rapid', (req, res) => {
+  res.json({ rapidMoves: getState().rapidMoves || [] });
 });
 
 router.get('/country/:code', (req, res) => {

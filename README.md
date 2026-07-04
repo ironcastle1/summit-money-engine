@@ -1,26 +1,27 @@
-# Summit Money Engine - Part 2
+# Summit Money Engine — Part 3
 
-Version: `SUMMIT-MONEY-ENGINE-PART2-LIVE-TABS-MARKETS`
+Version: `SUMMIT-MONEY-ENGINE-PART3-MAP-EVENTS-RAPID-RISE`
 
-Part 2 fixes the live deployment foundation:
+Part 3 adds the map behaviour requested after Part 1 went live:
 
-- Small edge tabs for MARKETS and SIGNALS are always visible.
-- Side panels start closed and can be reopened without large map buttons.
-- Server-Sent Events stream pushes state to the browser.
-- Server refreshes market feeds every 45 seconds.
-- Browser asks for a manual refresh every 60 seconds.
-- Crypto prices poll Binance ticker endpoints.
-- Commodities, ETFs and stocks poll Yahoo intraday chart endpoints first, then daily fallback.
-- Price rows show source, status and update age.
-- Charts use normal labels so Chart.js renders without a time adapter.
-- Polymarket event pulse is visible in the market panel.
+- top menu tabs above the map instead of side edge tabs
+- side panels hidden by default and opened from the top menu
+- blue-toned HD Leaflet/CARTO map styling
+- map zoom constrained so the world does not repeat endlessly
+- live event dots from RSS/GDELT-style event scanning with fallback dots
+- new event dots flash and play a short browser sound
+- shipping and land trade routes are separately toggleable
+- trade routes are solid colour-coded lines with moving direction arrows
+- rapid-rise tab with continuation/drop probability projection chart
+- popups focus on asset watchlists, source, severity and probability
+- no culture/networking/date/secret-agent wording
 
 ## Render
 
 Build command:
 
 ```bash
-npm install --no-audit --no-fund
+npm install --package-lock=false --no-audit --no-fund
 ```
 
 Start command:
@@ -29,7 +30,7 @@ Start command:
 npm start
 ```
 
-Health check:
+Health route:
 
 ```text
 /health
@@ -38,5 +39,5 @@ Health check:
 Expected:
 
 ```text
-SUMMIT-MONEY-ENGINE-PART2-LIVE-TABS-MARKETS
+SUMMIT-MONEY-ENGINE-PART3-MAP-EVENTS-RAPID-RISE
 ```
