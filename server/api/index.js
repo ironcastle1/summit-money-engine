@@ -1,0 +1,35 @@
+const express = require('express');
+const { getState } = require('../services/stateService');
+const { refreshAll } = require('../services/refreshService');
+const { getChart } = require('../services/chartService');
+const { mapNodes } = require('../data/mapNodes');
+const { routeLines } = require('../data/routeLines');
+const { getCountryBrief } = require('../data/countryBriefs');
+
+const router = express.Router();
+
+router.get('/state', async (req, res) => {
+  res.json(getState());
+});
+
+router.post('/refresh', async (req, res) => {
+  await refreshAll(true);
+  res.json(getState());
+});
+
+router.get('/chart/:symbol', async (req, res) => {
+  const symbol = String(req.params.symbol || '').toUpperCase();
+  const interval = String(req.query.interval || '15m');
+  const limit = Number(req.query.limit || 96);
+  res.json(await getChart(symbol, interval, limit));
+});
+
+router.get('/map/nodes', (req, res) => {
+  res.json({ nodes: mapNodes, routes: routeLines });
+});
+
+router.get('/country/:code', (req, res) => {
+  res.json(getCountryBrief(String(req.params.code || '').toUpperCase()));
+});
+
+module.exports = router;

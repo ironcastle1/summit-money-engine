@@ -1,0 +1,19 @@
+:root{
+  --bg:#020911;
+  --panel:#061824;
+  --panel-2:#082232;
+  --line:#124f6c;
+  --cyan:#00d9ff;
+  --teal:#00ffb0;
+  --gold:#ffd447;
+  --orange:#ff8d2a;
+  --red:#ff3864;
+  --purple:#b06cff;
+  --text:#d8f7ff;
+  --muted:#7aa6b6;
+}
+*{box-sizing:border-box}
+html,body,#app{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
+button{font:inherit}
+.brand,.side-panel h2,.report-card h3{letter-spacing:.35em;color:var(--cyan);text-transform:uppercase}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#061018}::-webkit-scrollbar-thumb{background:#1f6b84}
