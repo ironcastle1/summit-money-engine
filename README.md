@@ -1,7 +1,11 @@
-# Summit Money Engine Part 9B
+# Summit Money Engine Part 9C
 
-Fixes map tile visibility and zoom-out void while keeping routes off by default.
+Health check: `SUMMIT-MONEY-ENGINE-PART9C-RISK-POLYGONS-LAND-LIGHTER`
 
-Health: `SUMMIT-MONEY-ENGINE-PART9B-MAP-TILES-ZOOM-FIX`
+Changes:
+- Land layer is slightly lighter/readable; sea remains dark blue/navy overall.
+- Active-risk regions changed from square rectangles to approximate polygon overlays.
+- War/high-risk overlays are brighter and glowing so they are visible on the blue map.
+- Routes remain off by default from Part 9A/9B.
 
-Upload contents into `summit-money-engine`. Do not upload `node_modules` or `package-lock.json`.
+Upload into the existing `summit-money-engine` repo. Do not upload `node_modules` or `package-lock.json`.

@@ -5,7 +5,7 @@ window.MoneyMap = (() => {
   window.SHOW_LAND = false;
   let lastEventIds = new Set();
   const colors = {war:'#c4002f',terror:'#ff004f',disaster:'#ff7b22',election:'#a871ff',shipping:'#00d8ff',port:'#00d8ff',ai:'#a871ff',tech:'#a871ff',energy:'#00ff87',commodity:'#ffd94a',finance:'#3ea0ff',city:'#7aa7ff',risk:'#ff326a'};
-  const riskFill = { darkred:'#28000c', red:'#5b001a', yellow:'#5a4a00', green:'#003b2a' };
+  const riskFill = { darkred:'#b0002f', red:'#e0184f', yellow:'#ffb000', green:'#00a66a' };
   function sound(){ try{ const A=window.AudioContext||window.webkitAudioContext; const ctx=new A(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=.035; o.connect(g); g.connect(ctx.destination); o.start(); setTimeout(()=>o.frequency.value=1180,90); setTimeout(()=>{o.stop();ctx.close();},260); }catch(e){} }
   function icon(kind, flash=false){ return L.divIcon({ className:'', html:`<div class="node-dot ${kind} ${flash?'flash':''}"></div>`, iconSize:[18,18], iconAnchor:[9,9] }); }
   function init(){
@@ -19,7 +19,15 @@ window.MoneyMap = (() => {
     setTimeout(resize,250);
   }
   function renderLegend(){ const el=document.getElementById('legend'); const keys={war:'war',terror:'terror',disaster:'disaster',election:'election',shipping:'shipping',ai:'AI',commodity:'commodity',energy:'energy',finance:'finance',city:'city'}; el.innerHTML=Object.entries(keys).map(([k,v])=>`<span><i style="background:${colors[k]}"></i>${v}</span>`).join(''); }
-  function renderRiskRegions(regions){ riskLayer.clearLayers(); for(const r of regions||[]){ const fill = riskFill[r.level] || '#5b001a'; L.rectangle(r.bounds,{pane:'overlayPane',color:fill,weight:1,opacity:.70,fillColor:fill,fillOpacity:r.level==='darkred'?.34:.22,className:'risk-poly'}).on('click',()=>Renderers.renderRiskRegion(r)).addTo(riskLayer); } }
+  function renderRiskRegions(regions){
+    riskLayer.clearLayers();
+    for(const r of regions||[]){
+      const fill = riskFill[r.level] || '#e0184f';
+      const opts={pane:'overlayPane',color:fill,weight:2,opacity:.95,fillColor:fill,fillOpacity:r.level==='darkred'?.28:r.level==='red'?.22:.16,className:`risk-poly risk-${r.level||'red'}`};
+      const layer = Array.isArray(r.poly) && r.poly.length ? L.polygon(r.poly, opts) : L.rectangle(r.bounds, opts);
+      layer.on('click',()=>Renderers.renderRiskRegion(r)).addTo(riskLayer);
+    }
+  }
   function renderBase(nodes){ nodesLayer.clearLayers(); for(const n of nodes||[]){ const kind=n.kind==='tech'?'ai':n.kind; L.marker([n.lat,n.lng],{icon:icon(kind)}).on('click',()=>Renderers.renderNode(n)).addTo(nodesLayer); } renderLegend(); }
   function renderCities(cities){ cityLayer.clearLayers(); const z=map.getZoom(); if(z<4.0) return; const bounds=map.getBounds(); const limit=z>=11?1400:z>=9?950:z>=7?620:z>=5?300:160; for(const c of (cities||[]).filter(x=>bounds.pad(.55).contains([x.lat,x.lng])).slice(0,limit)){ L.marker([c.lat,c.lng],{icon:icon(c.kind||'city')}).on('click',()=>Renderers.renderNode(c)).addTo(cityLayer); } }
   function renderEvents(events, flashIds=new Set()){ eventsLayer.clearLayers(); const z=map.getZoom(); const bounds=map.getBounds(); const filtered=(events||[]).filter(e=> currentFilter==='all' || e.kind===currentFilter || (currentFilter==='ai' && e.kind==='tech')); const visible=filtered.filter(e=>z<4.5 || bounds.pad(.55).contains([e.lat,e.lng])).slice(0,z>=10?1600:z>=8?1100:z>=6?760:520); for(const e of visible){ const kind=e.kind==='tech'?'ai':e.kind; L.marker([e.lat,e.lng],{icon:icon(kind, flashIds.has(e.id))}).on('click',()=>Renderers.renderEvent(e)).addTo(eventsLayer); } }
