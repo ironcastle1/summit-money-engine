@@ -1,63 +1,10 @@
 const ruleBook = [
-  {
-    id: 'red-sea-shipping',
-    name: 'Red Sea / Suez route pressure',
-    themes: ['shipping','oil','war','freight'],
-    assets: ['BRENT','WTI','GOLD','IYT','ITA','LMT'],
-    trigger: 'News or prediction markets show route-risk / escalation and Brent or freight-sensitive names confirm.',
-    action: 'Watch shipping, oil and defence proxies after confirmation. Avoid blind headline chasing.',
-    verify: ['Brent/WTI green on the session','shipping/freight headline from credible source','defence ETF or relevant equity confirms'],
-    risk: 'high'
-  },
-  {
-    id: 'ai-power-grid',
-    name: 'AI power and grid bottleneck',
-    themes: ['ai-power','grid','copper','data-centres','tech'],
-    assets: ['VRT','PWR','ETN','COPPER','URA'],
-    trigger: 'AI data-centre capex + power constraint headlines and grid/copper proxy strength.',
-    action: 'Watch grid equipment, cooling, copper and uranium proxies.',
-    verify: ['VRT/PWR/ETN trend positive','Copper not breaking down','headline points to power/cooling/capacity not vague AI hype'],
-    risk: 'medium'
-  },
-  {
-    id: 'defence-capex',
-    name: 'Defence procurement cycle',
-    themes: ['defence','war','security','government-capex'],
-    assets: ['LMT','RTX','ITA','GOLD'],
-    trigger: 'Security risk + procurement or budget language, not just fear headlines.',
-    action: 'Watch defence primes/ETF and safe-haven confirmation.',
-    verify: ['LMT/RTX/ITA green vs market','procurement language present','broad market not selling indiscriminately'],
-    risk: 'medium'
-  },
-  {
-    id: 'copper-electrification',
-    name: 'Copper electrification squeeze',
-    themes: ['copper','grid','construction','ai-power'],
-    assets: ['COPPER','PWR','ETN','VRT'],
-    trigger: 'Copper strength coincides with grid/data-centre/infrastructure pressure.',
-    action: 'Watch copper and grid equipment names, avoid if dollar/rates crush metals.',
-    verify: ['Copper trend positive','dollar not aggressively bid','grid/AI capex news active'],
-    risk: 'medium'
-  },
-  {
-    id: 'oil-energy-risk',
-    name: 'Oil risk premium',
-    themes: ['oil','energy','iran','war','shipping'],
-    assets: ['BRENT','WTI','XLE','GOLD'],
-    trigger: 'Geopolitical event risk plus oil futures reaction.',
-    action: 'Watch energy ETF and oil futures confirmation.',
-    verify: ['Brent or WTI green','XLE not weak','event is supply-route relevant'],
-    risk: 'high'
-  },
-  {
-    id: 'prediction-market-misalignment',
-    name: 'Prediction market volatility watch',
-    themes: ['election','fed','rate','crypto','war','weather'],
-    assets: ['BTC','GOLD','TLT','QQQ'],
-    trigger: 'High-volume Polymarket odds move before liquid markets price it.',
-    action: 'Use prediction markets as an early warning, then confirm in liquid assets.',
-    verify: ['Polymarket volume/liquidity high','odds moved materially','related asset confirms'],
-    risk: 'high'
-  }
+  { id:'red-sea-shipping', name:'Suez / Red Sea route risk', themes:['shipping','oil','war','freight'], assets:['BRENT','WTI','GOLD','IYT','ITA','LMT'], trigger:'Route disruption appears and oil/shipping/insurance assets react in the same direction.', action:'Check Brent, WTI, freight headlines and shipping names. Ignore it if oil and freight do not move.', verify:['Brent or WTI rising on the same refresh','shipping/freight source confirms rerouting or insurance pressure','related shipping/defence asset is not weak'], risk:'high' },
+  { id:'ai-power-grid', name:'AI power / grid constraint', themes:['ai-power','grid','copper','data-centres','tech'], assets:['VRT','PWR','ETN','COPPER','URA'], trigger:'AI/data-centre power demand appears while grid, cooling, copper or uranium proxies are rising.', action:'Check grid equipment, cooling, copper and uranium names. Ignore vague AI headlines.', verify:['VRT/PWR/ETN trend positive','Copper not falling','headline mentions power, cooling, grid, transformers or capacity'], risk:'medium' },
+  { id:'defence-capex', name:'Defence budget / procurement', themes:['defence','war','security','government-capex'], assets:['LMT','RTX','ITA','GOLD'], trigger:'Security risk is paired with actual procurement, budget or equipment demand language.', action:'Check defence ETF/primes and gold. Ignore fear-only headlines with no budget effect.', verify:['LMT/RTX/ITA green vs market','procurement or budget language present','market is not selling everything indiscriminately'], risk:'medium' },
+  { id:'copper-electrification', name:'Copper / electrification pressure', themes:['copper','grid','construction','ai-power'], assets:['COPPER','PWR','ETN','VRT'], trigger:'Copper strength appears together with grid/data-centre/infrastructure pressure.', action:'Check copper plus grid equipment names. Ignore if dollar/rates are crushing metals.', verify:['Copper trend positive','dollar/rates not overwhelming metals','grid or infrastructure news active'], risk:'medium' },
+  { id:'oil-energy-risk', name:'Oil supply route risk', themes:['oil','energy','iran','war','shipping'], assets:['BRENT','WTI','XLE','GOLD'], trigger:'Supply-route risk appears and oil futures react.', action:'Check Brent/WTI and energy ETF. Ignore if the event is not supply-route relevant.', verify:['Brent or WTI green','XLE not weak','event touches supply, sanctions, tankers or chokepoints'], risk:'high' },
+  { id:'prediction-market-misalignment', name:'Prediction-market odds move', themes:['election','fed','rate','crypto','war','weather'], assets:['BTC','GOLD','TLT','QQQ'], trigger:'High-volume Polymarket odds move before related liquid assets fully react.', action:'Use event odds as an early warning, then check liquid assets. Do not trade odds alone.', verify:['Polymarket volume/liquidity high','odds moved materially','related asset confirms'], risk:'high' },
+  { id:'disaster-rebuild', name:'Disaster rebuild / insurance pressure', themes:['earthquake','hurricane','flood','wildfire','disaster'], assets:['XLE','insurance','PWR','building materials'], trigger:'Large disaster appears near infrastructure, ports, energy assets or dense property markets.', action:'Check insurers, utilities, builders, energy and local government response.', verify:['fresh disaster source within current day','infrastructure/property damage likely','related sector starts moving'], risk:'medium' }
 ];
 module.exports = { ruleBook };

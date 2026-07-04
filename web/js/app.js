@@ -50,6 +50,7 @@ function connectStream(){
 }
 bind();
 await initMap();
+window.addEventListener('resize', () => { const map = document.querySelector('#map')?._leaflet_map; });
 await loadState();
 await loadCharts();
 connectStream();

@@ -17,7 +17,7 @@
       <div class="brand-row">
         <span class="brand-dot"></span>
         <span class="brand">SITUATION ROOM</span>
-        <span class="subbrand">live money map · events · routes · rapid movers</span>
+        <span class="subbrand">live money map · prices · routes · alerts</span>
       </div>
       <div id="ticker" class="ticker">Loading markets...</div>
       <div id="liveStatus" class="live-status">LIVE</div>
@@ -26,15 +26,18 @@
     <nav class="map-menu" aria-label="Map controls">
       <button id="marketsMenu" class="menu-tab">MARKETS</button>
       <button id="signalsMenu" class="menu-tab">SIGNALS</button>
-      <button id="rapidMenu" class="menu-tab hot">RAPID RISE</button>
+      <button id="rapidMenu" class="menu-tab hot">RAPID MOVERS</button>
       <button id="chartsToggle" class="menu-tab">CHARTS</button>
+      <span class="menu-sep"></span>
       <button id="shippingRoutes" class="menu-tab active">SEA ROUTES</button>
       <button id="landRoutes" class="menu-tab active">LAND ROUTES</button>
+      <span class="menu-sep"></span>
       <button data-filter="all" class="menu-tab filter active">ALL DOTS</button>
       <button data-filter="war" class="menu-tab filter">WAR</button>
       <button data-filter="disaster" class="menu-tab filter">DISASTER</button>
       <button data-filter="shipping" class="menu-tab filter">SHIPPING</button>
       <button data-filter="tech" class="menu-tab filter">TECH</button>
+      <button data-filter="local" class="menu-tab filter">LOCAL</button>
       <button id="refreshBtn" class="menu-tab">REFRESH</button>
     </nav>
 
@@ -48,6 +51,7 @@
       </section>
       <section id="prices" class="price-list"></section>
       <section id="polymarketPanel" class="poly-list"></section>
+      <section id="countryContext" class="context-panel"><h3>Map click summary</h3><div class="muted">Click a country, city, port, or event dot.</div></section>
     </aside>
 
     <main class="map-shell">
@@ -69,7 +73,7 @@
       <section id="rapidDrawer" class="rapid-drawer">
         <div class="drawer-title">Rapid Rise Projection</div>
         <div id="rapidList" class="rapid-list"></div>
-        <canvas id="rapidChart" class="rapid-chart"></canvas>
+        <div><canvas id="rapidChart" class="rapid-chart"></canvas><div id="rapidMeta" class="context-panel"></div></div>
       </section>
     </main>
 
@@ -77,7 +81,7 @@
       <section class="panel-head">
         <div>
           <h2>Signals</h2>
-          <p>Only signals with market confirmation and a verification step.</p>
+          <p>Plain signal list. Each item shows what moved, what to watch, and what would disprove it.</p>
         </div>
         <button id="rightClose" class="mini-close">×</button>
       </section>

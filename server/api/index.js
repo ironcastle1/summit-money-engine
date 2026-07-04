@@ -4,7 +4,7 @@ const { refreshAll } = require('../services/refreshService');
 const { getChart } = require('../services/chartService');
 const { mapNodes } = require('../data/mapNodes');
 const { routeLines } = require('../data/routeLines');
-const { getCountryBrief } = require('../data/countryBriefs');
+const { getCountryBrief, findCountry } = require('../data/countryBriefs');
 
 const router = express.Router();
 
@@ -40,6 +40,21 @@ router.get('/chart/:symbol', async (req, res) => {
 router.get('/map/nodes', (req, res) => {
   const state = getState();
   res.json({ nodes: mapNodes, routes: routeLines, eventDots: state.eventDots || [] });
+});
+
+
+router.get('/map/context', (req, res) => {
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const state = getState();
+  const country = findCountry(lat, lng);
+  const events = (state.eventDots || [])
+    .filter(e => Math.abs(Number(e.lat) - lat) < 6 && Math.abs(Number(e.lng) - lng) < 8)
+    .slice(0, 12);
+  const nodes = mapNodes
+    .filter(n => Math.abs(Number(n.lat) - lat) < 6 && Math.abs(Number(n.lng) - lng) < 8)
+    .slice(0, 10);
+  res.json({ country, events, nodes });
 });
 
 router.get('/rapid', (req, res) => {

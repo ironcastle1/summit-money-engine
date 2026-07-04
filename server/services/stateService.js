@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 const bus = new EventEmitter();
 bus.setMaxListeners(200);
 
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART3-MAP-EVENTS-RAPID-RISE';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART4-MAP-FIRST-BLUE-EVENTS';
 
 const INITIAL = {
   version: VERSION,

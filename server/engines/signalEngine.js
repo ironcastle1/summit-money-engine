@@ -47,7 +47,7 @@ function buildSignals({ prices, predictionMarkets, news }) {
       verify: rule.verify,
       evidence,
       confirmingAssets: confirmation.confirming,
-      status: score >= 70 ? 'ACTIONABLE WATCH' : score >= 55 ? 'WATCH' : 'WAIT'
+      status: score >= 70 ? 'CONFIRMED WATCH' : score >= 55 ? 'WATCH' : 'WAIT'
     });
   }
   return signals.sort((a,b)=>b.score-a.score);

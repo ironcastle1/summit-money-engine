@@ -1,11 +1,11 @@
 const routeLines = [
-  { id:'asia-europe-north', label:'Asia → Europe container route', type:'shipping', color:'#00d9ff', coords:[[31.23,121.47],[1.29,103.85],[26.56,56.25],[30.58,32.30],[51.95,4.14]] },
-  { id:'cape-reroute', label:'Asia → Europe Cape reroute', type:'shipping', color:'#00a8ff', coords:[[1.29,103.85],[-33.92,18.42],[36.14,-5.35],[51.95,4.14]] },
-  { id:'us-asia-import', label:'Asia → US West Coast import route', type:'shipping', color:'#39cfff', coords:[[31.23,121.47],[35.68,139.76],[33.74,-118.26]] },
-  { id:'panama-atlantic', label:'US Gulf/East Coast → Pacific canal route', type:'shipping', color:'#0bbbd6', coords:[[29.76,-95.37],[9.08,-79.68],[33.74,-118.26]] },
-  { id:'belt-road-central', label:'China → Central Asia → Europe land corridor', type:'land', color:'#f4d35e', coords:[[31.23,121.47],[43.25,76.95],[41.31,69.24],[50.45,30.52],[52.23,21.01],[53.54,9.99]] },
-  { id:'eu-land-freight', label:'Rotterdam → Germany → Poland industrial land freight', type:'land', color:'#f6c85f', coords:[[51.95,4.14],[51.22,6.77],[52.52,13.40],[52.23,21.01]] },
-  { id:'middle-east-energy', label:'Gulf energy route into Europe', type:'shipping', color:'#00d9ff', coords:[[26.56,56.25],[30.58,32.30],[36.14,-5.35],[51.95,4.14]] },
-  { id:'copper-grid-land', label:'Copper → grid equipment industrial path', type:'land', color:'#f4d35e', coords:[[-33.45,-70.66],[-12.05,-77.04],[29.76,-95.37],[39.04,-77.49]] }
+  { id:'sea-asia-eu', type:'shipping', label:'Asia → Suez → Europe containers', color:'#00d9ff', coords:[[31.2,121.5],[22.3,114.1],[1.29,103.8],[6.0,95.0],[12.7,43.2],[30.6,32.3],[35.9,14.5],[51.9,4.3]] },
+  { id:'sea-us-eu', type:'shipping', label:'US East Coast → Europe', color:'#00b7ff', coords:[[40.7,-74.0],[42.3,-66.0],[50.0,-20.0],[51.9,4.3]] },
+  { id:'sea-lng-qatar-eu', type:'shipping', label:'Qatar LNG → Europe', color:'#37e7ff', coords:[[25.3,51.5],[26.6,56.3],[12.7,43.2],[30.6,32.3],[37.9,23.7],[45.5,12.2]] },
+  { id:'sea-brazil-china', type:'shipping', label:'Brazil bulk commodities → China', color:'#2bcfff', coords:[[-23.9,-46.3],[-34.6,18.4],[-20.0,60.0],[1.29,103.8],[31.2,121.5]] },
+  { id:'land-eu-corridor', type:'land', label:'Rotterdam → Rhine/Ruhr → Central Europe', color:'#ffd447', coords:[[51.9,4.3],[51.4,6.8],[50.1,8.6],[48.2,16.3],[47.5,19.0]] },
+  { id:'land-china-eu', type:'land', label:'China → Kazakhstan → Europe rail', color:'#f4d35e', coords:[[31.2,121.5],[43.2,76.8],[51.1,71.4],[52.2,21.0],[52.5,13.4]] },
+  { id:'land-us-ai', type:'land', label:'US data-centre power belt', color:'#d8f465', coords:[[39.0,-77.5],[37.5,-79.0],[35.8,-78.6],[33.7,-84.4],[32.8,-96.8]] },
+  { id:'land-india-me', type:'land', label:'India → Gulf logistics link', color:'#ffe66d', coords:[[19.0,72.8],[24.4,54.4],[25.3,51.5],[26.2,50.6]] }
 ];
 module.exports = { routeLines };

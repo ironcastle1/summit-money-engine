@@ -1,5 +1,6 @@
 const { getJson } = require('../utils/http');
 const { matchPlace } = require('../data/placeIndex');
+const { localDots } = require('../data/localDots');
 
 const EVENT_QUERIES = [
   'war OR missile OR invasion OR ceasefire OR attack OR drone',
@@ -67,6 +68,7 @@ async function fetchEventDots(news=[]){
     } catch (_) {}
   }
   const dots = [...seen.values()].sort((a,b)=>(b.severity||0)-(a.severity||0));
-  return dots.length ? dots.slice(0, 90) : FALLBACK_DOTS;
+  const base = dots.length ? dots.slice(0, 120) : FALLBACK_DOTS;
+  return [...base, ...localDots];
 }
 module.exports = { fetchEventDots };
