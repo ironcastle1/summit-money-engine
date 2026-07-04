@@ -3,8 +3,8 @@ services:
     name: summit-money-engine
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --package-lock=false --no-audit --no-fund
     startCommand: npm start
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: ACCESS_MODE
+        value: open

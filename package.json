@@ -1,22 +1,35 @@
 {
-  "name": "summit-money-engine-part1",
-  "version": "1.0.0",
-  "description": "Summit Money Engine - map-first market signal platform",
+  "name": "summit-money-engine-part2",
+  "version": "2.0.0",
   "main": "server/index.js",
-  "engines": {
-    "node": "20.x"
+  "directories": {
+    "doc": "docs"
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js",
+    "dev": "nodemon server/index.js",
     "loc": "node scripts/count-lines.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "commonjs",
   "dependencies": {
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "express": "^4.21.2",
-    "helmet": "^8.0.0"
+    "helmet": "^8.0.0",
+    "node-cache": "^5.1.2",
+    "p-limit": "^6.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

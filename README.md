@@ -1,69 +1,42 @@
-# Summit Money Engine — Part 1
+# Summit Money Engine - Part 2
 
-This is the first real multi-file foundation build. It is not a one-file mockup.
+Version: `SUMMIT-MONEY-ENGINE-PART2-LIVE-TABS-MARKETS`
 
-## What this part contains
+Part 2 fixes the live deployment foundation:
 
-- Express backend
-- Map-first frontend
-- Hidden side panels opened by discreet edge tabs
-- Leaflet HD map layer with blue-toned filter
-- Multicolour money-signal markers
-- Live crypto data via Binance
-- Market proxy data via Yahoo chart endpoints where available
-- Polymarket event-market ingestion via public Gamma API
-- Signal scoring engine
-- Money-only opportunity cards
-- Chart drawer for BTC, ETH, SOL, Brent, Gold, Copper, LMT, VRT proxies
-- Verification rules before entry
-- Local fallback data so the app still runs if APIs fail
-
-## Run locally
-
-```bash
-npm install
-npm start
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-Health:
-
-```text
-http://localhost:3000/health
-```
-
-Expected version:
-
-```text
-SUMMIT-MONEY-ENGINE-PART1-MAP-FIRST
-```
+- Small edge tabs for MARKETS and SIGNALS are always visible.
+- Side panels start closed and can be reopened without large map buttons.
+- Server-Sent Events stream pushes state to the browser.
+- Server refreshes market feeds every 45 seconds.
+- Browser asks for a manual refresh every 60 seconds.
+- Crypto prices poll Binance ticker endpoints.
+- Commodities, ETFs and stocks poll Yahoo intraday chart endpoints first, then daily fallback.
+- Price rows show source, status and update age.
+- Charts use normal labels so Chart.js renders without a time adapter.
+- Polymarket event pulse is visible in the market panel.
 
 ## Render
 
-Build Command:
+Build command:
 
 ```bash
-npm install
+npm install --no-audit --no-fund
 ```
 
-Start Command:
+Start command:
 
 ```bash
 npm start
 ```
 
-## Upload to GitHub
-
-Upload this whole folder as one repo called:
+Health check:
 
 ```text
-summit-money-engine
+/health
 ```
 
-Do not upload `node_modules`.
+Expected:
 
+```text
+SUMMIT-MONEY-ENGINE-PART2-LIVE-TABS-MARKETS
+```

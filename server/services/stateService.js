@@ -1,9 +1,15 @@
 const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+const cache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
+const EventEmitter = require('events');
+const bus = new EventEmitter();
+bus.setMaxListeners(200);
+
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART2-LIVE-TABS-MARKETS';
 
 const INITIAL = {
-  version: 'SUMMIT-MONEY-ENGINE-PART1-MAP-FIRST',
+  version: VERSION,
   updatedAt: null,
+  refreshCount: 0,
   prices: [],
   predictionMarkets: [],
   news: [],
@@ -23,9 +29,20 @@ function getState() {
 
 function setState(patch) {
   const current = getState();
-  const next = { ...current, ...patch, updatedAt: new Date().toISOString() };
+  const next = {
+    ...current,
+    ...patch,
+    refreshCount: (current.refreshCount || 0) + 1,
+    updatedAt: new Date().toISOString()
+  };
   cache.set('state', next, 0);
+  bus.emit('state', next);
   return next;
 }
 
-module.exports = { getState, setState };
+function onState(handler) {
+  bus.on('state', handler);
+  return () => bus.off('state', handler);
+}
+
+module.exports = { getState, setState, onState, VERSION };

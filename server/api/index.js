@@ -1,5 +1,5 @@
 const express = require('express');
-const { getState } = require('../services/stateService');
+const { getState, onState } = require('../services/stateService');
 const { refreshAll } = require('../services/refreshService');
 const { getChart } = require('../services/chartService');
 const { mapNodes } = require('../data/mapNodes');
@@ -15,6 +15,19 @@ router.get('/state', async (req, res) => {
 router.post('/refresh', async (req, res) => {
   await refreshAll(true);
   res.json(getState());
+});
+
+router.get('/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  const send = (state) => res.write(`event: state\ndata: ${JSON.stringify(state)}\n\n`);
+  send(getState());
+  const off = onState(send);
+  const ping = setInterval(() => res.write(`event: ping\ndata: ${Date.now()}\n\n`), 15_000);
+  req.on('close', () => { clearInterval(ping); off(); });
 });
 
 router.get('/chart/:symbol', async (req, res) => {
