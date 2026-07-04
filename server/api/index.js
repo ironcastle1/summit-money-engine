@@ -2,14 +2,14 @@ const express = require('express');
 const { snapshot, subscribe } = require('../services/state');
 const { refreshNow } = require('../services/scheduler');
 const { getCountryContext } = require('../services/contextService');
-const { mapNodes, cityNodes, routes } = require('../data/mapData');
+const { mapNodes, cityNodes, routes, riskRegions } = require('../data/mapData');
 const { getJson } = require('../services/http');
 
 const router = express.Router();
 router.get('/snapshot', (req,res) => res.json(snapshot()));
 router.get('/stream', subscribe);
 router.post('/refresh', async (req,res) => res.json(await refreshNow()));
-router.get('/map', (req,res) => res.json({ nodes: mapNodes, cityNodes, routes }));
+router.get('/map', (req,res) => res.json({ nodes: mapNodes, cityNodes, routes, riskRegions }));
 router.get('/context', async (req,res) => {
   const lat = Number(req.query.lat); const lng = Number(req.query.lng);
   res.json(await getCountryContext(lat,lng, snapshot()));

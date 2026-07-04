@@ -16,7 +16,7 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>money map · safety · events · routes</p></div></div>
+      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>money map · safety · live events · probabilities</p></div></div>
       <div id="ticker" class="ticker">loading live market tape...</div>
       <div id="status" class="status">booting</div>
     </header>
@@ -27,17 +27,9 @@
       <button data-panel="commodities">COMMODITIES</button>
       <button data-panel="polymarket">POLYMARKET</button>
       <button data-panel="xfeed">X LIVE</button>
-      <button data-panel="war">WAR</button>
-      <button data-panel="safety">SAFETY</button>
       <button data-panel="routes">ROUTES</button>
       <button data-panel="rapid">RAPID MOVERS</button>
-      <button data-filter="all" class="active">ALL DOTS</button>
-      <button data-filter="war">WAR</button>
-      <button data-filter="terror">TERROR</button>
-      <button data-filter="disaster">DISASTER</button>
-      <button data-filter="election">ELECTION</button>
-      <button data-filter="shipping">SHIPPING</button>
-      <button data-filter="ai">AI</button>
+      <button data-panel="layers">MAP LAYERS</button>
       <button id="refresh">REFRESH</button>
     </nav>
 
@@ -55,7 +47,7 @@
       </aside>
       <div id="legend" class="legend"></div>
       <div id="toast" class="toast"></div>
-      <div id="mapStatus" class="map-status">source-backed dots only · optional X/ACLED feeds require API keys</div>
+      <div id="mapStatus" class="map-status">live dots: GDELT / ReliefWeb / Polymarket / optional official X API</div>
     </main>
   </div>
 

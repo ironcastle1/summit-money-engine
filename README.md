@@ -1,48 +1,33 @@
-# Summit Money Engine Part 8
+# Summit Money Engine Part 9
 
-Map-first safety and money intelligence build.
+Map-first build focused on live event/safety overlays, blue map styling, official X API support, and route layers off by default.
 
-Health check should return:
+## Deploy
 
-```
-SUMMIT-MONEY-ENGINE-PART8-SAFETY-WAR-ROUTES-TABS
-```
+Build command:
 
-## Upload
-Upload the folder contents into the existing `summit-money-engine` repo. Do not upload `node_modules` or `package-lock.json`.
-
-## Render
-Build Command:
-
-```
+```bash
 npm install --package-lock=false --no-audit --no-fund
 ```
 
-Start Command:
+Start command:
 
-```
+```bash
 npm start
 ```
 
-## Optional live data keys
+Health check:
 
+```text
+SUMMIT-MONEY-ENGINE-PART9-BLUE-RISK-X-ROUTES
 ```
+
+## Optional live X
+
+Add this in Render Environment:
+
+```text
 X_BEARER_TOKEN=your_official_x_api_bearer_token
 ```
 
-Without that, the X tab will correctly say the feed is not connected. It will not fake scraped X data.
-
-## Part 8 changes
-
-- Removes bottom scrolling tape. The top ticker stays.
-- Adds top-menu tabs: Markets, Crypto, Commodities, Polymarket, X Live, War, Safety, Routes, Rapid Movers.
-- Merges sea and land route controls into one Routes tab.
-- Replaces Tech with AI.
-- Uses darker blue-only map treatment. Dots remain multicoloured.
-- Opens information in a right-side panel, not map popups.
-- Clicking an active tab closes it; opening another tab closes any current panel.
-- Adds source-backed event dots from GDELT/ReliefWeb/X API when available.
-- Adds UK local crime lookup through data.police.uk only where available.
-- Adds safety light logic based on nearby verified events and UK crime feed.
-- Adds rapid mover projection charts with labelled axes.
-- Keeps war/terror dots for current feed and highlights war-pressure clusters without inventing battlelines or territory control.
+The app will not fake X data without the key.

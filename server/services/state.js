@@ -1,4 +1,4 @@
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART8-SAFETY-WAR-ROUTES-TABS';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART9-BLUE-RISK-X-ROUTES';
 const state = {
   version: VERSION,
   lastRefresh: null,

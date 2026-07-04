@@ -93,4 +93,19 @@ const extraRoutes = [
 ];
 for (const r of extraRoutes) if (!routes.some(x => x.id === r.id)) routes.push(r);
 
-module.exports = { mapNodes, cityNodes, routes, countries };
+
+const riskRegions = [
+  { id:'ukraine-war', kind:'war', name:'Ukraine active-war area', level:'darkred', bounds:[[44.0,22.0],[53.0,41.5]], note:'Active war region. Watch defence, grain, energy, sanctions and reconstruction names.', sources:['GDELT live events','baseline conflict zone'] },
+  { id:'israel-gaza', kind:'war', name:'Israel / Gaza / Lebanon escalation zone', level:'darkred', bounds:[[29.3,33.0],[34.2,36.4]], note:'Missile, ground operation and regional escalation risk. Watch oil, gold and defence.', sources:['GDELT live events','baseline conflict zone'] },
+  { id:'red-sea', kind:'shipping', name:'Red Sea / Bab el-Mandeb route-risk zone', level:'red', bounds:[[10.0,32.0],[23.5,45.8]], note:'Shipping lane risk. Watch rerouting, freight rates, fuel cost and maritime insurance.', sources:['GDELT live events','baseline shipping chokepoint'] },
+  { id:'yemen-war', kind:'war', name:'Yemen conflict zone', level:'darkred', bounds:[[11.0,42.0],[18.8,54.5]], note:'Conflict and shipping spillover. Watch Red Sea routing and oil risk premium.', sources:['GDELT live events','baseline conflict zone'] },
+  { id:'sudan-war', kind:'war', name:'Sudan conflict zone', level:'darkred', bounds:[[8.0,21.0],[22.5,38.5]], note:'Civil war, displacement and Red Sea/Horn of Africa spillover risk.', sources:['GDELT live events','ReliefWeb'] },
+  { id:'sahel-terror', kind:'terror', name:'Sahel terrorism/security corridor', level:'red', bounds:[[8.0,-17.0],[23.5,16.0]], note:'Terror and coup-risk belt. Watch uranium, gold, logistics and security spending.', sources:['GDELT live events','baseline security zone'] },
+  { id:'taiwan-risk', kind:'war', name:'Taiwan Strait risk zone', level:'red', bounds:[[21.0,117.0],[27.5,124.5]], note:'Semiconductor and shipping risk. Watch AI hardware, gold, yen and chip supply names.', sources:['GDELT live events','baseline geopolitical zone'] },
+  { id:'korea-risk', kind:'war', name:'Korean Peninsula risk zone', level:'red', bounds:[[36.0,124.0],[41.5,131.0]], note:'Missile and escalation risk. Watch semiconductors, yen, gold and defence.', sources:['GDELT live events','baseline geopolitical zone'] },
+  { id:'panama-drought', kind:'disaster', name:'Panama Canal weather/capacity risk', level:'yellow', bounds:[[7.0,-82.5],[10.5,-77.0]], note:'Canal capacity risk. Watch freight, LNG and container routing.', sources:['GDELT live events','baseline chokepoint'] },
+  { id:'california-fire', kind:'disaster', name:'California wildfire / grid-risk zone', level:'yellow', bounds:[[32.0,-124.5],[42.3,-114.0]], note:'Wildfire, grid hardening and insurance risk. Watch utilities, generators and rebuild trades.', sources:['GDELT live events','baseline disaster belt'] },
+  { id:'florida-storm', kind:'disaster', name:'Florida hurricane / insurance-risk zone', level:'yellow', bounds:[[24.0,-88.5],[31.5,-79.0]], note:'Storm and insurance risk. Watch rebuild, generators, utilities and property insurers.', sources:['GDELT live events','baseline disaster belt'] }
+];
+
+module.exports = { mapNodes, cityNodes, routes, countries, riskRegions };
