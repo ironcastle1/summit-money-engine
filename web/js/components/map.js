@@ -32,8 +32,9 @@ window.MoneyMap = (() => {
   function renderConflictCountries(countries){
     conflictCountryLayer.clearLayers();
     for(const c of countries||[]){
-      const fill=c.color || (c.level==='active-war'?'#ff174f':'#ff6b00');
-      const layer=L.polygon(c.poly,{color:fill,weight:1.6,opacity:.95,fillColor:fill,fillOpacity:c.level==='active-war'?.34:.22,className:`country-conflict country-${c.level||'risk'}`});
+      const fill=c.color || (c.level==='active-war'||c.level==='active-conflict'?'#ff174f':(c.level==='high-risk'?'#ff7b22':'#ffd447'));
+      const fillOpacity=(c.level==='active-war'||c.level==='active-conflict')?.52:(c.level==='high-risk'?.36:.22);
+      const layer=L.polygon(c.poly,{color:fill,weight:1.35,opacity:.96,fillColor:fill,fillOpacity,className:`country-conflict country-${c.level||'risk'}`});
       layer.on('click',()=>Renderers.renderCountryConflict ? Renderers.renderCountryConflict(c) : Renderers.renderRiskRegion(c));
       layer.addTo(conflictCountryLayer);
     }
@@ -44,8 +45,9 @@ window.MoneyMap = (() => {
     if(!window.SHOW_SAFETY) return;
     safetyCountryLayer.addTo(map);
     for(const c of countries||[]){
-      const fill={red:'#ff174f',yellow:'#ffd447',green:'#12e680'}[c.level] || '#ffd447';
-      const layer=L.polygon(c.poly,{color:fill,weight:1.3,opacity:.85,fillColor:fill,fillOpacity:c.level==='red'?.28:c.level==='yellow'?.18:.12,className:`country-safety country-safety-${c.level}`});
+      const fill={red:'#ff174f',orange:'#ff7b22',yellow:'#ffd447',green:'#12e680'}[c.level] || '#ffd447';
+      const fillOpacity=c.level==='red'?.42:c.level==='orange'?.32:c.level==='yellow'?.20:.10;
+      const layer=L.polygon(c.poly,{color:fill,weight:1.0,opacity:.88,fillColor:fill,fillOpacity,className:`country-safety country-safety-${c.level}`});
       layer.on('click',()=>Renderers.renderSafetyCountry ? Renderers.renderSafetyCountry(c) : Renderers.renderSafetyRegion(c));
       layer.addTo(safetyCountryLayer);
     }

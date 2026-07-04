@@ -1,12 +1,5 @@
-# Summit Money Engine Part 11
+# Summit Money Engine Part 12
 
-Health: SUMMIT-MONEY-ENGINE-PART11-COUNTRY-SAFETY-BOUNDARIES
+Actual Natural Earth country-boundary overlay patch. Conflict countries are tinted by national outlines rather than hand-drawn blobs. Safety Map includes country-level green/yellow/orange/red overlays with no-street-crime-data caveat.
 
-Part 11 adds border-shaped country conflict overlays and safety-country overlays. It separates:
-
-- country/region conflict colouring
-- event dots
-- safety country colours
-- route layers
-
-It does not fake exact live frontlines or global street-level crime.
+Health: SUMMIT-MONEY-ENGINE-PART12-ACTUAL-COUNTRY-BOUNDARIES
