@@ -4,95 +4,55 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Summit Money Engine</title>
-  <link rel="preconnect" href="https://unpkg.com" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/styles/base.css" />
   <link rel="stylesheet" href="/styles/layout.css" />
   <link rel="stylesheet" href="/styles/map.css" />
   <link rel="stylesheet" href="/styles/panels.css" />
 </head>
 <body>
-  <div id="app" class="app map-first left-closed right-closed charts-closed rapid-closed">
+  <div id="app">
     <header class="topbar">
-      <div class="brand-row">
-        <span class="brand-dot"></span>
-        <span class="brand">SITUATION ROOM</span>
-        <span class="subbrand">live money map · prices · routes · alerts</span>
-      </div>
-      <div id="ticker" class="ticker">Loading markets...</div>
-      <div id="liveStatus" class="live-status">LIVE</div>
+      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>live money map · events · routes · rapid movers</p></div></div>
+      <div id="ticker" class="ticker">loading market tape...</div>
+      <div id="status" class="status">booting</div>
     </header>
-
-    <nav class="map-menu" aria-label="Map controls">
-      <button id="marketsMenu" class="menu-tab">MARKETS</button>
-      <button id="signalsMenu" class="menu-tab">SIGNALS</button>
-      <button id="rapidMenu" class="menu-tab hot">RAPID MOVERS</button>
-      <button id="chartsToggle" class="menu-tab">CHARTS</button>
-      <span class="menu-sep"></span>
-      <button id="shippingRoutes" class="menu-tab active">SEA ROUTES</button>
-      <button id="landRoutes" class="menu-tab active">LAND ROUTES</button>
-      <span class="menu-sep"></span>
-      <button data-filter="all" class="menu-tab filter active">ALL DOTS</button>
-      <button data-filter="war" class="menu-tab filter">WAR</button>
-      <button data-filter="disaster" class="menu-tab filter">DISASTER</button>
-      <button data-filter="shipping" class="menu-tab filter">SHIPPING</button>
-      <button data-filter="tech" class="menu-tab filter">TECH</button>
-      <button data-filter="local" class="menu-tab filter">LOCAL</button>
-      <button id="refreshBtn" class="menu-tab">REFRESH</button>
+    <nav class="menu">
+      <button data-panel="markets">MARKETS</button>
+      <button data-panel="signals">SIGNALS</button>
+      <button data-panel="rapid">RAPID RISE</button>
+      <button data-panel="charts">CHARTS</button>
+      <button data-layer="sea">SEA ROUTES</button>
+      <button data-layer="land">LAND ROUTES</button>
+      <button data-filter="all" class="active">ALL</button>
+      <button data-filter="war">WAR</button>
+      <button data-filter="disaster">DISASTER</button>
+      <button data-filter="election">ELECTION</button>
+      <button data-filter="shipping">SHIPPING</button>
+      <button data-filter="tech">TECH</button>
+      <button id="refresh">REFRESH</button>
     </nav>
-
-    <aside id="leftPanel" class="side-panel left-panel">
-      <section class="panel-head">
-        <div>
-          <h2>Markets</h2>
-          <p id="statusText">Booting engine</p>
-        </div>
-        <button id="leftClose" class="mini-close">×</button>
-      </section>
-      <section id="prices" class="price-list"></section>
-      <section id="polymarketPanel" class="poly-list"></section>
-      <section id="countryContext" class="context-panel"><h3>Map click summary</h3><div class="muted">Click a country, city, port, or event dot.</div></section>
-    </aside>
-
-    <main class="map-shell">
-      <div id="map" class="map"></div>
-      <div class="legend">
-        <span><i class="dot war"></i>war</span>
-        <span><i class="dot disaster"></i>disaster</span>
-        <span><i class="dot shipping"></i>shipping</span>
-        <span><i class="dot tech"></i>tech</span>
-        <span><i class="dot commodity"></i>commodity</span>
-        <span><i class="dot energy"></i>energy</span>
-      </div>
-      <section id="chartsDrawer" class="charts-drawer">
-        <div class="chart-card"><h4>BTC 15m</h4><canvas id="chartBTC"></canvas></div>
-        <div class="chart-card"><h4>ETH 15m</h4><canvas id="chartETH"></canvas></div>
-        <div class="chart-card"><h4>VRT / AI Grid</h4><canvas id="chartVRT"></canvas></div>
-        <div class="chart-card"><h4>Copper</h4><canvas id="chartCOPPER"></canvas></div>
-      </section>
-      <section id="rapidDrawer" class="rapid-drawer">
-        <div class="drawer-title">Rapid Rise Projection</div>
-        <div id="rapidList" class="rapid-list"></div>
-        <div><canvas id="rapidChart" class="rapid-chart"></canvas><div id="rapidMeta" class="context-panel"></div></div>
-      </section>
+    <main class="stage">
+      <section id="map"></section>
+      <aside id="marketsPanel" class="panel left"><button class="close" data-close="markets">×</button><h2>MARKETS</h2><div id="markets"></div><h3>POLYMARKET</h3><div id="poly"></div></aside>
+      <aside id="signalsPanel" class="panel right"><button class="close" data-close="signals">×</button><h2>SIGNALS</h2><div id="signals"></div></aside>
+      <aside id="rapidPanel" class="drawer"><button class="close" data-close="rapid">×</button><h2>RAPID RISE</h2><p class="sub">Assets moving now. Each card lists reason, odds estimate, source status and checks.</p><div id="rapid"></div></aside>
+      <aside id="chartsPanel" class="drawer charts"><button class="close" data-close="charts">×</button><h2>CHARTS</h2><div id="charts"></div></aside>
+      <aside id="contextPanel" class="context"><button class="close" data-close="context">×</button><h2 id="contextTitle">COUNTRY</h2><div id="contextBody"></div></aside>
+      <div id="legend" class="legend"></div>
+      <div id="toast" class="toast"></div>
     </main>
-
-    <aside id="rightPanel" class="side-panel right-panel">
-      <section class="panel-head">
-        <div>
-          <h2>Signals</h2>
-          <p>Plain signal list. Each item shows what moved, what to watch, and what would disprove it.</p>
-        </div>
-        <button id="rightClose" class="mini-close">×</button>
-      </section>
-      <section id="signals" class="signals"></section>
-    </aside>
-
-    <footer class="bottom-ticker"><div id="bottomTicker">Loading signals...</div></footer>
+    <footer><div id="marquee">waiting for live signals...</div></footer>
   </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
-  <script type="module" src="/js/app.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="/js/components/panels.js"></script>
+  <script src="/js/components/renderers.js"></script>
+  <script src="/js/components/charting.js"></script>
+  <script src="/js/components/map.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>

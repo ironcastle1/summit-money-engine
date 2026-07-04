@@ -1,56 +1,28 @@
-const { ruleBook } = require('./signalRules');
-const { marketConfirmation } = require('./technicalEngine');
-
-function themeHits(text, themes) {
-  const lower = String(text || '').toLowerCase();
-  return themes.filter(t => lower.includes(t.toLowerCase()) || lower.includes(t.replace('-', ' '))).length;
+function signalFromEvent(e, markets){
+  const watch = e.watch || [];
+  const related = markets.filter(m => watch.includes(m.id) || watch.includes(m.symbol) || watch.includes(m.label));
+  const moving = related.filter(m => Math.abs(m.changePct||0) > 0.7);
+  const score = Math.min(96, 40 + moving.length*14 + (e.kind==='war'||e.kind==='disaster'?10:0) + (e.source==='X API'?8:0));
+  return {
+    id:`sig-${e.id}`, kind:e.kind, title:e.title, place:e.place, source:e.source, url:e.url, score,
+    watch: watch.join(', '),
+    why: e.summary,
+    checks: [
+      moving.length ? `Market confirmation: ${moving.map(m=>`${m.id} ${m.changePct}%`).join(', ')}` : 'No market confirmation yet',
+      'Open source and confirm it is not duplicate/noise',
+      'Check related asset chart before risking money'
+    ],
+    status: moving.length ? 'market moving' : 'watch only'
+  };
 }
-
-function collectThemeEvidence({ news, predictionMarkets }, rule) {
-  const evidence = [];
-  for (const n of news || []) {
-    const title = n.title || '';
-    const tags = n.themes || [];
-    const hit = tags.some(t => rule.themes.includes(t)) || themeHits(title, rule.themes) > 0;
-    if (hit) evidence.push({ type: 'news', title, source: n.source, url: n.url });
-  }
-  for (const m of predictionMarkets || []) {
-    const text = m.question || '';
-    const hit = themeHits(text, rule.themes) > 0;
-    if (hit) evidence.push({ type: 'polymarket', title: text, source: 'Polymarket', url: m.url, volume: m.volume, liquidity: m.liquidity });
-  }
-  return evidence.slice(0, 5);
+function buildSignals(events, markets, polymarket){
+  const fromEvents = events.map(e => signalFromEvent(e, markets));
+  const fromPm = polymarket.slice(0,12).map(p => ({
+    id:`sig-pm-${p.id}`, kind:'prediction', title:p.question, place:'Prediction market', source:'Polymarket', url:p.url,
+    score: Math.min(95, 45 + Math.log10((p.volume||1))*10 + Math.log10((p.liquidity||1))*6), watch:'event odds, related assets',
+    why:`High-volume event market. Volume ${Math.round(p.volume||0)}, liquidity ${Math.round(p.liquidity||0)}.`,
+    checks:['Compare odds movement with live market price movement','Avoid illiquid markets','Use as signal, not as proof'], status:'watch odds'
+  }));
+  return [...fromEvents, ...fromPm].sort((a,b)=>b.score-a.score).slice(0,40);
 }
-
-function capitalBand(rule) {
-  if (rule.risk === 'high') return 'small size only; liquid assets; no leverage by default';
-  if (rule.risk === 'medium') return 'liquid ETF/equity/crypto watchlist; scale only after confirmation';
-  return 'low-risk watchlist; wait for clear trend';
-}
-
-function buildSignals({ prices, predictionMarkets, news }) {
-  const signals = [];
-  for (const rule of ruleBook) {
-    const evidence = collectThemeEvidence({ news, predictionMarkets }, rule);
-    const confirmation = marketConfirmation(prices, rule.assets);
-    const evidenceScore = Math.min(40, evidence.length * 10);
-    const score = Math.max(0, Math.min(100, Math.round(confirmation.score * 0.55 + evidenceScore + (rule.risk === 'high' ? 5 : 0))));
-    signals.push({
-      id: rule.id,
-      title: rule.name,
-      score,
-      risk: rule.risk,
-      action: rule.action,
-      trigger: rule.trigger,
-      capital: capitalBand(rule),
-      assets: rule.assets,
-      verify: rule.verify,
-      evidence,
-      confirmingAssets: confirmation.confirming,
-      status: score >= 70 ? 'CONFIRMED WATCH' : score >= 55 ? 'WATCH' : 'WAIT'
-    });
-  }
-  return signals.sort((a,b)=>b.score-a.score);
-}
-
 module.exports = { buildSignals };

@@ -1,22 +1,13 @@
-# Summit Money Engine - Part 4
+# Summit Money Engine Part 5
 
-Map-first build. Top menu, blue-toned Leaflet/CARTO map, panels hidden by default, solid directional trade routes, local/country context on map click, rapid-mover projection drawer with reasons and sources, event dots with flash/sound alerts.
+Map-first event intelligence terminal focused on market-moving events.
+
+## Health
+`/health` should return `SUMMIT-MONEY-ENGINE-PART5-EVENT-MAP-MONEY`.
 
 ## Render
-Build Command:
-```
-npm install --package-lock=false --no-audit --no-fund
-```
-Start Command:
-```
-npm start
-```
+Build command: `npm install --package-lock=false --no-audit --no-fund`
+Start command: `npm start`
 
-Health check:
-```
-/health
-```
-Expected version:
-```
-SUMMIT-MONEY-ENGINE-PART4-MAP-FIRST-BLUE-EVENTS
-```
+## Optional X API
+Set `X_BEARER_TOKEN` in Render to enable official X search. Without it the engine uses GDELT, ReliefWeb, Polymarket, Binance, and Yahoo-style public chart endpoints.

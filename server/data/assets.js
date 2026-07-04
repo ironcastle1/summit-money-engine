@@ -1,31 +1,19 @@
-const cryptoAssets = [
-  { symbol: 'BTC', name: 'Bitcoin', type: 'crypto', venue: 'Binance', pair: 'BTCUSDT', theme: ['liquidity','risk','dollar'] },
-  { symbol: 'ETH', name: 'Ethereum', type: 'crypto', venue: 'Binance', pair: 'ETHUSDT', theme: ['liquidity','risk','tech'] },
-  { symbol: 'SOL', name: 'Solana', type: 'crypto', venue: 'Binance', pair: 'SOLUSDT', theme: ['risk','tech'] },
-  { symbol: 'XRP', name: 'XRP', type: 'crypto', venue: 'Binance', pair: 'XRPUSDT', theme: ['risk','payments'] }
+const assets = [
+  { id:'BTC', label:'Bitcoin', type:'crypto', source:'binance', symbol:'BTCUSDT' },
+  { id:'ETH', label:'Ethereum', type:'crypto', source:'binance', symbol:'ETHUSDT' },
+  { id:'SOL', label:'Solana', type:'crypto', source:'binance', symbol:'SOLUSDT' },
+  { id:'XRP', label:'XRP', type:'crypto', source:'binance', symbol:'XRPUSDT' },
+  { id:'GLD', label:'Gold ETF', type:'etf', source:'yahoo', symbol:'GLD' },
+  { id:'SLV', label:'Silver ETF', type:'etf', source:'yahoo', symbol:'SLV' },
+  { id:'COPPER', label:'Copper', type:'commodity', source:'yahoo', symbol:'HG=F' },
+  { id:'BRENT', label:'Brent Crude', type:'commodity', source:'yahoo', symbol:'BZ=F' },
+  { id:'WTI', label:'WTI Crude', type:'commodity', source:'yahoo', symbol:'CL=F' },
+  { id:'URA', label:'Uranium ETF', type:'etf', source:'yahoo', symbol:'URA' },
+  { id:'VRT', label:'Vertiv', type:'stock', source:'yahoo', symbol:'VRT' },
+  { id:'PWR', label:'Quanta Services', type:'stock', source:'yahoo', symbol:'PWR' },
+  { id:'LMT', label:'Lockheed Martin', type:'stock', source:'yahoo', symbol:'LMT' },
+  { id:'NOC', label:'Northrop', type:'stock', source:'yahoo', symbol:'NOC' },
+  { id:'ZIM', label:'ZIM Shipping', type:'stock', source:'yahoo', symbol:'ZIM' },
+  { id:'MATX', label:'Matson', type:'stock', source:'yahoo', symbol:'MATX' }
 ];
-
-const marketAssets = [
-  { symbol: 'GOLD', name: 'Gold', type: 'commodity', yahoo: 'GC=F', theme: ['safe-haven','rates','war'] },
-  { symbol: 'SILVER', name: 'Silver', type: 'commodity', yahoo: 'SI=F', theme: ['metals','solar','risk'] },
-  { symbol: 'COPPER', name: 'Copper', type: 'commodity', yahoo: 'HG=F', theme: ['grid','ai-power','construction'] },
-  { symbol: 'BRENT', name: 'Brent Crude', type: 'commodity', yahoo: 'BZ=F', theme: ['energy','shipping','war'] },
-  { symbol: 'WTI', name: 'WTI Crude', type: 'commodity', yahoo: 'CL=F', theme: ['energy','shipping','war'] },
-  { symbol: 'LMT', name: 'Lockheed Martin', type: 'stock', yahoo: 'LMT', theme: ['defence','war','government-capex'] },
-  { symbol: 'RTX', name: 'RTX', type: 'stock', yahoo: 'RTX', theme: ['defence','missiles','government-capex'] },
-  { symbol: 'VRT', name: 'Vertiv', type: 'stock', yahoo: 'VRT', theme: ['ai-power','data-centres','cooling'] },
-  { symbol: 'PWR', name: 'Quanta Services', type: 'stock', yahoo: 'PWR', theme: ['grid','infrastructure','ai-power'] },
-  { symbol: 'ETN', name: 'Eaton', type: 'stock', yahoo: 'ETN', theme: ['grid','electrification','ai-power'] },
-  { symbol: 'URA', name: 'Global X Uranium ETF', type: 'etf', yahoo: 'URA', theme: ['uranium','power','energy-security'] },
-  { symbol: 'XLE', name: 'Energy Select ETF', type: 'etf', yahoo: 'XLE', theme: ['oil','energy','inflation'] },
-  { symbol: 'ITA', name: 'US Aerospace & Defense ETF', type: 'etf', yahoo: 'ITA', theme: ['defence','war','security'] },
-  { symbol: 'IYT', name: 'Transportation ETF', type: 'etf', yahoo: 'IYT', theme: ['shipping','logistics','freight'] }
-];
-
-const fallbackPrices = {
-  BTC: 62200, ETH: 1740, SOL: 82, XRP: 1.13,
-  GOLD: 4187, SILVER: 34.2, COPPER: 6.22, BRENT: 72.13, WTI: 68.4,
-  LMT: 546, RTX: 147, VRT: 128, PWR: 390, ETN: 372, URA: 43.2, XLE: 88.4, ITA: 148.5, IYT: 68.9
-};
-
-module.exports = { cryptoAssets, marketAssets, fallbackPrices };
+module.exports = { assets };
