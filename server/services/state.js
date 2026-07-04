@@ -1,4 +1,4 @@
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART5-EVENT-MAP-MONEY';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART6-BLUE-MAP-ROUTES-SIDEINFO';
 const state = {
   version: VERSION,
   lastRefresh: null,
