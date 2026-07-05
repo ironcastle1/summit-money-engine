@@ -1,15 +1,13 @@
-# Summit Money Engine Part 16
+# Summit Money Engine Part 18
 
-Part 16 focuses on readability and decision cards:
+Real-index patch: removes fixed placeholder country values and calculates indexes from source-backed data where available.
 
-- shorter subtitle: AI data for gain and safety
-- country click cards now show three visible indexes first: Safety, Crime Info, Money Lanes
-- removes low-event-pressure wording from main country summary
-- clearer event cards with type/place/what happened/check/source blocks
-- foreign-language event cards now show an English fallback title plus the original title separately
-- war and terror colours are made more distinct
-- live alert toast stays on screen longer and is more obvious
-- wording is simplified across tabs/cards
+Sources used by the app:
+- World Bank Indicators API: homicide, population, GDP/person, GDP growth, inflation, unemployment, trade/GDP, exports/GDP, internet users.
+- data.police.uk: official UK street-level crime where available.
+- GDELT / ReliefWeb / USGS / optional UCDP: event pressure and incident dots.
+- Binance / Yahoo chart feeds: market prices and recent candles.
 
-Health check:
-SUMMIT-MONEY-ENGINE-PART16-CLEAR-CARDS-INDEXES-ALERTS
+If a source does not return a value, the UI shows N/A instead of guessing.
+
+Health check: `SUMMIT-MONEY-ENGINE-PART18-LIVE-DATA-GATHERERS-REAL-INDEXES`

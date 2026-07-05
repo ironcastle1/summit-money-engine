@@ -2,6 +2,7 @@ const { countries, mapNodes, cityNodes, safetyCountries, conflictCountries } = r
 const { countryCodes } = require('../data/countryCodes');
 const { getJson } = require('./http');
 const { getNationalAverages } = require('./worldBankService');
+const { scoreHomicide, scoreLocalCrimeCount, scoreSafety, scoreMoney, indexBand, hasNumber } = require('./indexMath');
 
 function dist(a,b,c,d){ return Math.hypot((a-c)*1.15, b-d); }
 function nearest(lat,lng,list){ return [...list].sort((a,b)=>dist(lat,lng,a.lat||0,a.lng||0)-dist(lat,lng,b.lat||0,b.lng||0))[0]; }
@@ -50,37 +51,65 @@ function countryEvents(country, events){
   if(!country?.poly) return [];
   return (events||[]).filter(e=>pointInPoly(e.lat,e.lng,country.poly)).slice(0,120);
 }
+function countEvents(events){
+  const out={ war:0, terror:0, disaster:0, election:0, shipping:0, energy:0, ai:0, commodity:0, finance:0 };
+  for(const e of events||[]) if(out[e.kind] !== undefined) out[e.kind]++;
+  return out;
+}
 function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, nearNodes }){
-  const events = [...(countryEvents||[]), ...(nearEvents||[])];
-  const war = events.filter(e=>e.kind==='war').length + (conflict ? 4 : 0);
-  const terror = events.filter(e=>e.kind==='terror').length;
-  const disaster = events.filter(e=>e.kind==='disaster').length;
-  const homicide = national?.homicide?.value;
-  let crimeIndex = null;
-  let crimeSource = 'No official crime indicator loaded.';
-  if(crime?.ok){
-    crimeIndex = crime.level==='red' ? 20 : crime.level==='yellow' ? 52 : 78;
-    crimeSource = `Official UK street-crime count near click: ${crime.count}`;
-  } else if(Number.isFinite(homicide)) {
-    // Higher homicide = worse score. 0-1 excellent, 10+ high risk, 30+ severe.
-    crimeIndex = Math.round(Math.max(5, Math.min(95, 92 - homicide * 4.4)));
-    crimeSource = `World Bank homicide rate: ${homicide.toFixed(2)} per 100k (${national.homicide.year})`;
-  }
-  let safetyIndex = null;
-  if(crimeIndex !== null || war || terror || disaster){
-    const base = crimeIndex ?? 62;
-    safetyIndex = Math.round(Math.max(3, Math.min(96, base - war*12 - terror*8 - disaster*4 - (conflict?18:0))));
-  }
+  const inCountry = countryEvents || [];
+  const nearby = nearEvents || [];
+  const combined = [...inCountry, ...nearby.slice(0,25)];
+  const counts = countEvents(combined);
   const financeNodes = (nearNodes||[]).filter(n=>['finance','port','shipping','energy','commodity','ai','tech'].includes(n.kind)).length;
-  const marketEvents = events.filter(e=>['shipping','energy','ai','commodity','election'].includes(e.kind)).length;
-  const moneyIndex = Math.round(Math.max(0, Math.min(100, financeNodes*7 + marketEvents*5 + ((national?.gdpPerCapita?.value||0)>30000?12:0))));
+  const marketEvents = counts.shipping + counts.energy + counts.ai + counts.commodity + counts.election + counts.finance;
+
+  let crimeIndex = null;
+  let crimeSource = 'N/A — no official local crime feed or World Bank homicide indicator loaded.';
+  let crimeFacts = [];
+  if(crime?.ok){
+    crimeIndex = scoreLocalCrimeCount(crime.count);
+    crimeSource = `data.police.uk: ${crime.count} crimes within API search radius for latest available month`;
+    crimeFacts = crime.top || [];
+  } else if(hasNumber(national?.homicide?.value)) {
+    crimeIndex = scoreHomicide(national.homicide.value);
+    crimeSource = `World Bank homicide rate: ${national.homicide.value.toFixed(2)} per 100k (${national.homicide.year})`;
+    crimeFacts = [`Homicide: ${national.homicide.value.toFixed(2)} per 100k`];
+  }
+
+  const safetyIndex = scoreSafety({
+    crimeIndex,
+    conflict,
+    warCount: counts.war,
+    terrorCount: counts.terror,
+    disasterCount: counts.disaster
+  });
+  const moneyIndex = scoreMoney(national, financeNodes, marketEvents);
+
   return {
     safetyIndex, crimeIndex, moneyIndex,
-    source: { crime: crimeSource, safety:'Computed only from source-backed conflict/event counts + official/national crime indicators.', money:'Computed from nearby mapped economic nodes + source-backed market/election/shipping/energy events.' },
-    counts: { war, terror, disaster, marketEvents, financeNodes },
-    hasRealCrime: crime?.ok || Number.isFinite(homicide),
-    hasRealSafety: !!(war || terror || disaster || conflict || crime?.ok || Number.isFinite(homicide)),
-    hasMoneyBasis: !!(financeNodes || marketEvents || national?.gdpPerCapita?.value)
+    bands: { safety:indexBand(safetyIndex), crime:indexBand(crimeIndex), money:indexBand(moneyIndex) },
+    source: {
+      crime: crimeSource,
+      safety: safetyIndex === null ? 'N/A — not enough source-backed safety data for this country/point.' : 'Calculated from crime indicator + source-backed war/terror/disaster event counts.',
+      money: moneyIndex === null ? 'N/A — not enough economic indicators or market nodes loaded.' : 'Calculated from World Bank economic indicators + mapped economic nodes + market-relevant events.'
+    },
+    facts: {
+      crime: crimeFacts,
+      safety: [
+        `${counts.war} war events`, `${counts.terror} terror events`, `${counts.disaster} disaster events`, conflict ? `Conflict overlay: ${conflict.status || conflict.level || 'active'}` : 'No conflict overlay'
+      ],
+      money: [
+        national?.gdpPerCapita ? `GDP/person: $${Math.round(national.gdpPerCapita.value).toLocaleString()} (${national.gdpPerCapita.year})` : 'GDP/person: N/A',
+        national?.gdpGrowth ? `GDP growth: ${national.gdpGrowth.value.toFixed(2)}% (${national.gdpGrowth.year})` : 'GDP growth: N/A',
+        national?.tradePctGdp ? `Trade/GDP: ${national.tradePctGdp.value.toFixed(1)}% (${national.tradePctGdp.year})` : 'Trade/GDP: N/A',
+        `${financeNodes} nearby mapped economic nodes`, `${marketEvents} nearby market-relevant events`
+      ]
+    },
+    counts: { ...counts, marketEvents, financeNodes, inCountryEvents: inCountry.length, nearbyEvents: nearby.length },
+    hasRealCrime: crimeIndex !== null,
+    hasRealSafety: safetyIndex !== null,
+    hasMoneyBasis: moneyIndex !== null
   };
 }
 async function getCountryContext(lat,lng,state){

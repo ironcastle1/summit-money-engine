@@ -16,9 +16,10 @@ window.Renderers = (() => {
   function isForeignText(t){ const s=String(t||''); if(!s) return false; const nonAscii=(s.match(/[^\x00-\x7F]/g)||[]).length; return nonAscii/Math.max(s.length,1) > .08; }
   function plainEventTitle(e){ const kind = kindLabel[e.kind] || 'Event'; const place = e.place ? ` near ${e.place}` : ''; if(isForeignText(e.title)) return `${kind} report${place}`; return String(e.title||`${kind} report${place}`).slice(0,130); }
   function plainSummary(e){ if(isForeignText(e.summary||e.title)) return `Original source is not in English. Category: ${kindLabel[e.kind]||'Event'}. Location: ${e.place||'mapped area'}. Open source before using it.`; return String(e.summary||e.title||'Source-backed event.').slice(0,260); }
-  function eventCard(e){ const cls=e.kind==='war'?'red':e.kind==='terror'?'orange':e.kind==='disaster'?'yellow':'blue'; return `<div class="info-card"><h3>${esc(plainEventTitle(e))}</h3><div class="quick-list"><div class="quick-item ${cls}"><b>Type:</b> ${esc(kindLabel[e.kind]||e.kind||'Event')} · <b>Place:</b> ${esc(e.place||'mapped area')}</div><div class="quick-item"><b>What happened:</b> ${esc(plainSummary(e))}</div><div class="quick-item"><b>Before acting:</b> open the source and check whether related assets actually moved.</div></div><p class="action-line"><b>Watch:</b> ${(e.watch||[]).map(esc).join(', ') || 'no linked asset yet'}</p>${isForeignText(e.title)?`<p class="original-title"><b>Original title:</b> ${esc(e.title)}</p>`:''}<p class="source-box">${sourceList(e.sources||[{name:e.source,url:e.url}])}</p></div>`; }
+  function eventCard(e){ const cls=e.kind==='war'?'red':e.kind==='terror'?'orange':e.kind==='disaster'?'yellow':'blue'; return `<div class="info-card"><h3>${esc(plainEventTitle(e))}</h3><div class="quick-list"><div class="quick-item ${cls}"><b>Type:</b> ${esc(kindLabel[e.kind]||e.kind||'Event')} · <b>Place:</b> ${esc(e.place||'mapped area')}</div><div class="quick-item"><b>What happened:</b> ${esc(plainSummary(e))}</div><div class="quick-item"><b>Check:</b> open the source and compare it with price movement.</div></div><p class="action-line"><b>Assets:</b> ${(e.watch||[]).map(esc).join(', ') || 'no linked asset yet'}</p>${isForeignText(e.title)?`<p class="original-title"><b>Original title:</b> ${esc(e.title)}</p>`:''}<p class="source-box">${sourceList(e.sources||[{name:e.source,url:e.url}])}</p></div>`; }
   function eventList(events){ return (events||[]).map(eventCard).join('') || '<div class="warn">No source-backed events loaded in this category.</div>'; }
-  function nationalBlock(n){ if(!n) return ''; const h=n.homicide?.value; const pop=n.population?.value; const gdp=n.gdpPerCapita?.value; return `<div class="info-card"><h3>National averages</h3><div class="metric-row"><span>Homicide rate</span><b>${Number.isFinite(h)?`${h.toFixed(2)} / 100k`: 'not available'}</b></div><div class="metric-row"><span>Population</span><b>${Number.isFinite(pop)?num(pop):'not available'}</b></div><div class="metric-row"><span>GDP per person</span><b>${Number.isFinite(gdp)?money(gdp):'not available'}</b></div><p class="source-box">World Bank where available. Country-level only, not street-level safety.</p></div>`; }
+  function wbVal(n,key,fmt){ const x=n?.[key]; if(!x || !Number.isFinite(Number(x.value))) return 'N/A'; return fmt ? fmt(Number(x.value), x.year) : `${Number(x.value).toLocaleString(undefined,{maximumFractionDigits:2})} (${x.year})`; }
+  function nationalBlock(n){ if(!n) return ''; return `<div class="info-card"><h3>Real national data</h3><div class="metric-row"><span>Homicide</span><b>${wbVal(n,'homicide',(v,y)=>`${v.toFixed(2)} / 100k · ${y}`)}</b></div><div class="metric-row"><span>GDP/person</span><b>${wbVal(n,'gdpPerCapita',(v,y)=>`${money(v)} · ${y}`)}</b></div><div class="metric-row"><span>GDP growth</span><b>${wbVal(n,'gdpGrowth',(v,y)=>`${v.toFixed(2)}% · ${y}`)}</b></div><div class="metric-row"><span>Inflation</span><b>${wbVal(n,'inflation',(v,y)=>`${v.toFixed(2)}% · ${y}`)}</b></div><div class="metric-row"><span>Unemployment</span><b>${wbVal(n,'unemployment',(v,y)=>`${v.toFixed(2)}% · ${y}`)}</b></div><div class="metric-row"><span>Trade/GDP</span><b>${wbVal(n,'tradePctGdp',(v,y)=>`${v.toFixed(1)}% · ${y}`)}</b></div><div class="metric-row"><span>Population</span><b>${wbVal(n,'population',(v,y)=>`${num(v)} · ${y}`)}</b></div><p class="source-box">Source: World Bank Indicators API where available. Missing = N/A, not guessed.</p></div>`; }
   function routeControls(){ return `<p class="plain">Routes are off by default. Tick the route layer you want.</p><div class="toggle-row"><label><input type="checkbox" id="seaToggle" ${window.SHOW_SEA?'checked':''}> Sea routes</label><label><input type="checkbox" id="landToggle" ${window.SHOW_LAND?'checked':''}> Land routes</label></div>`; }
   function riskLegend(){ return `<div class="safety-key"><span class="risk-pill red">WAR</span><span class="risk-pill orange">TERROR</span><span class="risk-pill yellow">WATCH</span><span class="risk-pill green">LOWER RISK</span><span class="risk-pill grey">NO LOCAL DATA</span></div>`; }
   function openPanel(name){
@@ -48,14 +49,46 @@ window.Renderers = (() => {
   function renderSafetyCountry(c){ const english=c.englishName||c.name; const local=c.localName&&c.localName!==english?c.localName:''; Panels.setInfo(english, `<div class="info-card country-card"><h3>${esc(english)}${local?` <span class="subtle">/ ${esc(local)}</span>`:''}</h3><div class="quick-list"><div class="quick-item ${riskClass(c.level)}"><b>Map colour:</b> ${esc(String(c.level||'unknown').toUpperCase())}</div><div class="quick-item"><b>Safety:</b> ${esc(c.safetyRead||c.note||'Country-level only. Local street crime requires official local feed.')}</div><div class="quick-item"><b>Crime feed:</b> ${esc(c.crimeFeed||'No official local crime feed connected for this country.')}</div></div><p class="source-box">No guessed street-level crime. Click a point for national indicators and event count.</p></div>`, 'layers'); }
   function renderSafetyRegion(r){ Panels.setInfo(r.name, `<div class="info-card"><h3>${esc(r.name)}</h3><p>${esc(r.note||'Safety region.')}</p></div>`, 'layers'); }
   function riskClass(level){ const x=String(level||'').toLowerCase(); if(['green','low','safer'].includes(x)) return 'green'; if(['yellow','monitor','medium'].includes(x)) return 'yellow'; if(['orange','high-risk'].includes(x)) return 'orange'; return 'red'; }
+  function factsList(items){ return (items||[]).filter(Boolean).slice(0,8).map(x=>`<li>${esc(x)}</li>`).join('') || '<li>N/A</li>'; }
+  function rawMetricLine(label, value){ return `<div class="metric-row"><span>${esc(label)}</span><b>${esc(value ?? 'N/A')}</b></div>`; }
   function renderContext(d){
-    const place=d?.reverse?.place||'Selected area'; const country=d?.country?.englishName||d?.country?.name||'Unknown country'; const localCountry=d?.country?.localName||(d?.reverse?.address?.country&&d.reverse.address.country!==country?d.reverse.address.country:'');
-    const events=(d.nearEvents||[]).slice(0,12); const countryEvents=(d.inCountryEvents||[]).slice(0,18); const nodes=(d.nearNodes||[]).slice(0,8); const cities=(d.nearCities||[]).slice(0,8); const idx=d.indexes||{};
-    const hasWar=(idx.counts?.war||0)>0 || !!d.conflict; const hasTerror=(idx.counts?.terror||0)>0; const hasDisaster=(idx.counts?.disaster||0)>0;
-    const conflictLine = d.conflict ? `${d.conflict.status||d.conflict.level||'tracked'}: ${d.conflict.note||'conflict overlay active'}` : 'No country-level conflict overlay.';
-    const crimeLine = idx.source?.crime || d?.crime?.source || 'No crime data loaded.';
-    const countryEventLine = `${countryEvents.length} source-backed events inside country boundary; ${events.length} nearest events to click.`;
-    Panels.setInfo(country, `<div class="info-card country-card"><h3>${esc(country)}${localCountry?` <span class="subtle">/ ${esc(localCountry)}</span>`:''}</h3><p class="source-line">Clicked: ${esc(place)}</p><div class="index-grid">${indexTile('Safety', idx.hasRealSafety?idx.safetyIndex:null, idx.source?.safety || 'source check')}${indexTile('Crime', idx.hasRealCrime?idx.crimeIndex:null, idx.source?.crime || 'missing')}${indexTile('Money lanes', idx.hasMoneyBasis?idx.moneyIndex:null, idx.source?.money || 'mapped nodes')}</div><div class="quick-list"><div class="quick-item ${hasWar?'red':hasTerror?'orange':hasDisaster?'yellow':'green'}"><b>Conflict:</b> ${esc(conflictLine)}</div><div class="quick-item"><b>Crime:</b> ${esc(crimeLine)}</div><div class="quick-item"><b>Events:</b> ${esc(countryEventLine)}</div><div class="quick-item"><b>Nearby useful places:</b> ${cities.map(c=>esc(c.name)).join(', ') || 'none loaded'}</div><div class="quick-item"><b>Next check:</b> open the newest event source, then check Crypto / Commodities / Polymarket for actual market movement.</div></div></div>${nationalBlock(d.national)}${eventList([...countryEvents,...events].slice(0,18))}${nodes.map(n=>`<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Why:</b> ${esc(n.note)}</div><div class="quick-item"><b>Watch:</b> ${(n.watch||[]).map(esc).join(', ')}</div></div></div>`).join('')}`, 'context');
+    const place=d?.reverse?.place||'Selected area';
+    const country=d?.country?.englishName||d?.country?.name||'Unknown country';
+    const localCountry=d?.country?.localName||(d?.reverse?.address?.country&&d.reverse.address.country!==country?d.reverse.address.country:'');
+    const events=(d.nearEvents||[]).slice(0,10);
+    const countryEvents=(d.inCountryEvents||[]).slice(0,20);
+    const nodes=(d.nearNodes||[]).slice(0,8);
+    const cities=(d.nearCities||[]).slice(0,10);
+    const idx=d.indexes||{};
+    const conflictLine = d.conflict ? `${d.conflict.status||d.conflict.level||'tracked'}: ${d.conflict.note||'conflict overlay active'}` : 'No active country conflict overlay in current dataset.';
+    Panels.setInfo(country, `
+      <div class="info-card country-card">
+        <h3>${esc(country)}${localCountry?` <span class="subtle">/ ${esc(localCountry)}</span>`:''}</h3>
+        <p class="source-line">Clicked area: ${esc(place)}</p>
+        <div class="index-grid real-indexes">
+          ${indexTile('Safety', idx.hasRealSafety?idx.safetyIndex:null, idx.source?.safety || 'N/A')}
+          ${indexTile('Crime', idx.hasRealCrime?idx.crimeIndex:null, idx.source?.crime || 'N/A')}
+          ${indexTile('Money', idx.hasMoneyBasis?idx.moneyIndex:null, idx.source?.money || 'N/A')}
+        </div>
+        <div class="data-proof">
+          <h4>Data used</h4>
+          <div class="proof-cols">
+            <div><b>Safety</b><ul>${factsList(idx.facts?.safety)}</ul></div>
+            <div><b>Crime</b><ul>${factsList(idx.facts?.crime)}</ul></div>
+            <div><b>Money</b><ul>${factsList(idx.facts?.money)}</ul></div>
+          </div>
+        </div>
+        <div class="quick-list">
+          <div class="quick-item"><b>Conflict:</b> ${esc(conflictLine)}</div>
+          <div class="quick-item"><b>Events:</b> ${esc(countryEvents.length)} inside country · ${esc(events.length)} nearest to click</div>
+          <div class="quick-item"><b>Nearby places:</b> ${cities.map(c=>esc(c.name)).join(', ') || 'none loaded'}</div>
+          <div class="quick-item"><b>Rule:</b> if a box says N/A, this app does not have a real source for that value yet.</div>
+        </div>
+      </div>
+      ${nationalBlock(d.national)}
+      <div class="info-card"><h3>Newest nearby events</h3>${eventList([...countryEvents,...events].slice(0,12))}</div>
+      ${nodes.map(n=>`<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Info:</b> ${esc(n.note)}</div><div class="quick-item"><b>Assets:</b> ${(n.watch||[]).map(esc).join(', ')}</div></div></div>`).join('')}
+    `, 'context');
   }
   return { renderMarkets, openPanel, renderNode, renderLocalPlace, renderEvent, renderRoute, renderContext, renderRiskRegion, renderSafetyRegion, renderCountryConflict, renderSafetyCountry };
 })();

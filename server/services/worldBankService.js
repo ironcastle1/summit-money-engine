@@ -5,7 +5,13 @@ const cache = new NodeCache({ stdTTL: 60 * 60 * 24 });
 const SERIES = {
   homicide: 'VC.IHR.PSRC.P5',
   population: 'SP.POP.TOTL',
-  gdpPerCapita: 'NY.GDP.PCAP.CD'
+  gdpPerCapita: 'NY.GDP.PCAP.CD',
+  gdpGrowth: 'NY.GDP.MKTP.KD.ZG',
+  inflation: 'FP.CPI.TOTL.ZG',
+  unemployment: 'SL.UEM.TOTL.ZS',
+  tradePctGdp: 'NE.TRD.GNFS.ZS',
+  exportsPctGdp: 'NE.EXP.GNFS.ZS',
+  internetUsersPct: 'IT.NET.USER.ZS'
 };
 
 async function latestWorldBankValue(iso3, indicator){
@@ -14,10 +20,10 @@ async function latestWorldBankValue(iso3, indicator){
   const cached = cache.get(key);
   if(cached !== undefined) return cached;
   try{
-    const url = `https://api.worldbank.org/v2/country/${encodeURIComponent(iso3)}/indicator/${indicator}?format=json&per_page=12`;
-    const data = await getJson(url, { timeout: 9000 });
+    const url = `https://api.worldbank.org/v2/country/${encodeURIComponent(iso3)}/indicator/${indicator}?format=json&per_page=20`;
+    const data = await getJson(url, { timeout: 12000 });
     const rows = Array.isArray(data) ? data[1] || [] : [];
-    const hit = rows.find(r => r && r.value !== null && r.value !== undefined);
+    const hit = rows.find(r => r && r.value !== null && r.value !== undefined && Number.isFinite(Number(r.value)));
     const result = hit ? { value: Number(hit.value), year: hit.date, source: 'World Bank Indicators API', indicator } : null;
     cache.set(key, result);
     return result;
@@ -28,21 +34,17 @@ async function latestWorldBankValue(iso3, indicator){
 }
 
 async function getNationalAverages(iso3){
-  const [homicide, population, gdpPerCapita] = await Promise.all([
-    latestWorldBankValue(iso3, SERIES.homicide),
-    latestWorldBankValue(iso3, SERIES.population),
-    latestWorldBankValue(iso3, SERIES.gdpPerCapita)
-  ]);
+  const entries = await Promise.all(Object.entries(SERIES).map(async ([name, code]) => [name, await latestWorldBankValue(iso3, code)]));
+  const obj = Object.fromEntries(entries);
   return {
     iso3,
-    homicide,
-    population,
-    gdpPerCapita,
+    ...obj,
+    source: 'World Bank Indicators API',
     notes: [
-      'National averages are broad indicators, not street-level safety.',
-      'City and district safety requires local official feeds; unknown is not treated as safe.'
+      'National indicators are real country-level figures where World Bank publishes them.',
+      'They are not street-level safety, and missing data is shown as N/A.'
     ]
   };
 }
 
-module.exports = { getNationalAverages };
+module.exports = { getNationalAverages, latestWorldBankValue, SERIES };
