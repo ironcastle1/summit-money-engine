@@ -15,7 +15,7 @@ window.MoneyMap = (() => {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',noWrap:true,bounds:[[-85,-180],[85,180]],attribution:'&copy; OpenStreetMap &copy; CARTO', updateWhenIdle:false, updateWhenZooming:false, keepBuffer:4}).addTo(map);
     riskLayer=L.layerGroup(); safetyLayer=L.layerGroup(); conflictCountryLayer=L.layerGroup().addTo(map); safetyCountryLayer=L.layerGroup(); seaLayer=L.layerGroup(); landLayer=L.layerGroup(); nodesLayer=L.layerGroup().addTo(map); cityLayer=L.layerGroup().addTo(map); localLayer=L.layerGroup().addTo(map); eventsLayer=L.layerGroup().addTo(map);
     map.on('zoomend moveend',()=>{ renderEvents(window.APP_STATE?.events||[]); renderCities(window.MAP_DATA?.cityNodes||[]); fetchLocalPlaces(); resize(); });
-    map.on('click', async e => { const d=await fetch(`/api/context?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); try{ const rev=await fetch(`/api/reverse?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); d.reverse=rev; }catch(_){} Renderers.renderContext(d); });
+    map.on('click', async e => openContext(e.latlng.lat, e.latlng.lng));
     document.addEventListener('change', e=>{ if(e.target?.id==='seaToggle'){ window.SHOW_SEA=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.id==='landToggle'){ window.SHOW_LAND=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.dataset?.layer){ document.body.classList.toggle('hide-'+e.target.dataset.layer, !e.target.checked); } if(e.target?.id==='safetyToggle'){ window.SHOW_SAFETY=!!e.target.checked; renderSafetyCountries(window.MAP_DATA?.safetyCountries||[]); }});
     setTimeout(resize,250);
   }
@@ -102,8 +102,14 @@ window.MoneyMap = (() => {
     for(const r of routes||[]){ if(r.type==='sea' && window.SHOW_SEA) add(r); if(r.type==='land' && window.SHOW_LAND) add(r); }
   }
   function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderConflictCountries(mapData.conflictCountries||[]); renderSafetyCountries(mapData.safetyCountries||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); fetchLocalPlaces(); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
+  async function openContext(lat,lng,zoom=8){
+    if(map && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) map.setView([Number(lat),Number(lng)], Math.max(map.getZoom(), zoom));
+    const d=await fetch(`/api/context?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`).then(r=>r.json());
+    try{ const rev=await fetch(`/api/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`).then(r=>r.json()); d.reverse=rev; }catch(_){}
+    Renderers.renderContext(d);
+  }
   function newEvent(e){ if(!e || lastEventIds.has(e.id)) return; lastEventIds.add(e.id); showToast(e.title); sound(); renderEvents(window.APP_STATE?.events||[], new Set([e.id])); }
   function showToast(text){ const t=document.getElementById('toast'); t.innerHTML='<div class="a-title">LIVE MAP ALERT</div><div class="a-meta">'+String(text||'').slice(0,190)+'</div>'; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),14000); }
   function resize(){ if(!map) return; const w=document.getElementById('map')?.clientWidth||1200; const min=Math.max(2.62, Math.log2((w+260)/256)); map.setMinZoom(Math.min(3.05,min)); map.invalidateSize(); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); setTimeout(()=>map.invalidateSize(),220); }
-  return { init,setData,newEvent,resize,renderEvents,renderCities,renderRoutes,renderRiskRegions,renderSafetyRegions,renderConflictCountries,renderSafetyCountries };
+  return { init,setData,newEvent,resize,openContext,renderEvents,renderCities,renderRoutes,renderRiskRegions,renderSafetyRegions,renderConflictCountries,renderSafetyCountries };
 })();

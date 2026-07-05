@@ -11,6 +11,11 @@ async function boot(){
   const [mapData,state]=await Promise.all([getJson('/api/map'),getJson('/api/snapshot')]);
   MoneyMap.setData(mapData,state); applyState(state);
   document.getElementById('refresh').addEventListener('click', async()=>{ document.getElementById('status').textContent='REFRESHING'; await getJson('/api/refresh',{method:'POST'}); applyState(await getJson('/api/snapshot')); });
+  document.getElementById('placeSearch')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = document.getElementById('placeQuery')?.value || '';
+    Renderers.renderSearch(await getJson(`/api/search-place?q=${encodeURIComponent(q)}&limit=8`));
+  });
   const stream=new EventSource('/api/stream');
   stream.onmessage=e=>{ const msg=JSON.parse(e.data); if(msg.state) applyState(msg.state); if(msg.type==='new_event'&&msg.event) MoneyMap.newEvent(msg.event); };
   setInterval(async()=>{ try{ applyState(await getJson('/api/snapshot')); }catch(e){} },45000);

@@ -90,7 +90,7 @@ async function fetchEvents(){
     'USGS earthquakes active',
     ucdp.status || 'UCDP optional feed not checked',
     'X tab removed; no fake X posts'
-  ].join(' · ');
+  ].join(' | ');
   return {
     events,
     xfeed: [],

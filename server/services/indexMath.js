@@ -25,7 +25,7 @@ function scoreLocalCrimeCount(count){
 }
 function scoreSafety({ crimeIndex, conflict, warCount=0, terrorCount=0, disasterCount=0 }){
   if(crimeIndex === null && !conflict && !warCount && !terrorCount && !disasterCount) return null;
-  let s = crimeIndex === null ? 72 : Number(crimeIndex);
+  let s = crimeIndex === null ? 100 : Number(crimeIndex);
   if(conflict) s -= conflict.severity === 'active-war' ? 45 : conflict.severity === 'high-risk' ? 28 : 15;
   s -= Math.min(38, Number(warCount||0) * 5);
   s -= Math.min(28, Number(terrorCount||0) * 7);
@@ -37,13 +37,12 @@ function scoreMoney(national, financeNodes=0, marketEvents=0){
   const growth = national?.gdpGrowth?.value;
   const trade = national?.tradePctGdp?.value;
   const internet = national?.internetUsersPct?.value;
-  if(!hasNumber(gdp) && !hasNumber(growth) && !hasNumber(trade) && !financeNodes && !marketEvents) return null;
+  if(!hasNumber(gdp) && !hasNumber(growth) && !hasNumber(trade) && !hasNumber(internet) && !marketEvents) return null;
   let s = 0;
   if(hasNumber(gdp)) s += clamp(Math.log10(Math.max(1,gdp)) * 18 - 35, 0, 28);
   if(hasNumber(growth)) s += clamp((Number(growth)+3) * 4, 0, 22);
   if(hasNumber(trade)) s += clamp(Number(trade) / 5, 0, 18);
   if(hasNumber(internet)) s += clamp(Number(internet) / 8, 0, 12);
-  s += clamp(financeNodes * 5, 0, 12);
   s += clamp(marketEvents * 4, 0, 10);
   return Math.round(clamp(s));
 }

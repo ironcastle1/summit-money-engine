@@ -21,6 +21,29 @@ window.Renderers = (() => {
   function sourceList(sources){
     return (sources || []).map(s => `<a target="_blank" href="${esc(s.url || '#')}">${esc(s.name || s.source || 'source')}</a>`).join(' | ') || 'source pending';
   }
+  async function loadWikiInto(id, title, wikidata){
+    const el = document.getElementById(id);
+    if(!el || (!title && !wikidata)) return;
+    try{
+      const qs = new URLSearchParams();
+      if(title) qs.set('title', title);
+      if(wikidata) qs.set('wikidata', wikidata);
+      const d = await fetch(`/api/wiki?${qs.toString()}`).then(r => r.json());
+      if(!d.ok) return;
+      el.innerHTML = `<div class="wiki-card">${d.image ? `<img class="wiki-img" src="${esc(d.image)}" alt="${esc(d.title)}">` : ''}<div><h3>${esc(d.title)}</h3><p>${esc(String(d.extract || '').slice(0, 260) || 'N/A')}</p><p class="source-box"><a target="_blank" href="${esc(d.source || '#')}">Wikipedia source</a></p></div></div>`;
+    }catch(_){}
+  }
+  async function loadPlaceContextInto(id, p){
+    const el = document.getElementById(id);
+    if(!el || !hasNum(p?.lat) || !hasNum(p?.lng)) return;
+    try{
+      const d = await fetch(`/api/context?lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}`).then(r => r.json());
+      const idx = d.indexes || {};
+      el.innerHTML = `<div class="info-card"><h3>Local indexes</h3><div class="index-grid real-indexes">${indexTile('Safety', idx.hasRealSafety ? idx.safetyIndex : null, idx.source?.safety || 'N/A')}${indexTile('Crime', idx.hasRealCrime ? idx.crimeIndex : null, idx.source?.crime || 'N/A')}${indexTile('Money', idx.hasMoneyBasis ? idx.moneyIndex : null, idx.source?.money || 'N/A')}</div><p class="source-box">Local crime is official where available. Otherwise national indicators are shown and missing values stay N/A.</p></div>${nationalBlock(d.national)}`;
+    }catch(_){
+      el.innerHTML = '<div class="warn">Context lookup unavailable.</div>';
+    }
+  }
   function scoreClass(value){
     if(value === null || value === undefined || value === 'NA') return 'grey';
     const v = Number(value);
@@ -81,6 +104,11 @@ window.Renderers = (() => {
   }
   function openPanel(name){
     const state = window.APP_STATE || {};
+    if(name === 'brief'){
+      Panels.setDrawer('Live brief', '<div class="warn">Loading live brief...</div>', 'brief');
+      fetch('/api/brief').then(r => r.json()).then(renderBrief).catch(() => Panels.setDrawer('Live brief', '<div class="warn">Brief unavailable.</div>', 'brief'));
+      return;
+    }
     if(name === 'crypto'){
       Panels.setDrawer('Crypto', `<p class="plain">Live crypto markets. Charts use recent source candles.</p>${marketTable(groupMarkets('crypto'))}<div id="cryptoCharts"></div>`, 'crypto');
       const k = state.klines || {};
@@ -96,16 +124,42 @@ window.Renderers = (() => {
     if(name === 'polymarket') return Panels.setInfo('Polymarket', `<p class="plain">Live Polymarket feed only.</p>${(state.polymarket || []).slice(0, 45).map(p => `<div class="info-card"><h3>${esc(p.question)}</h3><div class="metric-row"><span>Volume</span><b>${num(p.volume)}</b></div><div class="metric-row"><span>Liquidity</span><b>${num(p.liquidity)}</b></div><p class="source-box"><a target="_blank" href="${esc(p.url || '#')}">open market</a></p></div>`).join('') || '<div class="warn">No Polymarket feed result.</div>'}`, 'polymarket');
     if(name === 'routes') return Panels.setInfo('Routes', `${routeControls()}<div class="route-list">${(window.ROUTES || []).map(r => `<div class="info-card route-chip" data-route="${esc(r.id)}"><h3>${esc(r.name)}</h3><div class="quick-list"><div class="quick-item"><b>Goods:</b> ${esc(r.goods)}</div><div class="quick-item"><b>Direction:</b> ${esc(r.direction || 'two-way')}</div><div class="quick-item"><b>Watch:</b> ${(r.watch || []).map(esc).join(', ') || 'N/A'}</div></div></div>`).join('')}</div>`, 'routes');
     if(name === 'layers') return Panels.setInfo('Safety map', `${riskLegend()}<p class="plain">Safety/conflict layers colour country polygons. Missing data shows N/A.</p><div class="toggle-row"><label><input checked data-layer="risk" type="checkbox"> Conflict countries</label><label><input id="safetyToggle" type="checkbox"> Safety colours</label><label><input checked data-layer="events" type="checkbox"> Event dots</label></div>`, 'layers');
+    if(name === 'sources'){
+      Panels.setDrawer('Sources', '<div class="warn">Loading source status...</div>', 'sources');
+      fetch('/api/sources').then(r => r.json()).then(renderSources).catch(() => Panels.setDrawer('Sources', '<div class="warn">Source list unavailable.</div>', 'sources'));
+      return;
+    }
     if(name === 'rapid'){
       Panels.setDrawer('Rapid movers', `<p class="plain">Measured moves from recent price candles only.</p>${(state.rapid || []).map((r,i) => `<div class="rapid-card"><h3>${esc(r.asset)} - ${esc(r.label)}</h3><div class="metric-row"><span>Short move</span><b>${esc(r.moveShort)}%</b></div><div class="metric-row"><span>Window move</span><b>${esc(r.moveWindow)}%</b></div><div class="metric-row"><span>Volatility</span><b>${esc(r.volatilityPct)}%</b></div><div class="metric-row"><span>Trend held</span><b>${esc(r.trendHeldPct)}%</b></div><div class="quick-list"><div class="quick-item"><b>Direction:</b> ${esc(r.direction)}</div><div class="quick-item"><b>Measured facts:</b> ${(r.reasons || []).map(esc).join(' | ')}</div><div class="quick-item yellow"><b>Note:</b> ${esc(r.warning || 'Recent measurements only.')}</div></div><div class="chart-box"><canvas id="rapidChart${i}"></canvas><p class="chart-note">x-axis: time | y-axis: actual recent price</p></div></div>`).join('') || '<div class="warn">No rapid movers with enough real chart data yet.</div>'}`, 'rapid');
       setTimeout(() => (state.rapid || []).forEach((r,i) => Charts.line(`rapidChart${i}`, r.priceSeries || [], r.asset, 'price')), 80);
     }
   }
   function renderLocalPlace(p){
-    Panels.setInfo(p.name, `<div class="info-card"><h3>${esc(p.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(p.tags?.place || p.tags?.amenity || p.kind || 'local place')}</div><div class="quick-item"><b>Source:</b> ${esc(p.source || 'OpenStreetMap')}</div>${p.tags?.population ? `<div class="quick-item"><b>Population:</b> ${esc(p.tags.population)}</div>` : ''}</div></div>`, 'context');
+    const wikiId = `wiki-${String(p.id || p.name).replace(/[^a-z0-9]/gi, '-')}`;
+    const ctxId = `ctx-${String(p.id || p.name).replace(/[^a-z0-9]/gi, '-')}`;
+    Panels.setInfo(p.name, `<div class="info-card"><h3>${esc(p.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(p.tags?.place || p.tags?.amenity || p.kind || 'local place')}</div><div class="quick-item"><b>Source:</b> ${esc(p.source || 'OpenStreetMap')}</div>${p.tags?.population ? `<div class="quick-item"><b>Population:</b> ${esc(p.tags.population)}</div>` : ''}</div></div><div id="${esc(wikiId)}"><div class="warn">Loading Wikipedia source...</div></div><div id="${esc(ctxId)}"><div class="warn">Loading local data...</div></div>`, 'context');
+    loadWikiInto(wikiId, p.name, p.tags?.wikidata);
+    loadPlaceContextInto(ctxId, p);
+  }
+  function renderSearch(result){
+    const places = result?.places || [];
+    Panels.setInfo('Search', `<div class="info-card"><h3>Search results</h3><p class="source-box">Source: ${esc(result?.source || 'OpenStreetMap Nominatim')}</p><div class="quick-list">${places.map(p => `<button class="result-row" data-lat="${esc(p.lat)}" data-lng="${esc(p.lng)}"><b>${esc(p.name || p.displayName)}</b><span>${esc(p.displayName || '')}</span></button>`).join('') || '<div class="warn">No place found.</div>'}</div></div>`, 'context');
+    document.querySelectorAll('.result-row').forEach(btn => btn.addEventListener('click', () => MoneyMap.openContext(btn.dataset.lat, btn.dataset.lng, 9)));
+  }
+  function renderBrief(brief){
+    const moverRows = (brief.movers || []).map(m => `<div class="metric-row"><span>${esc(m.id)} ${esc(m.label || '')}</span><b>${pctText(m.move)}</b></div>`).join('') || '<div class="warn">No measured market movers.</div>';
+    const rapidRows = (brief.rapid || []).map(r => `<div class="quick-item"><b>${esc(r.asset)}</b> ${esc(r.direction)} | short ${esc(r.shortMove)} | window ${esc(r.windowMove)} | vol ${esc(r.volatility)}</div>`).join('') || '<div class="warn">No rapid rows with real candles.</div>';
+    const eventRows = (brief.events || []).map(e => `<div class="quick-item"><b>${esc(e.kind)}</b> ${esc(e.place || 'N/A')} | <a target="_blank" href="${esc(e.url || '#')}">${esc(e.title)}</a></div>`).join('') || '<div class="warn">No source-linked events loaded.</div>';
+    Panels.setDrawer('Live brief', `<div class="info-card"><h3>Feed counts</h3><div class="metric-row"><span>Markets</span><b>${num(brief.counts?.markets)}</b></div><div class="metric-row"><span>Chart series</span><b>${num(brief.counts?.chartSeries)}</b></div><div class="metric-row"><span>Events</span><b>${num(brief.counts?.events)}</b></div><div class="metric-row"><span>Rapid movers</span><b>${num(brief.counts?.rapid)}</b></div><p class="source-box">Generated: ${esc(brief.generatedAt || 'N/A')}</p></div><div class="info-card"><h3>Measured movers</h3>${moverRows}</div><div class="info-card"><h3>Rapid movers</h3><div class="quick-list">${rapidRows}</div></div><div class="info-card"><h3>Newest source-linked events</h3><div class="quick-list">${eventRows}</div></div>`, 'brief');
+  }
+  function renderSources(data){
+    const rows = (data.sources || []).map(s => `<div class="info-card"><h3>${esc(s.name)}</h3><div class="quick-list"><div class="quick-item"><b>Category:</b> ${esc(s.category)}</div><div class="quick-item"><b>Provides:</b> ${(s.provides || []).map(esc).join(', ')}</div><div class="quick-item"><b>Missing:</b> ${esc(s.missingMeans)}</div></div><p class="source-box"><a target="_blank" href="${esc(s.url)}">${esc(s.url)}</a></p></div>`).join('');
+    Panels.setDrawer('Sources', `<div class="info-card"><h3>Coverage</h3><div class="metric-row"><span>Total sources</span><b>${num(data.total)}</b></div></div>${rows}`, 'sources');
   }
   function renderNode(n){
-    Panels.setInfo(n.name, `<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(kindLabel[n.kind] || n.kind)}</div><div class="quick-item"><b>Watch:</b> ${(n.watch || []).map(esc).join(', ') || 'N/A'}</div><div class="quick-item"><b>Source:</b> ${esc(n.source || 'mapped reference point')}</div></div></div>`, 'context');
+    const wikiId = `wiki-node-${String(n.id || n.name).replace(/[^a-z0-9]/gi, '-')}`;
+    Panels.setInfo(n.name, `<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(kindLabel[n.kind] || n.kind)}</div><div class="quick-item"><b>Watch:</b> ${(n.watch || []).map(esc).join(', ') || 'N/A'}</div><div class="quick-item"><b>Source:</b> ${esc(n.source || 'mapped reference point')}</div></div></div><div id="${esc(wikiId)}"></div>`, 'context');
+    loadWikiInto(wikiId, n.name, n.tags?.wikidata);
   }
   function renderEvent(e){ Panels.setInfo(plainEventTitle(e), eventCard(e), e.kind); }
   function renderRoute(r){
@@ -173,5 +227,5 @@ window.Renderers = (() => {
       ${nodes.map(n => `<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(kindLabel[n.kind] || n.kind)}</div><div class="quick-item"><b>Assets:</b> ${(n.watch || []).map(esc).join(', ') || 'N/A'}</div></div></div>`).join('')}
     `, 'context');
   }
-  return { renderMarkets, openPanel, renderNode, renderLocalPlace, renderEvent, renderRoute, renderContext, renderRiskRegion, renderSafetyRegion, renderCountryConflict, renderSafetyCountry };
+  return { renderMarkets, openPanel, renderSearch, renderNode, renderLocalPlace, renderEvent, renderRoute, renderContext, renderRiskRegion, renderSafetyRegion, renderCountryConflict, renderSafetyCountry };
 })();

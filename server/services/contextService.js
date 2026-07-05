@@ -65,7 +65,7 @@ function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, ne
   const marketEvents = counts.shipping + counts.energy + counts.ai + counts.commodity + counts.election + counts.finance;
 
   let crimeIndex = null;
-  let crimeSource = 'N/A — no official local crime feed or World Bank homicide indicator loaded.';
+  let crimeSource = 'N/A - no official local crime feed or World Bank homicide indicator loaded.';
   let crimeFacts = [];
   if(crime?.ok){
     crimeIndex = scoreLocalCrimeCount(crime.count);
@@ -91,8 +91,8 @@ function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, ne
     bands: { safety:indexBand(safetyIndex), crime:indexBand(crimeIndex), money:indexBand(moneyIndex) },
     source: {
       crime: crimeSource,
-      safety: safetyIndex === null ? 'N/A — not enough source-backed safety data for this country/point.' : 'Calculated from crime indicator + source-backed war/terror/disaster event counts.',
-      money: moneyIndex === null ? 'N/A — not enough economic indicators or market nodes loaded.' : 'Calculated from World Bank economic indicators + mapped economic nodes + market-relevant events.'
+      safety: safetyIndex === null ? 'N/A - not enough source-backed safety data for this country/point.' : 'Calculated from crime indicator + source-backed war/terror/disaster event counts.',
+      money: moneyIndex === null ? 'N/A - not enough economic indicators or market events loaded.' : 'Calculated from World Bank economic indicators + market-relevant events.'
     },
     facts: {
       crime: crimeFacts,

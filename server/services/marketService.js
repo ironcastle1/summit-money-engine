@@ -4,7 +4,7 @@ function round(n, d=2){ return Number.isFinite(n) ? Number(n.toFixed(d)) : null;
 async function fetchBinance(a){
   const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${a.symbol}`;
   const d = await getJson(url);
-  return { ...a, price:round(Number(d.lastPrice), a.id==='XRP'?4:2), changePct:round(Number(d.priceChangePercent),2), status:'live', source:'Binance', ageSec:0 };
+  return { ...a, price:round(Number(d.lastPrice), Number(d.lastPrice) < 10 ? 4 : 2), changePct:round(Number(d.priceChangePercent),2), status:'live', source:'Binance', ageSec:0 };
 }
 async function fetchYahoo(a){
   const s = encodeURIComponent(a.symbol);
@@ -19,7 +19,7 @@ async function fetchYahoo(a){
   return { ...a, price:round(Number(last),2), changePct:round(((last-prev)/prev)*100,2), status:'delayed-live', source:'Yahoo chart', ageSec: q && q.regularMarketTime ? Math.max(0, Math.floor(Date.now()/1000 - q.regularMarketTime)) : null };
 }
 async function fetchKlines(symbol){
-  const isCrypto = ['BTCUSDT','ETHUSDT','SOLUSDT'].includes(symbol);
+  const isCrypto = /^[A-Z0-9]+USDT$/.test(symbol);
   try{
     if(isCrypto){
       const rows = await getJson(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=80`);
@@ -45,7 +45,7 @@ async function fetchMarkets(){
   return out;
 }
 async function fetchCharts(){
-  const wanted = ['BTCUSDT','ETHUSDT','SOLUSDT','HG=F','BZ=F','GC=F','SI=F','URA','VRT','PWR','ETN','LMT','ZIM'];
+  const wanted = [...new Set(assets.map(a => a.symbol))];
   const obj = {};
   for(const s of wanted) obj[s] = await fetchKlines(s);
   return obj;
