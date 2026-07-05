@@ -32,30 +32,56 @@ function countryFromIso2(iso2){ return countryCodes[String(iso2||'').toLowerCase
 async function getReverse(lat,lng){
   try{
     const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&accept-language=en`;
-    return await getJson(url,{headers:{'User-Agent':'SummitMoneyEngine/0.14 contact=dashboard'},timeout:8500});
+    return await getJson(url,{headers:{'User-Agent':'SummitMoneyEngine/0.17 contact=dashboard'},timeout:8500});
   }catch(e){ return null; }
 }
 async function getCrime(lat,lng){
-  if(!isUK(lat,lng)) return { ok:false, source:'No official local crime feed connected here. National indicators only.' };
+  if(!isUK(lat,lng)) return { ok:false, source:'No official local crime feed for this point. Showing national averages and event pressure only.' };
   try{
     const url=`https://data.police.uk/api/crimes-street/all-crime?lat=${lat}&lng=${lng}&date=${monthString()}`;
     const data=await getJson(url,{timeout:9000});
     const counts={}; for(const c of data||[]) counts[c.category]=(counts[c.category]||0)+1;
-    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k,v])=>`${k}: ${v}`).join(' · ');
     const count=(data||[]).length; const level=count>250?'red':count>90?'yellow':'green';
-    return { ok:true, count, level, categories:counts, summary:`Official police.uk street-level crimes within about 1 mile for the latest available month: ${count}. ${top||'No category breakdown.'}`, source:'data.police.uk street-level crime API; approximate anonymised locations' };
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}: ${v}`);
+    return { ok:true, count, level, categories:counts, top, source:'data.police.uk street-level crime API; approximate anonymised locations' };
   }catch(e){ return { ok:false, source:'data.police.uk unavailable for this point' }; }
-}
-function safetyFromEvents(lat,lng,events,crime){
-  const near=(events||[]).filter(e=>dist(lat,lng,e.lat,e.lng)<3.5 && ['war','terror','disaster'].includes(e.kind));
-  let level='green'; let explain='No nearby source-backed war, terror or disaster reports in the current feed.';
-  if(near.some(e=>['war','terror'].includes(e.kind)) || crime?.level==='red'){ level='red'; explain='Recent war/terror reports or high official local crime feed near this point.'; }
-  else if(near.length || crime?.level==='yellow'){ level='yellow'; explain='Some nearby risk pressure. Check event sources and local official feeds before travel or asset decisions.'; }
-  return { level, explain, nearCount:near.length };
 }
 function countryEvents(country, events){
   if(!country?.poly) return [];
-  return (events||[]).filter(e=>pointInPoly(e.lat,e.lng,country.poly)).slice(0,80);
+  return (events||[]).filter(e=>pointInPoly(e.lat,e.lng,country.poly)).slice(0,120);
+}
+function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, nearNodes }){
+  const events = [...(countryEvents||[]), ...(nearEvents||[])];
+  const war = events.filter(e=>e.kind==='war').length + (conflict ? 4 : 0);
+  const terror = events.filter(e=>e.kind==='terror').length;
+  const disaster = events.filter(e=>e.kind==='disaster').length;
+  const homicide = national?.homicide?.value;
+  let crimeIndex = null;
+  let crimeSource = 'No official crime indicator loaded.';
+  if(crime?.ok){
+    crimeIndex = crime.level==='red' ? 20 : crime.level==='yellow' ? 52 : 78;
+    crimeSource = `Official UK street-crime count near click: ${crime.count}`;
+  } else if(Number.isFinite(homicide)) {
+    // Higher homicide = worse score. 0-1 excellent, 10+ high risk, 30+ severe.
+    crimeIndex = Math.round(Math.max(5, Math.min(95, 92 - homicide * 4.4)));
+    crimeSource = `World Bank homicide rate: ${homicide.toFixed(2)} per 100k (${national.homicide.year})`;
+  }
+  let safetyIndex = null;
+  if(crimeIndex !== null || war || terror || disaster){
+    const base = crimeIndex ?? 62;
+    safetyIndex = Math.round(Math.max(3, Math.min(96, base - war*12 - terror*8 - disaster*4 - (conflict?18:0))));
+  }
+  const financeNodes = (nearNodes||[]).filter(n=>['finance','port','shipping','energy','commodity','ai','tech'].includes(n.kind)).length;
+  const marketEvents = events.filter(e=>['shipping','energy','ai','commodity','election'].includes(e.kind)).length;
+  const moneyIndex = Math.round(Math.max(0, Math.min(100, financeNodes*7 + marketEvents*5 + ((national?.gdpPerCapita?.value||0)>30000?12:0))));
+  return {
+    safetyIndex, crimeIndex, moneyIndex,
+    source: { crime: crimeSource, safety:'Computed only from source-backed conflict/event counts + official/national crime indicators.', money:'Computed from nearby mapped economic nodes + source-backed market/election/shipping/energy events.' },
+    counts: { war, terror, disaster, marketEvents, financeNodes },
+    hasRealCrime: crime?.ok || Number.isFinite(homicide),
+    hasRealSafety: !!(war || terror || disaster || conflict || crime?.ok || Number.isFinite(homicide)),
+    hasMoneyBasis: !!(financeNodes || marketEvents || national?.gdpPerCapita?.value)
+  };
 }
 async function getCountryContext(lat,lng,state){
   const reverse = await getReverse(lat,lng);
@@ -69,12 +95,12 @@ async function getCountryContext(lat,lng,state){
   const placeType = reverse?.type || reverse?.category || 'area';
   const nearCities=[...cityNodes].sort((a,b)=>dist(lat,lng,a.lat,a.lng)-dist(lat,lng,b.lat,b.lng)).slice(0,45);
   const nearNodes=[...mapNodes].sort((a,b)=>dist(lat,lng,a.lat,a.lng)-dist(lat,lng,b.lat,b.lng)).slice(0,35);
-  const nearEvents=(state.events||[]).sort((a,b)=>dist(lat,lng,a.lat,a.lng)-dist(lat,lng,b.lat,b.lng)).slice(0,80);
+  const fixedNearEvents=(state.events||[]).sort((a,b)=>dist(lat,lng,a.lat,a.lng)-dist(lat,lng,b.lat,b.lng)).slice(0,80);
   const inCountryEvents=countryEvents(boundaryCountry,state.events||[]);
   const crime=await getCrime(lat,lng);
-  const safety=safetyFromEvents(lat,lng,state.events||[],crime);
   const national = await getNationalAverages(iso3);
   const conflict = (conflictCountries||[]).find(c => c.iso === iso3 || c.name === boundaryCountry?.name) || null;
-  return { country:{ ...(boundaryCountry||{}), iso3, englishName, localName }, reverse:{ ok:!!reverse, place:placeName, address:reverse?.address||{}, type:placeType }, nearCities, nearNodes, nearEvents, inCountryEvents, crime, safety, national, conflict, clicked:{lat,lng}, feeds:{ conflict: state.conflictFeedStatus || 'GDELT/ReliefWeb/USGS open feeds active; optional UCDP token not checked', x:'X Live removed; no fake X data', crime:'UK local only; global needs official/licensed feeds', worldBank:'national averages when World Bank publishes them' } };
+  const indexes = buildIndexes({ national, crime, conflict, countryEvents:inCountryEvents, nearEvents:fixedNearEvents, nearNodes });
+  return { country:{ ...(boundaryCountry||{}), iso3, englishName, localName }, reverse:{ ok:!!reverse, place:placeName, address:reverse?.address||{}, type:placeType }, nearCities, nearNodes, nearEvents:fixedNearEvents, inCountryEvents, crime, national, conflict, indexes, clicked:{lat,lng}, feeds:{ conflict: state.conflictFeedStatus || 'GDELT/ReliefWeb/USGS open feeds active; optional UCDP token not checked', crime:'UK local only; global uses national indicators where available', worldBank:'national averages when World Bank publishes them' } };
 }
 module.exports = { getCountryContext };
