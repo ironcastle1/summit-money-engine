@@ -18,9 +18,6 @@ async function fetchPolymarket(){
       return arr.slice(0,30).map(clean);
     }catch(e){}
   }
-  return [
-    { id:'pm-election', question:'Election odds markets: watch large volume swings before headline confirmation', volume:850000, liquidity:210000, url:'https://polymarket.com/markets' },
-    { id:'pm-war', question:'Geopolitical escalation markets: compare probability jump with oil/gold reaction', volume:620000, liquidity:160000, url:'https://polymarket.com/markets' }
-  ];
+  return [];
 }
 module.exports = { fetchPolymarket };

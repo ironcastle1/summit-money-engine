@@ -4,7 +4,7 @@ const { fetchUcdpEvents } = require('./ucdpService');
 const { fetchEarthquakes } = require('./usgsService');
 
 const topicQueries = [
-  { topic:'war', q:'(war OR missile OR drone OR attack OR invasion OR troops OR ceasefire OR border clash OR shelling OR airstrike OR front line OR offensive OR strikes)' },
+  { topic:'war', q:'(war OR missile OR drone OR attack OR invasion OR troops OR ceasefire OR border clash OR shelling OR airstrike OR strikes)' },
   { topic:'terror', q:'("terror attack" OR terrorism OR bombing OR suicide bombing OR hostage OR armed attack OR mass shooting)' },
   { topic:'disaster', q:'(earthquake OR flood OR wildfire OR hurricane OR cyclone OR landslide OR drought OR volcano OR tsunami OR disaster OR evacuation)' },
   { topic:'election', q:'(election OR polls OR vote OR candidate OR coalition OR referendum OR parliament OR president OR election forecast)' },
@@ -26,7 +26,7 @@ function norm(s){ return String(s||'').toLowerCase(); }
 function classify(title, fallback='news'){
   const s = norm(title);
   if(/terror|bombing|suicide bombing|hostage|mass shooting/.test(s)) return 'terror';
-  if(/war|missile|drone|attack|troops|ceasefire|border|invasion|airstrike|shell|offensive|front line|strikes/.test(s)) return 'war';
+  if(/war|missile|drone|attack|troops|ceasefire|border|invasion|airstrike|shell|strikes/.test(s)) return 'war';
   if(/earthquake|flood|wildfire|hurricane|cyclone|drought|storm|disaster|tsunami|volcano|evacuat/.test(s)) return 'disaster';
   if(/election|poll|vote|candidate|coalition|referendum|parliament|president/.test(s)) return 'election';
   if(/shipping|port|canal|freight|tanker|container|rerout|maritime|vessel|chokepoint/.test(s)) return 'shipping';
@@ -72,7 +72,6 @@ async function fetchXFeed(){
   try{ const query=encodeURIComponent('(war OR earthquake OR election OR shipping OR oil OR AI OR flood OR missile OR port OR terror OR bombing) -is:retweet lang:en'); const url=`https://api.x.com/2/tweets/search/recent?query=${query}&max_results=50&tweet.fields=created_at,public_metrics,geo`; const d=await getJson(url,{headers:{Authorization:`Bearer ${token}`},timeout:12000}); return { posts:(d.data||[]).map(t=>({id:`x-${t.id}`,title:t.text.slice(0,180),text:t.text,url:`https://x.com/i/web/status/${t.id}`,time:t.created_at,source:'X API'})), status:{connected:true, reason:'official X API connected', count:(d.data||[]).length} }; }catch(e){return { posts:[], status:{connected:false, reason:e.message||'X API request failed'} }}
 }
 function eventsFromX(xfeed){ return (xfeed||[]).map(t=>{ const loc=findLocation(t.text||t.title); if(!loc) return null; const kind=classify(t.text||t.title); return { id:t.id, kind, title:t.title, lat:loc.lat, lng:loc.lng, place:loc.name, source:'X API', url:t.url, time:t.time, summary:t.text, watch:watchFor(kind), sources:[{name:'X post',url:t.url}], verifiedLocation:true }; }).filter(Boolean); }
-const baselineMonitors=mapNodes.filter(n=>['shipping','energy','war','disaster','ai','tech','commodity','election'].includes(n.kind)).map(n=>({id:'monitor-'+n.id,kind:n.kind==='tech'?'ai':n.kind,title:n.name,lat:n.lat,lng:n.lng,place:n.name,source:n.source,url:'#',summary:n.note,watch:n.watch,baseline:true}));
 async function fetchEvents(){
   const xBundle=await fetchXFeed();
   const xfeed=xBundle.posts||[];
@@ -82,7 +81,7 @@ async function fetchEvents(){
     fetchReliefWeb(),
     fetchEarthquakes()
   ]);
-  const all=[...baselineMonitors,...(ucdp.events||[]),...gdelt,...relief,...quakes,...eventsFromX(xfeed)];
+  const all=[...(ucdp.events||[]),...gdelt,...relief,...quakes,...eventsFromX(xfeed)];
   const seen=new Set();
   const events=all.filter(e=>{ if(!e||seen.has(e.id)) return false; seen.add(e.id); return true; }).slice(0,1200);
   const sourceSummary = [

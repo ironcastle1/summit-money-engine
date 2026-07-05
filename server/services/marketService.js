@@ -1,11 +1,6 @@
 const { getJson } = require('./http');
 const { assets } = require('../data/assets');
 function round(n, d=2){ return Number.isFinite(n) ? Number(n.toFixed(d)) : null; }
-function fallbackAsset(a, i){
-  const base = { BTC:62800, ETH:1780, SOL:82, XRP:1.16, GLD:4187, SLV:36.5, COPPER:6.2, BRENT:72.1, WTI:68.2, URA:43.2, VRT:128, PWR:390, LMT:548, NOC:505, ZIM:18, MATX:125 }[a.id] || (50+i*5);
-  const move = Math.sin(Date.now()/600000 + i) * 1.8;
-  return { ...a, price:round(base*(1+move/100),2), changePct:round(move,2), status:'fallback', source:'reference', ageSec:0 };
-}
 async function fetchBinance(a){
   const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${a.symbol}`;
   const d = await getJson(url);
@@ -37,7 +32,7 @@ async function fetchKlines(symbol){
     const closes = r.indicators.quote[0].close || [];
     return closes.map((v,i) => ({ t:(times[i]||0)*1000, v:Number(v) })).filter(x => Number.isFinite(x.v));
   }catch(e){
-    return Array.from({length:40}, (_,i)=>({t:Date.now()-(40-i)*900000, v:50 + Math.sin(i/4)*3 + i*0.15}));
+    return [];
   }
 }
 async function fetchMarkets(){
@@ -45,7 +40,7 @@ async function fetchMarkets(){
   for(let i=0;i<assets.length;i++){
     const a = assets[i];
     try { out.push(a.source === 'binance' ? await fetchBinance(a) : await fetchYahoo(a)); }
-    catch(e){ out.push(fallbackAsset(a,i)); }
+    catch(e){ out.push({ ...a, price:null, changePct:null, status:'unavailable', source:a.source === 'binance' ? 'Binance' : 'Yahoo chart', ageSec:null, error:e.message }); }
   }
   return out;
 }
