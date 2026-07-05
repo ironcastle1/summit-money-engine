@@ -1,5 +1,7 @@
 const { getJson, postJson } = require('./http');
 const { mapNodes, cityNodes } = require('../data/mapData');
+const { fetchUcdpEvents } = require('./ucdpService');
+const { fetchEarthquakes } = require('./usgsService');
 
 const topicQueries = [
   { topic:'war', q:'(war OR missile OR drone OR attack OR invasion OR troops OR ceasefire OR border clash OR shelling OR airstrike OR front line OR offensive OR strikes)' },
@@ -71,5 +73,30 @@ async function fetchXFeed(){
 }
 function eventsFromX(xfeed){ return (xfeed||[]).map(t=>{ const loc=findLocation(t.text||t.title); if(!loc) return null; const kind=classify(t.text||t.title); return { id:t.id, kind, title:t.title, lat:loc.lat, lng:loc.lng, place:loc.name, source:'X API', url:t.url, time:t.time, summary:t.text, watch:watchFor(kind), sources:[{name:'X post',url:t.url}], verifiedLocation:true }; }).filter(Boolean); }
 const baselineMonitors=mapNodes.filter(n=>['shipping','energy','war','disaster','ai','tech','commodity','election'].includes(n.kind)).map(n=>({id:'monitor-'+n.id,kind:n.kind==='tech'?'ai':n.kind,title:n.name,lat:n.lat,lng:n.lng,place:n.name,source:n.source,url:'#',summary:n.note,watch:n.watch,baseline:true}));
-async function fetchEvents(){ const xBundle=await fetchXFeed(); const xfeed=xBundle.posts||[]; const all=[...baselineMonitors,...(await fetchGdelt()),...(await fetchReliefWeb()),...eventsFromX(xfeed)]; const seen=new Set(); const events=all.filter(e=>{ if(!e||seen.has(e.id)) return false; seen.add(e.id); return true; }).slice(0,800); return { events, xfeed, xStatus:xBundle.status||{connected:false, reason:'unknown'} }; }
+async function fetchEvents(){
+  const xBundle=await fetchXFeed();
+  const xfeed=xBundle.posts||[];
+  const [ucdp, gdelt, relief, quakes] = await Promise.all([
+    fetchUcdpEvents({days:30,limit:180}),
+    fetchGdelt(),
+    fetchReliefWeb(),
+    fetchEarthquakes()
+  ]);
+  const all=[...baselineMonitors,...(ucdp.events||[]),...gdelt,...relief,...quakes,...eventsFromX(xfeed)];
+  const seen=new Set();
+  const events=all.filter(e=>{ if(!e||seen.has(e.id)) return false; seen.add(e.id); return true; }).slice(0,1200);
+  const sourceSummary = [
+    'GDELT live news/events active',
+    'ReliefWeb disasters active',
+    'USGS earthquakes active',
+    ucdp.status || 'UCDP optional feed not checked',
+    'X tab removed; no fake X posts'
+  ].join(' · ');
+  return {
+    events,
+    xfeed: [],
+    xStatus: { connected:false, reason:'X tab removed; no fake X data' },
+    conflictFeedStatus: sourceSummary
+  };
+}
 module.exports = { fetchEvents, fetchXFeed };

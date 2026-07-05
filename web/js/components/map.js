@@ -1,5 +1,5 @@
 window.MoneyMap = (() => {
-  let map, nodesLayer, cityLayer, eventsLayer, seaLayer, landLayer, riskLayer, safetyLayer, conflictCountryLayer, safetyCountryLayer;
+  let map, nodesLayer, cityLayer, localLayer, eventsLayer, seaLayer, landLayer, riskLayer, safetyLayer, conflictCountryLayer, safetyCountryLayer;
   let currentFilter = 'all';
   window.SHOW_SEA = false;
   window.SHOW_LAND = false;
@@ -13,8 +13,8 @@ window.MoneyMap = (() => {
     map=L.map('map',{worldCopyJump:false,zoomSnap:.25,zoomDelta:.5,minZoom:2.62,maxZoom:16,zoomControl:true,attributionControl:true,maxBounds:[[-82,-179.95],[82,179.95]],maxBoundsViscosity:1}).setView([20,12],2.75);
     // CARTO dark layer gives a real HD map with labels; CSS makes it blue/navy rather than black/grey.
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',noWrap:true,bounds:[[-85,-180],[85,180]],attribution:'&copy; OpenStreetMap &copy; CARTO', updateWhenIdle:false, updateWhenZooming:false, keepBuffer:4}).addTo(map);
-    riskLayer=L.layerGroup(); safetyLayer=L.layerGroup(); conflictCountryLayer=L.layerGroup().addTo(map); safetyCountryLayer=L.layerGroup(); seaLayer=L.layerGroup(); landLayer=L.layerGroup(); nodesLayer=L.layerGroup().addTo(map); cityLayer=L.layerGroup().addTo(map); eventsLayer=L.layerGroup().addTo(map);
-    map.on('zoomend moveend',()=>{ renderEvents(window.APP_STATE?.events||[]); renderCities(window.MAP_DATA?.cityNodes||[]); resize(); });
+    riskLayer=L.layerGroup(); safetyLayer=L.layerGroup(); conflictCountryLayer=L.layerGroup().addTo(map); safetyCountryLayer=L.layerGroup(); seaLayer=L.layerGroup(); landLayer=L.layerGroup(); nodesLayer=L.layerGroup().addTo(map); cityLayer=L.layerGroup().addTo(map); localLayer=L.layerGroup().addTo(map); eventsLayer=L.layerGroup().addTo(map);
+    map.on('zoomend moveend',()=>{ renderEvents(window.APP_STATE?.events||[]); renderCities(window.MAP_DATA?.cityNodes||[]); fetchLocalPlaces(); resize(); });
     map.on('click', async e => { const d=await fetch(`/api/context?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); try{ const rev=await fetch(`/api/reverse?lat=${e.latlng.lat}&lng=${e.latlng.lng}`).then(r=>r.json()); d.reverse=rev; }catch(_){} Renderers.renderContext(d); });
     document.addEventListener('change', e=>{ if(e.target?.id==='seaToggle'){ window.SHOW_SEA=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.id==='landToggle'){ window.SHOW_LAND=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.dataset?.layer){ document.body.classList.toggle('hide-'+e.target.dataset.layer, !e.target.checked); } if(e.target?.id==='safetyToggle'){ window.SHOW_SAFETY=!!e.target.checked; renderSafetyCountries(window.MAP_DATA?.safetyCountries||[]); }});
     setTimeout(resize,250);
@@ -65,6 +65,31 @@ window.MoneyMap = (() => {
   }
   function renderBase(nodes){ nodesLayer.clearLayers(); for(const n of nodes||[]){ const kind=n.kind==='tech'?'ai':n.kind; L.marker([n.lat,n.lng],{icon:icon(kind)}).on('click',()=>Renderers.renderNode(n)).addTo(nodesLayer); } renderLegend(); }
   function renderCities(cities){ cityLayer.clearLayers(); const z=map.getZoom(); if(z<4.0) return; const bounds=map.getBounds(); const limit=z>=11?1400:z>=9?950:z>=7?620:z>=5?300:160; for(const c of (cities||[]).filter(x=>bounds.pad(.55).contains([x.lat,x.lng])).slice(0,limit)){ L.marker([c.lat,c.lng],{icon:icon(c.kind||'city')}).on('click',()=>Renderers.renderNode(c)).addTo(cityLayer); } }
+
+  let localTimer=null, lastLocalKey='';
+  function localIcon(kind){ return L.divIcon({ className:'', html:`<div class="local-dot ${kind||'place'}"></div>`, iconSize:[12,12], iconAnchor:[6,6] }); }
+  function renderLocalPlaces(places){
+    localLayer.clearLayers();
+    const z=map.getZoom(); if(z<6) return;
+    for(const p of (places||[]).slice(0,z>=12?220:z>=10?160:90)){
+      L.marker([p.lat,p.lng],{icon:localIcon(p.kind)}).on('click',()=>Renderers.renderLocalPlace ? Renderers.renderLocalPlace(p) : Renderers.renderNode(p)).addTo(localLayer);
+    }
+  }
+  function fetchLocalPlaces(){
+    clearTimeout(localTimer);
+    localTimer=setTimeout(async()=>{
+      if(!map || map.getZoom()<6){ localLayer.clearLayers(); return; }
+      const b=map.getBounds();
+      const key=[b.getSouth().toFixed(2),b.getWest().toFixed(2),b.getNorth().toFixed(2),b.getEast().toFixed(2),Math.floor(map.getZoom())].join(',');
+      if(key===lastLocalKey) return; lastLocalKey=key;
+      try{
+        const url=`/api/local-places?south=${b.getSouth()}&west=${b.getWest()}&north=${b.getNorth()}&east=${b.getEast()}&zoom=${map.getZoom()}`;
+        const d=await fetch(url).then(r=>r.json());
+        renderLocalPlaces(d.places||[]);
+      }catch(e){}
+    },550);
+  }
+
   function renderEvents(events, flashIds=new Set()){ eventsLayer.clearLayers(); const z=map.getZoom(); const bounds=map.getBounds(); const filtered=(events||[]).filter(e=> currentFilter==='all' || e.kind===currentFilter || (currentFilter==='ai' && e.kind==='tech')); const visible=filtered.filter(e=>z<4.5 || bounds.pad(.55).contains([e.lat,e.lng])).slice(0,z>=10?1600:z>=8?1100:z>=6?760:520); for(const e of visible){ const kind=e.kind==='tech'?'ai':e.kind; L.marker([e.lat,e.lng],{icon:icon(kind, flashIds.has(e.id))}).on('click',()=>Renderers.renderEvent(e)).addTo(eventsLayer); } }
   function renderRoutes(routes){
     if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer);
@@ -76,7 +101,7 @@ window.MoneyMap = (() => {
     const add = r => { const layer=r.type==='sea'?seaLayer:landLayer; const pts=r.points.map(p=>[p[0],p[1]]); const cls=r.type==='sea'?'moving-route sea-route':'moving-route land-route'; L.polyline(pts,{color:r.color,weight:r.type==='sea'?8:7,opacity:.18,className:'route-shadow'}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); L.polyline(pts,{color:r.color,weight:r.type==='sea'?3:3,opacity:.92,className:cls}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); if(map.getZoom()>=4.2){ const mid=pts[Math.floor(pts.length/2)]; L.marker(mid,{icon:L.divIcon({className:'route-label',html:`${r.name}<br><span>${r.goods}</span>`,iconSize:null})}).on('click',()=>Renderers.renderRoute(r)).addTo(layer); } };
     for(const r of routes||[]){ if(r.type==='sea' && window.SHOW_SEA) add(r); if(r.type==='land' && window.SHOW_LAND) add(r); }
   }
-  function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderConflictCountries(mapData.conflictCountries||[]); renderSafetyCountries(mapData.safetyCountries||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
+  function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderConflictCountries(mapData.conflictCountries||[]); renderSafetyCountries(mapData.safetyCountries||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); fetchLocalPlaces(); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
   function newEvent(e){ if(!e || lastEventIds.has(e.id)) return; lastEventIds.add(e.id); showToast(e.title); sound(); renderEvents(window.APP_STATE?.events||[], new Set([e.id])); }
   function showToast(text){ const t=document.getElementById('toast'); t.textContent='NEW MAP EVENT: '+String(text||'').slice(0,155); t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),6500); }
   function resize(){ if(!map) return; const w=document.getElementById('map')?.clientWidth||1200; const min=Math.max(2.62, Math.log2((w+260)/256)); map.setMinZoom(Math.min(3.05,min)); map.invalidateSize(); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); setTimeout(()=>map.invalidateSize(),220); }

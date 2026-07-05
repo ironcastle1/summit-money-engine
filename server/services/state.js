@@ -1,4 +1,4 @@
-const VERSION = 'SUMMIT-MONEY-ENGINE-PART13-FRANCE-ENGLISH-CARDS';
+const VERSION = 'SUMMIT-MONEY-ENGINE-PART15-OPEN-CONFLICT-DATA-STACK';
 
 const state = {
   markets: [],
@@ -10,6 +10,7 @@ const state = {
   mapData: null,
   xfeed: [],
   xStatus: { connected:false, reason:'not checked' },
+  conflictFeedStatus: 'not checked',
   updatedAt: null,
   lastRefresh: null,
   updateCount: 0,
@@ -30,6 +31,7 @@ function snapshot(){
     rapid: state.rapid,
     xfeed: state.xfeed,
     xStatus: state.xStatus,
+    conflictFeedStatus: state.conflictFeedStatus,
     updatedAt: state.updatedAt,
     lastRefresh: state.lastRefresh,
     updateCount: state.updateCount,
