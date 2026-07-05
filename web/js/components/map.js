@@ -5,7 +5,7 @@ window.MoneyMap = (() => {
   window.SHOW_LAND = false;
   window.SHOW_SAFETY = false;
   let lastEventIds = new Set();
-  const colors = {war:'#c4002f',terror:'#ff004f',disaster:'#ff7b22',election:'#a871ff',shipping:'#00d8ff',port:'#00d8ff',ai:'#a871ff',tech:'#a871ff',energy:'#00ff87',commodity:'#ffd94a',finance:'#3ea0ff',city:'#7aa7ff',risk:'#ff326a'};
+  const colors = {war:'#ff1f4f',terror:'#ff8c00',disaster:'#ff7b22',election:'#a871ff',shipping:'#00d8ff',port:'#00d8ff',ai:'#a871ff',tech:'#a871ff',energy:'#00ff87',commodity:'#ffd94a',finance:'#3ea0ff',city:'#7aa7ff',risk:'#ff326a'};
   const riskFill = { darkred:'#b0002f', red:'#e0184f', yellow:'#ffb000', green:'#00a66a' };
   function sound(){ try{ const A=window.AudioContext||window.webkitAudioContext; const ctx=new A(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=.035; o.connect(g); g.connect(ctx.destination); o.start(); setTimeout(()=>o.frequency.value=1180,90); setTimeout(()=>{o.stop();ctx.close();},260); }catch(e){} }
   function icon(kind, flash=false){ return L.divIcon({ className:'', html:`<div class="node-dot ${kind} ${flash?'flash':''}"></div>`, iconSize:[18,18], iconAnchor:[9,9] }); }
@@ -19,7 +19,7 @@ window.MoneyMap = (() => {
     document.addEventListener('change', e=>{ if(e.target?.id==='seaToggle'){ window.SHOW_SEA=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.id==='landToggle'){ window.SHOW_LAND=!!e.target.checked; renderRoutes(window.ROUTES||[]); } if(e.target?.dataset?.layer){ document.body.classList.toggle('hide-'+e.target.dataset.layer, !e.target.checked); } if(e.target?.id==='safetyToggle'){ window.SHOW_SAFETY=!!e.target.checked; renderSafetyCountries(window.MAP_DATA?.safetyCountries||[]); }});
     setTimeout(resize,250);
   }
-  function renderLegend(){ const el=document.getElementById('legend'); const keys={war:'war',terror:'terror',disaster:'disaster',election:'election',shipping:'shipping',ai:'AI',commodity:'commodity',energy:'energy',finance:'finance',city:'city'}; el.innerHTML=Object.entries(keys).map(([k,v])=>`<span><i style="background:${colors[k]}"></i>${v}</span>`).join(''); }
+  function renderLegend(){ const el=document.getElementById('legend'); const keys={war:'war',terror:'terror',disaster:'disaster',election:'election',shipping:'shipping',ai:'AI',commodity:'commodity',energy:'energy',finance:'finance',city:'city'}; el.innerHTML=Object.entries(keys).map(([k,v])=>`<span class="${k}-key"><i style="background:${colors[k]}"></i>${v}</span>`).join(''); }
   function renderRiskRegions(regions){
     riskLayer.clearLayers();
     for(const r of regions||[]){
@@ -103,7 +103,7 @@ window.MoneyMap = (() => {
   }
   function setData(mapData,state){ window.MAP_DATA=mapData; window.ROUTES=mapData.routes||[]; window.SHOW_SEA=false; window.SHOW_LAND=false; if(map.hasLayer(seaLayer)) map.removeLayer(seaLayer); if(map.hasLayer(landLayer)) map.removeLayer(landLayer); renderConflictCountries(mapData.conflictCountries||[]); renderSafetyCountries(mapData.safetyCountries||[]); renderBase(mapData.nodes); renderCities(mapData.cityNodes); fetchLocalPlaces(); renderRoutes(mapData.routes); renderEvents(state?.events||[]); setTimeout(resize,250); }
   function newEvent(e){ if(!e || lastEventIds.has(e.id)) return; lastEventIds.add(e.id); showToast(e.title); sound(); renderEvents(window.APP_STATE?.events||[], new Set([e.id])); }
-  function showToast(text){ const t=document.getElementById('toast'); t.textContent='NEW MAP EVENT: '+String(text||'').slice(0,155); t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),6500); }
+  function showToast(text){ const t=document.getElementById('toast'); t.innerHTML='<div class="a-title">LIVE MAP ALERT</div><div class="a-meta">'+String(text||'').slice(0,190)+'</div>'; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),14000); }
   function resize(){ if(!map) return; const w=document.getElementById('map')?.clientWidth||1200; const min=Math.max(2.62, Math.log2((w+260)/256)); map.setMinZoom(Math.min(3.05,min)); map.invalidateSize(); if(map.getZoom()<map.getMinZoom()) map.setZoom(map.getMinZoom()); setTimeout(()=>map.invalidateSize(),220); }
   return { init,setData,newEvent,resize,renderEvents,renderCities,renderRoutes,renderRiskRegions,renderSafetyRegions,renderConflictCountries,renderSafetyCountries };
 })();
