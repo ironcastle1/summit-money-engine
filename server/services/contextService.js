@@ -67,14 +67,17 @@ function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, ne
   let crimeIndex = null;
   let crimeSource = 'N/A - no official local crime feed or World Bank homicide indicator loaded.';
   let crimeFacts = [];
+  let crimeScope = 'none';
   if(crime?.ok){
     crimeIndex = scoreLocalCrimeCount(crime.count);
     crimeSource = `data.police.uk: ${crime.count} crimes within API search radius for latest available month`;
     crimeFacts = crime.top || [];
+    crimeScope = 'local';
   } else if(hasNumber(national?.homicide?.value)) {
     crimeIndex = scoreHomicide(national.homicide.value);
-    crimeSource = `World Bank homicide rate: ${national.homicide.value.toFixed(2)} per 100k (${national.homicide.year})`;
+    crimeSource = `National proxy - World Bank homicide rate: ${national.homicide.value.toFixed(2)} per 100k (${national.homicide.year})`;
     crimeFacts = [`Homicide: ${national.homicide.value.toFixed(2)} per 100k`];
+    crimeScope = 'national proxy';
   }
 
   const safetyIndex = scoreSafety({
@@ -107,6 +110,7 @@ function buildIndexes({ national, crime, conflict, countryEvents, nearEvents, ne
       ]
     },
     counts: { ...counts, marketEvents, financeNodes, inCountryEvents: inCountry.length, nearbyEvents: nearby.length },
+    crimeScope,
     hasRealCrime: crimeIndex !== null,
     hasRealSafety: safetyIndex !== null,
     hasMoneyBasis: moneyIndex !== null

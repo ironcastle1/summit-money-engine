@@ -16,7 +16,7 @@
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="dot"></span><div><h1>SITUATION ROOM</h1><p>AI data for gain and safety</p></div></div>
+      <div class="brand"><span class="dot"></span><div><h1>SUMMIT MONEY ENGINE</h1><p>Live markets, places, risk and source data</p></div></div>
       <div id="ticker" class="ticker">loading live market tape...</div>
       <div id="status" class="status">booting</div>
     </header>
@@ -26,7 +26,9 @@
         <input id="placeQuery" name="q" autocomplete="off" placeholder="Search city or country" />
         <button type="submit">SEARCH</button>
       </form>
+      <button id="homeMap">HOME</button>
       <button data-panel="brief">LIVE BRIEF</button>
+      <button data-panel="predictions">PREDICTIONS</button>
       <button data-panel="crypto">CRYPTO</button>
       <button data-panel="commodities">COMMODITIES</button>
       <button data-panel="polymarket">POLYMARKET</button>
@@ -51,7 +53,7 @@
       </aside>
       <div id="legend" class="legend"></div>
       <div id="toast" class="toast"></div>
-      <div id="mapStatus" class="map-status">live dots: GDELT / ReliefWeb / USGS / Polymarket / optional UCDP</div>
+      <div id="mapStatus" class="map-status">sources: GDELT / ReliefWeb / USGS / World Bank / OSM / market feeds</div>
     </main>
   </div>
 

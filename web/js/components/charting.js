@@ -5,6 +5,11 @@ window.Charts = (() => {
     const canvas=document.getElementById(id); if(!canvas || !window.Chart) return;
     if(charts.has(id)) charts.get(id).destroy();
     const points=(data||[]).filter(x=>Number.isFinite(Number(x.v)));
+    if(!points.length){
+      const box=canvas.parentElement;
+      if(box) box.insertAdjacentHTML('beforeend','<p class="chart-note">No source candle data returned for this symbol.</p>');
+      return;
+    }
     const labels=points.map(x=>x.t?new Date(x.t).toLocaleString([], {hour:'2-digit', minute:'2-digit'}):'');
     const vals=points.map(x=>Number(x.v));
     const datasets=[{label,borderColor:'#00d8ff',backgroundColor:'rgba(0,216,255,.10)',pointRadius:0,tension:.18,fill:true,data:vals}];

@@ -42,7 +42,8 @@ function feedCounts(state){
     polymarket: (state.polymarket || []).length,
     events: events.length,
     eventSources: counts,
-    rapid: (state.rapid || []).length
+    rapid: (state.rapid || []).length,
+    predictions: (state.predictions || []).length
   };
 }
 function buildBrief(state){
@@ -63,6 +64,7 @@ function buildBrief(state){
     counts,
     movers,
     rapid,
+    predictions: (state.predictions || []).slice(0, 10),
     events,
     notes: [
       'All prices and candles come from live/delayed market feeds.',

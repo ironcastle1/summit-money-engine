@@ -3,6 +3,7 @@ const { fetchPolymarket } = require('./polymarketService');
 const { fetchEvents } = require('./eventService');
 const { buildRapid } = require('../engines/rapidEngine');
 const { buildSignals } = require('../engines/signalEngine');
+const { buildPredictions } = require('../engines/predictionEngine');
 const { setState, state, pushEvent } = require('./state');
 let running = false;
 let knownEvents = new Set();
@@ -19,9 +20,10 @@ async function refreshNow(){
     for(const e of events) knownEvents.add(e.id);
     const rapid = buildRapid(markets, klines, polymarket, events);
     const signals = buildSignals(events, markets, polymarket);
-    setState({ markets, klines, polymarket, events, xfeed, xStatus, conflictFeedStatus, rapid, signals });
+    const predictions = buildPredictions(markets, klines, events, polymarket);
+    setState({ markets, klines, polymarket, events, xfeed, xStatus, conflictFeedStatus, rapid, signals, predictions });
     if(state.refreshCount > 1){ for(const e of newOnes.slice(0,3)) pushEvent(e); }
-    return { ok:true, markets:markets.length, events:events.length, rapid:rapid.length, signals:signals.length };
+    return { ok:true, markets:markets.length, events:events.length, rapid:rapid.length, signals:signals.length, predictions:predictions.length };
   } finally { running = false; }
 }
 function startScheduler(){ setInterval(() => refreshNow().catch(e => console.error('[refresh]', e.message)), 45_000); }

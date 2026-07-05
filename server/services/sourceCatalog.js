@@ -9,6 +9,15 @@ const SOURCES = [
     url: 'https://api.binance.com'
   },
   {
+    id: 'coingecko',
+    name: 'CoinGecko public API',
+    category: 'crypto',
+    update: 'fallback on refresh',
+    provides: ['crypto prices', '24h change', 'hourly market chart fallback'],
+    missingMeans: 'Crypto price/chart unavailable; show N/A.',
+    url: 'https://api.coingecko.com'
+  },
+  {
     id: 'yahoo-chart',
     name: 'Yahoo Finance chart endpoint',
     category: 'markets',

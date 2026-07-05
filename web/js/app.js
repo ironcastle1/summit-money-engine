@@ -11,6 +11,7 @@ async function boot(){
   const [mapData,state]=await Promise.all([getJson('/api/map'),getJson('/api/snapshot')]);
   MoneyMap.setData(mapData,state); applyState(state);
   document.getElementById('refresh').addEventListener('click', async()=>{ document.getElementById('status').textContent='REFRESHING'; await getJson('/api/refresh',{method:'POST'}); applyState(await getJson('/api/snapshot')); });
+  document.getElementById('homeMap')?.addEventListener('click', () => MoneyMap.goHome());
   document.getElementById('placeSearch')?.addEventListener('submit', async e => {
     e.preventDefault();
     const q = document.getElementById('placeQuery')?.value || '';

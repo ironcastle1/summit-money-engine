@@ -1,10 +1,36 @@
 const { getJson } = require('./http');
 const { assets } = require('../data/assets');
 function round(n, d=2){ return Number.isFinite(n) ? Number(n.toFixed(d)) : null; }
+const coinGeckoIds = {
+  BTC:'bitcoin',
+  ETH:'ethereum',
+  SOL:'solana',
+  XRP:'ripple',
+  BNB:'binancecoin',
+  ADA:'cardano',
+  DOGE:'dogecoin',
+  LINK:'chainlink',
+  AVAX:'avalanche-2'
+};
 async function fetchBinance(a){
   const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${a.symbol}`;
   const d = await getJson(url);
   return { ...a, price:round(Number(d.lastPrice), Number(d.lastPrice) < 10 ? 4 : 2), changePct:round(Number(d.priceChangePercent),2), status:'live', source:'Binance', ageSec:0 };
+}
+async function fetchCoinGecko(a){
+  const id = coinGeckoIds[a.id];
+  if(!id) throw new Error(`No CoinGecko id for ${a.id}`);
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(id)}&vs_currencies=usd&include_24hr_change=true&include_last_updated_at=true`;
+  const d = await getJson(url, { timeout: 12000 });
+  const row = d[id] || {};
+  return {
+    ...a,
+    price: round(Number(row.usd), Number(row.usd) < 10 ? 4 : 2),
+    changePct: round(Number(row.usd_24h_change), 2),
+    status: 'live',
+    source: 'CoinGecko',
+    ageSec: row.last_updated_at ? Math.max(0, Math.floor(Date.now()/1000 - Number(row.last_updated_at))) : null
+  };
 }
 async function fetchYahoo(a){
   const s = encodeURIComponent(a.symbol);
@@ -32,15 +58,29 @@ async function fetchKlines(symbol){
     const closes = r.indicators.quote[0].close || [];
     return closes.map((v,i) => ({ t:(times[i]||0)*1000, v:Number(v) })).filter(x => Number.isFinite(x.v));
   }catch(e){
+    const asset = assets.find(a => a.symbol === symbol);
+    if(asset?.group === 'crypto') return fetchCoinGeckoChart(asset).catch(() => []);
     return [];
   }
+}
+async function fetchCoinGeckoChart(a){
+  const id = coinGeckoIds[a.id];
+  if(!id) return [];
+  const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=2&interval=hourly`;
+  const d = await getJson(url, { timeout: 12000 });
+  return (d.prices || []).map(([t,v]) => ({ t, v:Number(v) })).filter(x => Number.isFinite(x.v));
 }
 async function fetchMarkets(){
   const out = [];
   for(let i=0;i<assets.length;i++){
     const a = assets[i];
     try { out.push(a.source === 'binance' ? await fetchBinance(a) : await fetchYahoo(a)); }
-    catch(e){ out.push({ ...a, price:null, changePct:null, status:'unavailable', source:a.source === 'binance' ? 'Binance' : 'Yahoo chart', ageSec:null, error:e.message }); }
+    catch(e){
+      if(a.group === 'crypto'){
+        try { out.push(await fetchCoinGecko(a)); continue; } catch(_){}
+      }
+      out.push({ ...a, price:null, changePct:null, status:'unavailable', source:a.source === 'binance' ? 'Binance/CoinGecko' : 'Yahoo chart', ageSec:null, error:e.message });
+    }
   }
   return out;
 }

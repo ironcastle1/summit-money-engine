@@ -16,7 +16,8 @@ window.Renderers = (() => {
   }
   function renderMarkets(markets){ renderTicker(markets); }
   function marketTable(list){
-    return `<div class="market-table">${(list || []).map(m => `<div class="market-row"><div class="sym">${esc(m.id)}</div><div><div class="name">${esc(m.name)}</div><div class="sub">${esc(m.source)} | ${esc(m.status || 'unknown')}${m.ageSec ? ` | ${esc(m.ageSec)}s old` : ''}</div></div><div class="price"><b>${money(m.price)}</b><br>${arrow(m.changePct)}</div></div>`).join('') || '<div class="warn">No feed result. Check API/network status.</div>'}</div>`;
+    const preds = new Map((window.APP_STATE?.predictions || []).map(p => [p.asset, p]));
+    return `<div class="market-table">${(list || []).map(m => { const p=preds.get(m.id); return `<div class="market-row"><div class="sym">${esc(m.id)}</div><div><div class="name">${esc(m.name)}</div><div class="sub">${esc(m.source)} | ${esc(m.status || 'unknown')}${m.ageSec ? ` | ${esc(m.ageSec)}s old` : ''}${p ? ` | rating ${esc(p.rating)}%` : ''}</div></div><div class="price"><b>${money(m.price)}</b><br>${arrow(m.changePct)}</div></div>`; }).join('') || '<div class="warn">No feed result. Check API/network status.</div>'}</div>`;
   }
   function sourceList(sources){
     return (sources || []).map(s => `<a target="_blank" href="${esc(s.url || '#')}">${esc(s.name || s.source || 'source')}</a>`).join(' | ') || 'source pending';
@@ -39,7 +40,8 @@ window.Renderers = (() => {
     try{
       const d = await fetch(`/api/context?lat=${encodeURIComponent(p.lat)}&lng=${encodeURIComponent(p.lng)}`).then(r => r.json());
       const idx = d.indexes || {};
-      el.innerHTML = `<div class="info-card"><h3>Local indexes</h3><div class="index-grid real-indexes">${indexTile('Safety', idx.hasRealSafety ? idx.safetyIndex : null, idx.source?.safety || 'N/A')}${indexTile('Crime', idx.hasRealCrime ? idx.crimeIndex : null, idx.source?.crime || 'N/A')}${indexTile('Money', idx.hasMoneyBasis ? idx.moneyIndex : null, idx.source?.money || 'N/A')}</div><p class="source-box">Local crime is official where available. Otherwise national indicators are shown and missing values stay N/A.</p></div>${nationalBlock(d.national)}`;
+      const crimeLabel = idx.crimeScope === 'local' ? 'City Crime' : 'Crime Proxy';
+      el.innerHTML = `<div class="info-card"><h3>Local indexes</h3><div class="index-grid real-indexes">${indexTile('Safety', idx.hasRealSafety ? idx.safetyIndex : null, idx.source?.safety || 'N/A')}${indexTile(crimeLabel, idx.hasRealCrime ? idx.crimeIndex : null, idx.source?.crime || 'N/A')}${indexTile('Money', idx.hasMoneyBasis ? idx.moneyIndex : null, idx.source?.money || 'N/A')}</div><p class="source-box">${idx.crimeScope === 'local' ? 'Crime is city/local from an official feed.' : 'City crime feed unavailable here; shown value is a national proxy or N/A.'}</p></div>${nationalBlock(d.national)}`;
     }catch(_){
       el.innerHTML = '<div class="warn">Context lookup unavailable.</div>';
     }
@@ -112,13 +114,17 @@ window.Renderers = (() => {
     if(name === 'crypto'){
       Panels.setDrawer('Crypto', `<p class="plain">Live crypto markets. Charts use recent source candles.</p>${marketTable(groupMarkets('crypto'))}<div id="cryptoCharts"></div>`, 'crypto');
       const k = state.klines || {};
-      Charts.grid('cryptoCharts', ['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','BNBUSDT','ADAUSDT','DOGEUSDT'].map(x => ({ title:x, data:k[x] || [], y:'price' })));
+      Charts.grid('cryptoCharts', groupMarkets('crypto').map(m => ({ title:m.symbol || m.id, data:k[m.symbol] || [], y:'price' })));
       return;
     }
     if(name === 'commodities'){
       Panels.setDrawer('Commodities', `<p class="plain">Live or delayed source charts for oil, metals and related assets.</p>${marketTable(groupMarkets('commodity'))}<div id="commodityCharts"></div>`, 'commodities');
       const k = state.klines || {};
-      Charts.grid('commodityCharts', ['HG=F','BZ=F','GC=F','SI=F','URA','USO'].map(x => ({ title:x, data:k[x] || [], y:'price' })));
+      Charts.grid('commodityCharts', groupMarkets('commodity').map(m => ({ title:m.symbol || m.id, data:k[m.symbol] || [], y:'price' })));
+      return;
+    }
+    if(name === 'predictions'){
+      Panels.setDrawer('Predictions', `<p class="plain">Measured upside ratings from live/recent market data. This is not a guarantee.</p>${predictionList(state.predictions || [])}`, 'predictions');
       return;
     }
     if(name === 'polymarket') return Panels.setInfo('Polymarket', `<p class="plain">Live Polymarket feed only.</p>${(state.polymarket || []).slice(0, 45).map(p => `<div class="info-card"><h3>${esc(p.question)}</h3><div class="metric-row"><span>Volume</span><b>${num(p.volume)}</b></div><div class="metric-row"><span>Liquidity</span><b>${num(p.liquidity)}</b></div><p class="source-box"><a target="_blank" href="${esc(p.url || '#')}">open market</a></p></div>`).join('') || '<div class="warn">No Polymarket feed result.</div>'}`, 'polymarket');
@@ -149,12 +155,16 @@ window.Renderers = (() => {
   function renderBrief(brief){
     const moverRows = (brief.movers || []).map(m => `<div class="metric-row"><span>${esc(m.id)} ${esc(m.label || '')}</span><b>${pctText(m.move)}</b></div>`).join('') || '<div class="warn">No measured market movers.</div>';
     const rapidRows = (brief.rapid || []).map(r => `<div class="quick-item"><b>${esc(r.asset)}</b> ${esc(r.direction)} | short ${esc(r.shortMove)} | window ${esc(r.windowMove)} | vol ${esc(r.volatility)}</div>`).join('') || '<div class="warn">No rapid rows with real candles.</div>';
+    const predRows = (brief.predictions || []).map(p => `<div class="quick-item"><b>${esc(p.asset)}</b> ${esc(p.rating)}% | ${esc(p.direction)} | ${esc(p.changePct === null ? '24h N/A' : p.changePct + '% 24h')}</div>`).join('') || '<div class="warn">No prediction ratings loaded.</div>';
     const eventRows = (brief.events || []).map(e => `<div class="quick-item"><b>${esc(e.kind)}</b> ${esc(e.place || 'N/A')} | <a target="_blank" href="${esc(e.url || '#')}">${esc(e.title)}</a></div>`).join('') || '<div class="warn">No source-linked events loaded.</div>';
-    Panels.setDrawer('Live brief', `<div class="info-card"><h3>Feed counts</h3><div class="metric-row"><span>Markets</span><b>${num(brief.counts?.markets)}</b></div><div class="metric-row"><span>Chart series</span><b>${num(brief.counts?.chartSeries)}</b></div><div class="metric-row"><span>Events</span><b>${num(brief.counts?.events)}</b></div><div class="metric-row"><span>Rapid movers</span><b>${num(brief.counts?.rapid)}</b></div><p class="source-box">Generated: ${esc(brief.generatedAt || 'N/A')}</p></div><div class="info-card"><h3>Measured movers</h3>${moverRows}</div><div class="info-card"><h3>Rapid movers</h3><div class="quick-list">${rapidRows}</div></div><div class="info-card"><h3>Newest source-linked events</h3><div class="quick-list">${eventRows}</div></div>`, 'brief');
+    Panels.setDrawer('Live brief', `<div class="info-card"><h3>Feed counts</h3><div class="metric-row"><span>Markets</span><b>${num(brief.counts?.markets)}</b></div><div class="metric-row"><span>Chart series</span><b>${num(brief.counts?.chartSeries)}</b></div><div class="metric-row"><span>Events</span><b>${num(brief.counts?.events)}</b></div><div class="metric-row"><span>Rapid movers</span><b>${num(brief.counts?.rapid)}</b></div><div class="metric-row"><span>Predictions</span><b>${num(brief.counts?.predictions)}</b></div><p class="source-box">Generated: ${esc(brief.generatedAt || 'N/A')}</p></div><div class="info-card"><h3>Prediction ratings</h3><div class="quick-list">${predRows}</div></div><div class="info-card"><h3>Measured movers</h3>${moverRows}</div><div class="info-card"><h3>Rapid movers</h3><div class="quick-list">${rapidRows}</div></div><div class="info-card"><h3>Newest source-linked events</h3><div class="quick-list">${eventRows}</div></div>`, 'brief');
   }
   function renderSources(data){
     const rows = (data.sources || []).map(s => `<div class="info-card"><h3>${esc(s.name)}</h3><div class="quick-list"><div class="quick-item"><b>Category:</b> ${esc(s.category)}</div><div class="quick-item"><b>Provides:</b> ${(s.provides || []).map(esc).join(', ')}</div><div class="quick-item"><b>Missing:</b> ${esc(s.missingMeans)}</div></div><p class="source-box"><a target="_blank" href="${esc(s.url)}">${esc(s.url)}</a></p></div>`).join('');
     Panels.setDrawer('Sources', `<div class="info-card"><h3>Coverage</h3><div class="metric-row"><span>Total sources</span><b>${num(data.total)}</b></div></div>${rows}`, 'sources');
+  }
+  function predictionList(rows){
+    return (rows || []).map(p => `<div class="info-card prediction-card ${p.rating >= 70 ? 'green' : p.rating >= 55 ? 'yellow' : 'orange'}"><h3>${esc(p.asset)} - ${esc(p.label)}</h3><div class="index-grid real-indexes">${indexTile('Upside rating', p.rating, 'measured % score')}${indexTile('24h move', hasNum(p.changePct) ? Math.abs(p.changePct) * 10 : null, hasNum(p.changePct) ? `${Number(p.changePct).toFixed(2)}%` : 'N/A')}${indexTile('Event hits', Math.min(100, p.eventMatches * 20), `${p.eventMatches} matches`)}</div><div class="quick-list"><div class="quick-item"><b>Direction:</b> ${esc(p.direction)}</div><div class="quick-item"><b>Price:</b> ${money(p.price)}</div><div class="quick-item"><b>Reasons:</b> ${(p.reasons || []).map(esc).join(' | ')}</div><div class="quick-item yellow"><b>Use:</b> check the chart, liquidity and source links before risking money.</div></div></div>`).join('') || '<div class="warn">No prediction ratings yet. Wait for market feeds and candles to load.</div>';
   }
   function renderNode(n){
     const wikiId = `wiki-node-${String(n.id || n.name).replace(/[^a-z0-9]/gi, '-')}`;
@@ -205,7 +215,7 @@ window.Renderers = (() => {
         <p class="source-line">Clicked area: ${esc(place)}</p>
         <div class="index-grid real-indexes">
           ${indexTile('Safety', idx.hasRealSafety ? idx.safetyIndex : null, idx.source?.safety || 'N/A')}
-          ${indexTile('Crime', idx.hasRealCrime ? idx.crimeIndex : null, idx.source?.crime || 'N/A')}
+          ${indexTile(idx.crimeScope === 'local' ? 'City Crime' : 'Crime Proxy', idx.hasRealCrime ? idx.crimeIndex : null, idx.source?.crime || 'N/A')}
           ${indexTile('Money', idx.hasMoneyBasis ? idx.moneyIndex : null, idx.source?.money || 'N/A')}
         </div>
         <div class="data-proof">
@@ -218,6 +228,7 @@ window.Renderers = (() => {
         </div>
         <div class="quick-list">
           <div class="quick-item"><b>Conflict:</b> ${esc(conflictLine)}</div>
+          <div class="quick-item"><b>Crime level:</b> ${esc(idx.crimeScope || 'none')}</div>
           <div class="quick-item"><b>Events:</b> ${esc(countryEvents.length)} inside country | ${esc(events.length)} nearest</div>
           <div class="quick-item"><b>Nearby places:</b> ${cities.map(c => esc(c.name)).join(', ') || 'N/A'}</div>
         </div>
@@ -227,5 +238,5 @@ window.Renderers = (() => {
       ${nodes.map(n => `<div class="info-card"><h3>${esc(n.name)}</h3><div class="quick-list"><div class="quick-item"><b>Type:</b> ${esc(kindLabel[n.kind] || n.kind)}</div><div class="quick-item"><b>Assets:</b> ${(n.watch || []).map(esc).join(', ') || 'N/A'}</div></div></div>`).join('')}
     `, 'context');
   }
-  return { renderMarkets, openPanel, renderSearch, renderNode, renderLocalPlace, renderEvent, renderRoute, renderContext, renderRiskRegion, renderSafetyRegion, renderCountryConflict, renderSafetyCountry };
+  return { renderMarkets, openPanel, renderSearch, plainEventTitle, renderNode, renderLocalPlace, renderEvent, renderRoute, renderContext, renderRiskRegion, renderSafetyRegion, renderCountryConflict, renderSafetyCountry };
 })();
