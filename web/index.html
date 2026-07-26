@@ -4,19 +4,30 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Summit Money Engine</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <link rel="stylesheet" href="/styles/base.css" />
   <link rel="stylesheet" href="/styles/layout.css" />
   <link rel="stylesheet" href="/styles/map.css" />
   <link rel="stylesheet" href="/styles/panels.css" />
 </head>
+
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand"><span class="dot"></span><div><h1>SUMMIT MONEY ENGINE</h1><p>Live markets, places, risk and source data</p></div></div>
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <h1>SUMMIT MONEY ENGINE</h1>
+          <p>AI data for gain and safety</p>
+        </div>
+      </div>
+
       <div id="ticker" class="ticker">loading live market tape...</div>
       <div id="status" class="status">booting</div>
     </header>
@@ -26,6 +37,7 @@
         <input id="placeQuery" name="q" autocomplete="off" placeholder="Search city or country" />
         <button type="submit">SEARCH</button>
       </form>
+
       <button id="homeMap">HOME</button>
       <button data-panel="brief">LIVE BRIEF</button>
       <button data-panel="predictions">PREDICTIONS</button>
@@ -35,22 +47,26 @@
       <button data-panel="routes">ROUTES</button>
       <button data-panel="rapid">RAPID MOVERS</button>
       <button data-panel="layers">SAFETY MAP</button>
+      <button id="smeCrimeTrackerBtnStatic">CRIME TRACKER</button>
       <button data-panel="sources">SOURCES</button>
       <button id="refresh">REFRESH</button>
     </nav>
 
     <main class="stage">
       <section id="map"></section>
+
       <aside id="infoPanel" class="panel side-panel">
         <button class="close" data-close="info">×</button>
         <h2 id="infoTitle">INFO</h2>
         <div id="infoBody"></div>
       </aside>
+
       <aside id="drawerPanel" class="drawer">
         <button class="close" data-close="drawer">×</button>
         <h2 id="drawerTitle">DETAIL</h2>
         <div id="drawerBody"></div>
       </aside>
+
       <div id="legend" class="legend"></div>
       <div id="toast" class="toast"></div>
       <div id="mapStatus" class="map-status">sources: GDELT / ReliefWeb / USGS / World Bank / OSM / market feeds</div>
@@ -59,10 +75,13 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
   <script src="/js/components/panels.js"></script>
   <script src="/js/components/renderers.js"></script>
   <script src="/js/components/charting.js"></script>
   <script src="/js/components/map.js"></script>
   <script src="/js/app.js"></script>
+
+  <script src="/patch-live-crime-boundaries-wiki.js"></script>
 </body>
 </html>
