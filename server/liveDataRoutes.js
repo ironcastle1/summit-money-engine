@@ -15,7 +15,27 @@ const WB = {
   population: "SP.POP.TOTL"
 };
 
-function getCache(key, maxAgeMs) {
+const BASELINE = {
+  RU: { war: 75, politics: 60, crisis: 35, note: "major war/sanctions state" },
+  UA: { war: 95, politics: 70, crisis: 55, note: "active major war" },
+  SY: { war: 90, politics: 70, crisis: 55, note: "active conflict and state fragility" },
+  YE: { war: 90, politics: 70, crisis: 65, note: "active conflict and humanitarian crisis" },
+  SD: { war: 95, politics: 75, crisis: 75, note: "active civil war/humanitarian crisis" },
+  MM: { war: 80, politics: 75, crisis: 55, note: "active civil conflict" },
+  AF: { war: 70, politics: 75, crisis: 55, note: "high conflict/political risk" },
+  IL: { war: 65, politics: 60, crisis: 45, note: "regional conflict exposure" },
+  PS: { war: 90, politics: 75, crisis: 80, note: "active conflict/humanitarian crisis" },
+  LB: { war: 65, politics: 75, crisis: 50, note: "regional conflict/political risk" },
+  IR: { war: 45, politics: 75, crisis: 45, note: "sanctions/geopolitical risk" },
+  KP: { war: 45, politics: 85, crisis: 40, note: "closed state/geopolitical risk" },
+  HT: { war: 55, politics: 85, crisis: 80, note: "gang violence and state fragility" },
+  ML: { war: 70, politics: 75, crisis: 60, note: "Sahel insurgency/state fragility" },
+  BF: { war: 75, politics: 75, crisis: 65, note: "Sahel insurgency/state fragility" },
+  NE: { war: 60, politics: 70, crisis: 55, note: "Sahel instability" },
+  SO: { war: 75, politics: 70, crisis: 70, note: "insurgency and fragility" }
+};
+
+function cacheGet(key, maxAgeMs) {
   const hit = CACHE.get(key);
   if (!hit) return null;
   if (Date.now() - hit.time > maxAgeMs) {
@@ -25,7 +45,7 @@ function getCache(key, maxAgeMs) {
   return hit.value;
 }
 
-function setCache(key, value) {
+function cacheSet(key, value) {
   CACHE.set(key, { time: Date.now(), value });
   return value;
 }
@@ -75,19 +95,19 @@ async function getText(url, options = {}) {
 
 async function reverseLookup(lat, lng) {
   const key = `reverse:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}`;
-  const cached = getCache(key, 24 * 60 * 60 * 1000);
+  const cached = cacheGet(key, 24 * 60 * 60 * 1000);
   if (cached) return cached;
 
   const url =
     "https://nominatim.openstreetmap.org/reverse" +
     `?format=jsonv2&lat=${encodeURIComponent(lat)}` +
     `&lon=${encodeURIComponent(lng)}` +
-    "&zoom=10&addressdetails=1";
+    "&zoom=10&addressdetails=1&accept-language=en";
 
   const data = await getJson(url, { timeout: 15000 });
   const a = data.address || {};
 
-  return setCache(key, {
+  return cacheSet(key, {
     displayName: data.display_name || "",
     city: a.city || a.town || a.village || a.hamlet || a.county || "",
     state: a.state || a.region || "",
@@ -102,7 +122,7 @@ async function wbLatest(countryCode, indicator) {
   if (!code) return null;
 
   const key = `wb:${code}:${indicator}`;
-  const cached = getCache(key, 7 * 24 * 60 * 60 * 1000);
+  const cached = cacheGet(key, 7 * 24 * 60 * 60 * 1000);
   if (cached !== null) return cached;
 
   try {
@@ -115,7 +135,7 @@ async function wbLatest(countryCode, indicator) {
     const rows = Array.isArray(data?.[1]) ? data[1] : [];
     const hit = rows.find((r) => r.value !== null && r.value !== undefined);
 
-    return setCache(
+    return cacheSet(
       key,
       hit
         ? {
@@ -127,7 +147,7 @@ async function wbLatest(countryCode, indicator) {
         : null
     );
   } catch {
-    return setCache(key, null);
+    return cacheSet(key, null);
   }
 }
 
@@ -172,8 +192,8 @@ function crimeScoreFromHomicide(homicide) {
   if (!homicide || homicide.value === null || homicide.value === undefined) {
     return {
       score: null,
-      status: "N/A",
-      reason: "No national homicide indicator"
+      status: "No national data",
+      reason: "No World Bank homicide indicator"
     };
   }
 
@@ -205,8 +225,8 @@ function moneyScore(bundle) {
   if (!bundle) {
     return {
       score: null,
-      status: "N/A",
-      reason: "No macro data"
+      status: "No macro data",
+      reason: "World Bank unavailable"
     };
   }
 
@@ -268,9 +288,13 @@ function moneyScore(bundle) {
   };
 }
 
-async function gdeltArticles(query, maxRecords = 30) {
-  const key = `gdelt:${query}:${maxRecords}`;
-  const cached = getCache(key, 15 * 60 * 1000);
+function englishFallback(topic, place) {
+  return `${topic} report near ${place || "selected area"}`;
+}
+
+async function gdeltArticles(query, maxRecords = 30, topic = "News") {
+  const key = `gdelt:${query}:${maxRecords}:${topic}`;
+  const cached = cacheGet(key, 15 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -285,19 +309,27 @@ async function gdeltArticles(query, maxRecords = 30) {
     const data = await getJson(url, { timeout: 25000 });
     const articles = Array.isArray(data.articles) ? data.articles : [];
 
-    return setCache(
+    return cacheSet(
       key,
-      articles.map((a) => ({
-        title: clean(a.title, 180),
-        url: a.url || "",
-        source: a.domain || a.source || "GDELT",
-        sourceCountry: a.sourceCountry || "",
-        language: a.language || "",
-        seenDate: a.seendate || ""
-      }))
+      articles.map((a) => {
+        const rawTitle = clean(a.title, 180);
+        const lang = String(a.language || "").toLowerCase();
+        const isEnglish = !lang || lang === "english" || lang === "en";
+
+        return {
+          title: isEnglish ? rawTitle : englishFallback(topic, a.sourceCountry || ""),
+          originalTitle: isEnglish ? "" : rawTitle,
+          url: a.url || "",
+          source: a.domain || a.source || "GDELT",
+          sourceCountry: a.sourceCountry || "",
+          language: a.language || "",
+          seenDate: a.seendate || "",
+          topic
+        };
+      })
     );
   } catch {
-    return setCache(key, []);
+    return cacheSet(key, []);
   }
 }
 
@@ -306,10 +338,10 @@ async function gdeltBundle(countryName, cityName) {
   const local = cityName ? `"${cityName}" "${countryName}"` : country;
 
   const [war, politics, terror, localNews] = await Promise.all([
-    gdeltArticles(`${country} (war OR missile OR drone OR shelling OR battle OR invasion OR clashes OR military)`, 25),
-    gdeltArticles(`${country} (election OR protest OR coup OR sanctions OR parliament OR unrest OR government)`, 25),
-    gdeltArticles(`${country} (terror OR terrorist OR bombing OR attack OR extremist OR insurgent)`, 25),
-    gdeltArticles(`${local}`, 20)
+    gdeltArticles(`${country} (war OR missile OR drone OR shelling OR battle OR invasion OR clashes OR military)`, 25, "War"),
+    gdeltArticles(`${country} (election OR protest OR coup OR sanctions OR parliament OR unrest OR government)`, 25, "Politics"),
+    gdeltArticles(`${country} (terror OR terrorist OR bombing OR attack OR extremist OR insurgent)`, 25, "Terror"),
+    gdeltArticles(`${local}`, 20, "Local news")
   ]);
 
   return { war, politics, terror, localNews };
@@ -317,7 +349,7 @@ async function gdeltBundle(countryName, cityName) {
 
 async function gdacsDisasters() {
   const key = "gdacs:rss";
-  const cached = getCache(key, 10 * 60 * 1000);
+  const cached = cacheGet(key, 10 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -349,9 +381,9 @@ async function gdacsDisasters() {
 
       items.push({
         id: url || title,
-        kind: "disaster",
-        title,
-        summary: desc || title,
+        kind: "crisis",
+        title: title || "Disaster alert",
+        summary: desc || title || "GDACS disaster alert",
         url,
         source: "GDACS",
         time,
@@ -360,15 +392,15 @@ async function gdacsDisasters() {
       });
     }
 
-    return setCache(key, items);
+    return cacheSet(key, items);
   } catch {
-    return setCache(key, []);
+    return cacheSet(key, []);
   }
 }
 
 async function usgsEarthquakes() {
   const key = "usgs:earthquakes";
-  const cached = getCache(key, 5 * 60 * 1000);
+  const cached = cacheGet(key, 5 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -378,7 +410,7 @@ async function usgsEarthquakes() {
 
     const features = Array.isArray(data.features) ? data.features : [];
 
-    return setCache(
+    return cacheSet(
       key,
       features.map((f) => {
         const p = f.properties || {};
@@ -386,7 +418,7 @@ async function usgsEarthquakes() {
 
         return {
           id: f.id || p.url || `${p.title}-${p.time}`,
-          kind: "earthquake",
+          kind: "crisis",
           title: p.title || "Earthquake",
           place: p.place || "",
           magnitude: num(p.mag),
@@ -400,13 +432,13 @@ async function usgsEarthquakes() {
       })
     );
   } catch {
-    return setCache(key, []);
+    return cacheSet(key, []);
   }
 }
 
 async function openMeteoPoint(lat, lng) {
   const key = `weather:${Number(lat).toFixed(2)}:${Number(lng).toFixed(2)}`;
-  const cached = getCache(key, 10 * 60 * 1000);
+  const cached = cacheGet(key, 10 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -427,7 +459,7 @@ async function openMeteoPoint(lat, lng) {
     const rain = num(c.rain);
     const snow = num(c.snowfall);
 
-    return setCache(key, {
+    return cacheSet(key, {
       source: "Open-Meteo",
       coverage: "Global model weather",
       severe:
@@ -448,7 +480,7 @@ async function openMeteoPoint(lat, lng) {
       }
     });
   } catch {
-    return setCache(key, null);
+    return cacheSet(key, null);
   }
 }
 
@@ -492,7 +524,41 @@ async function policeUkPoint(lat, lng) {
   }
 }
 
-function scoreAll({ localCrime, national, gdelt, weather, earthquakes, disasters }) {
+function estimateSection(countryCode, rawCount, baselineScore, label) {
+  const code = iso2(countryCode);
+  const baseline = BASELINE[code] || {};
+  const base = baseline[baselineScore];
+
+  if (rawCount && rawCount > 0) {
+    return {
+      value: rawCount,
+      display: String(rawCount),
+      status: "Source hits",
+      estimated: false,
+      reason: "live source hits"
+    };
+  }
+
+  if (base !== undefined) {
+    return {
+      value: base,
+      display: base >= 70 ? "HIGH" : base >= 45 ? "ELEVATED" : "WATCH",
+      status: "Estimated risk",
+      estimated: true,
+      reason: `${baseline.note || label} estimate`
+    };
+  }
+
+  return {
+    value: 0,
+    display: "LOW",
+    status: "Low current signal",
+    estimated: true,
+    reason: "no live hits from connected feeds"
+  };
+}
+
+function scoreAll({ countryCode, localCrime, national, gdelt, weather, earthquakes, disasters }) {
   const nationalCrime = crimeScoreFromHomicide(national?.homicide || null);
   const money = moneyScore(national);
 
@@ -501,32 +567,37 @@ function scoreAll({ localCrime, national, gdelt, weather, earthquakes, disasters
       ? Math.max(0, Math.min(100, Math.round(85 - Math.min(80, localCrime.total / 3))))
       : nationalCrime.score;
 
-  const war = Array.isArray(gdelt?.war) ? gdelt.war.length : 0;
-  const politics = Array.isArray(gdelt?.politics) ? gdelt.politics.length : 0;
-  const terror = Array.isArray(gdelt?.terror) ? gdelt.terror.length : 0;
-  const quake = Array.isArray(earthquakes) ? earthquakes.length : 0;
-  const disaster = Array.isArray(disasters) ? disasters.length : 0;
+  const warCount = Array.isArray(gdelt?.war) ? gdelt.war.length : 0;
+  const politicsCount = Array.isArray(gdelt?.politics) ? gdelt.politics.length : 0;
+  const terrorCount = Array.isArray(gdelt?.terror) ? gdelt.terror.length : 0;
+  const crisisCount =
+    (Array.isArray(earthquakes) ? earthquakes.length : 0) +
+    (Array.isArray(disasters) ? disasters.length : 0) +
+    (weather?.severe ? 1 : 0);
 
-  let safety = crimeScore === null || crimeScore === undefined ? 60 : crimeScore;
-  safety -= Math.min(35, war * 3);
-  safety -= Math.min(20, terror * 4);
-  safety -= Math.min(15, politics * 1);
-  safety -= Math.min(20, disaster * 3);
-  safety -= Math.min(10, quake * 1);
-  if (weather?.severe) safety -= 10;
+  const war = estimateSection(countryCode, warCount, "war", "war");
+  const politics = estimateSection(countryCode, politicsCount, "politics", "politics");
+  const terror = estimateSection(countryCode, terrorCount, "war", "terror");
+  const crisis = estimateSection(countryCode, crisisCount, "crisis", "crisis");
+
+  let safety = crimeScore === null || crimeScore === undefined ? 65 : crimeScore;
+  safety -= Math.min(32, war.value * 0.25);
+  safety -= Math.min(18, terror.value * 0.25);
+  safety -= Math.min(12, politics.value * 0.12);
+  safety -= Math.min(20, crisis.value * 0.15);
   safety = Math.max(0, Math.min(100, Math.round(safety)));
 
   return {
     safety: {
       score: safety,
       status: safety >= 75 ? "Lower risk" : safety >= 55 ? "Caution" : safety >= 35 ? "High risk" : "Severe risk",
-      reason: "crime + war + politics + weather/disaster"
+      reason: "crime + war + politics + crisis"
     },
     crime: {
       score: crimeScore === null || crimeScore === undefined ? null : Math.round(crimeScore),
       status:
         crimeScore === null || crimeScore === undefined
-          ? "N/A"
+          ? "No source"
           : crimeScore >= 75
           ? "Lower crime signal"
           : crimeScore >= 55
@@ -536,17 +607,17 @@ function scoreAll({ localCrime, national, gdelt, weather, earthquakes, disasters
           : "Severe crime signal",
       reason: localCrime?.available ? "official local crime count" : nationalCrime.reason
     },
-    war: { count: war, status: war ? "Source hits found" : "No current hits" },
-    politics: { count: politics, status: politics ? "Source hits found" : "No current hits" },
-    terror: { count: terror, status: terror ? "Source hits found" : "No current hits" },
-    weather: { count: quake + disaster + (weather?.severe ? 1 : 0), status: "USGS/GDACS/Open-Meteo" },
+    war,
+    politics,
+    terror,
+    crisis,
     money
   };
 }
 
 router.get("/boundaries/admin0", async (req, res) => {
   try {
-    const cached = getCache("boundaries:admin0", 24 * 60 * 60 * 1000);
+    const cached = cacheGet("boundaries:admin0", 24 * 60 * 60 * 1000);
     if (cached) return res.json(cached);
 
     const url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson";
@@ -572,7 +643,7 @@ router.get("/boundaries/admin0", async (req, res) => {
       })
     };
 
-    return res.json(setCache("boundaries:admin0", cleaned));
+    return res.json(cacheSet("boundaries:admin0", cleaned));
   } catch (err) {
     return res.status(500).json({ error: "Could not load boundaries", detail: err.message });
   }
@@ -596,7 +667,6 @@ router.get("/global-risk/point", async (req, res) => {
   const countryCode = iso2(place?.countryCode);
   const countryName = place?.country || "";
   const city = place?.city || "";
-
   const isUk = countryCode === "GB" || /united kingdom|england|wales|northern ireland/i.test(countryName);
 
   const [national, gdelt, disastersAll, quakesAll, weather, localCrime] = await Promise.all([
@@ -618,6 +688,7 @@ router.get("/global-risk/point", async (req, res) => {
   const nearDisasters = (disastersAll || []).filter((d) => d.lat !== null && d.lng !== null && Math.abs(d.lat - lat) <= 10 && Math.abs(d.lng - lng) <= 10);
 
   const scores = scoreAll({
+    countryCode,
     localCrime,
     national,
     gdelt,
@@ -646,8 +717,8 @@ router.get("/global-risk/point", async (req, res) => {
     sourceStatus: {
       localCrime: localCrime.available ? "official local feed" : "N/A, no official local feed connected here",
       nationalCrime: national?.homicide ? "World Bank homicide indicator" : "N/A",
-      warPolitics: "GDELT",
-      disasters: "GDACS + USGS + Open-Meteo"
+      warPolitics: "GDELT + baseline estimate when no live hit",
+      crisis: "GDACS + USGS + Open-Meteo + baseline estimate"
     }
   });
 });
@@ -676,6 +747,46 @@ router.get("/global-events/local", async (req, res) => {
 
   const bundle = await gdeltBundle(place?.country || "", place?.city || place?.state || "");
   return res.json({ ok: true, source: "GDELT", place, articles: bundle.localNews });
+});
+
+router.get("/geocode/place", async (req, res) => {
+  const q = String(req.query.q || "").trim();
+
+  if (!q) {
+    return res.status(400).json({ error: "q is required" });
+  }
+
+  const key = `geocode:${q.toLowerCase()}`;
+  const cached = cacheGet(key, 7 * 24 * 60 * 60 * 1000);
+  if (cached) return res.json(cached);
+
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search" +
+      `?format=jsonv2&q=${encodeURIComponent(q)}` +
+      "&limit=1&addressdetails=1&accept-language=en";
+
+    const rows = await getJson(url, { timeout: 15000 });
+    const hit = Array.isArray(rows) ? rows[0] : null;
+
+    const result = hit
+      ? {
+          ok: true,
+          lat: num(hit.lat),
+          lng: num(hit.lon),
+          displayName: hit.display_name || q
+        }
+      : {
+          ok: false,
+          lat: null,
+          lng: null,
+          displayName: q
+        };
+
+    return res.json(cacheSet(key, result));
+  } catch (err) {
+    return res.status(500).json({ error: "geocode failed", detail: err.message });
+  }
 });
 
 router.get("/global-weather/earthquakes", async (req, res) => {
@@ -707,7 +818,7 @@ router.get("/wiki/place", async (req, res) => {
     }
 
     const key = `wiki:${name}:${country}`.toLowerCase();
-    const cached = getCache(key, 7 * 24 * 60 * 60 * 1000);
+    const cached = cacheGet(key, 7 * 24 * 60 * 60 * 1000);
     if (cached) return res.json(cached);
 
     const searchTerm = country ? `${name} ${country}` : name;
@@ -721,7 +832,7 @@ router.get("/wiki/place", async (req, res) => {
     const hit = search?.query?.search?.[0];
 
     if (!hit?.title) {
-      return res.json(setCache(key, {
+      return res.json(cacheSet(key, {
         found: false,
         title: name,
         thumbnail: null,
@@ -735,7 +846,7 @@ router.get("/wiki/place", async (req, res) => {
       "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(hit.title)
     );
 
-    return res.json(setCache(key, {
+    return res.json(cacheSet(key, {
       found: true,
       title: summary.title || hit.title,
       description: summary.description || "",
