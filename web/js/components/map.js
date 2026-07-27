@@ -1,29 +1,28 @@
 window.MoneyMap = (() => {
   let map;
+  let baseLayer;
+  let regionLayer;
   let nodesLayer;
   let cityLayer;
   let localLayer;
   let eventsLayer;
   let seaLayer;
   let landLayer;
-  let riskLayer;
-  let safetyLayer;
-  let conflictCountryLayer;
-  let safetyCountryLayer;
   let riskPointLayer;
   let weatherLayer;
 
+  let countryGeoJson = null;
   let currentMode = null;
+  let dotPanelOpen = false;
   let localTimer = null;
   let lastLocalKey = "";
-  let dotPanelOpen = false;
   let lastEventIds = new Set();
 
   window.SHOW_SEA = false;
   window.SHOW_LAND = false;
   window.SHOW_SAFETY = true;
 
-  const activeDotTypes = new Set(["war", "terror", "disaster", "weather", "risk"]);
+  const activeDotTypes = new Set(["war", "terror", "disaster", "weather", "earthquake", "risk"]);
 
   const colors = {
     war: "#ff174f",
@@ -32,6 +31,7 @@ window.MoneyMap = (() => {
     weather: "#ff174f",
     earthquake: "#ff174f",
     election: "#a871ff",
+    politics: "#a871ff",
     shipping: "#00d8ff",
     port: "#00d8ff",
     ai: "#a871ff",
@@ -42,6 +42,23 @@ window.MoneyMap = (() => {
     city: "#7aa7ff",
     risk: "#ff326a"
   };
+
+  const conflictNames = new Set([
+    "Ukraine",
+    "Russia",
+    "Syria",
+    "Yemen",
+    "Sudan",
+    "Myanmar",
+    "Afghanistan",
+    "Israel",
+    "Palestine",
+    "Lebanon",
+    "Somalia",
+    "Mali",
+    "Burkina Faso",
+    "Niger"
+  ]);
 
   function init() {
     map = L.map("map", {
@@ -59,7 +76,7 @@ window.MoneyMap = (() => {
 
     window.map = map;
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    baseLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       subdomains: "abcd",
       noWrap: true,
       bounds: [[-85, -180], [85, 180]],
@@ -69,12 +86,9 @@ window.MoneyMap = (() => {
       keepBuffer: 4
     }).addTo(map);
 
+    regionLayer = L.layerGroup().addTo(map);
     seaLayer = L.layerGroup();
     landLayer = L.layerGroup();
-    riskLayer = L.layerGroup();
-    safetyLayer = L.layerGroup();
-    conflictCountryLayer = L.layerGroup();
-    safetyCountryLayer = L.layerGroup();
     riskPointLayer = L.layerGroup().addTo(map);
     weatherLayer = L.layerGroup().addTo(map);
     nodesLayer = L.layerGroup().addTo(map);
@@ -82,24 +96,14 @@ window.MoneyMap = (() => {
     localLayer = L.layerGroup().addTo(map);
     eventsLayer = L.layerGroup().addTo(map);
 
+    map.on("click", async (event) => {
+      await openGlobalRisk(event.latlng.lat, event.latlng.lng);
+    });
+
     map.on("zoomend moveend", () => {
       renderEvents(window.APP_STATE?.events || []);
       renderCities(window.MAP_DATA?.cityNodes || []);
       fetchLocalPlaces();
-    });
-
-    map.on("click", async (event) => {
-      if (currentMode === "risk") {
-        await openGlobalRisk(event.latlng.lat, event.latlng.lng);
-        return;
-      }
-
-      if (currentMode === "weather") {
-        await openGlobalRisk(event.latlng.lat, event.latlng.lng);
-        return;
-      }
-
-      openContext(event.latlng.lat, event.latlng.lng);
     });
 
     document.addEventListener("change", (event) => {
@@ -115,12 +119,11 @@ window.MoneyMap = (() => {
 
       if (event.target?.id === "safetyToggle") {
         window.SHOW_SAFETY = !!event.target.checked;
-        renderAllRegionFills();
+        renderCountryRegionColours();
       }
 
       if (event.target?.dataset?.dotType) {
         const type = event.target.dataset.dotType;
-
         if (event.target.checked) activeDotTypes.add(type);
         else activeDotTypes.delete(type);
 
@@ -134,23 +137,14 @@ window.MoneyMap = (() => {
     document.getElementById("globalRiskButton")?.addEventListener("click", () => {
       currentMode = currentMode === "risk" ? null : "risk";
       setButtonModes();
-      if (currentMode === "risk") {
-        showGlobalRiskIntro();
-      } else {
-        showToast("Global Risk off");
-      }
+      showGlobalRiskIntro();
     });
 
     document.getElementById("weatherTrackerButton")?.addEventListener("click", async () => {
       currentMode = currentMode === "weather" ? null : "weather";
       setButtonModes();
-
-      if (currentMode === "weather") {
-        await loadGlobalWeather();
-      } else {
-        weatherLayer.clearLayers();
-        showToast("Global Weather off");
-      }
+      if (currentMode === "weather") await loadGlobalWeather();
+      else weatherLayer.clearLayers();
     });
 
     document.getElementById("dotToggleButton")?.addEventListener("click", () => {
@@ -158,8 +152,13 @@ window.MoneyMap = (() => {
       renderDotTogglePanel();
     });
 
-    injectMapCss();
+    document.getElementById("refresh")?.addEventListener("click", () => {
+      location.reload();
+    });
+
+    injectCss();
     renderLegend();
+    loadCountryRegions();
     setTimeout(resize, 250);
   }
 
@@ -168,9 +167,68 @@ window.MoneyMap = (() => {
     document.getElementById("weatherTrackerButton")?.classList.toggle("active", currentMode === "weather");
   }
 
+  async function loadCountryRegions() {
+    try {
+      const data = await fetch("/api/boundaries/admin0").then((r) => r.json());
+      countryGeoJson = data;
+      renderCountryRegionColours();
+    } catch {
+      countryGeoJson = null;
+    }
+  }
+
+  function renderCountryRegionColours() {
+    regionLayer.clearLayers();
+
+    if (!window.SHOW_SAFETY || !countryGeoJson || !Array.isArray(countryGeoJson.features)) {
+      return;
+    }
+
+    L.geoJSON(countryGeoJson, {
+      style: (feature) => {
+        const p = feature.properties || {};
+        const name = p.name || p.admin || "";
+
+        let fill = "#00a66a";
+        let opacity = 0.06;
+
+        if (matchesName(name, conflictNames)) {
+          fill = "#ff174f";
+          opacity = 0.34;
+        } else if (/russia|iran|north korea|venezuela|haiti|libya/i.test(name)) {
+          fill = "#ff8c00";
+          opacity = 0.22;
+        }
+
+        return {
+          color: fill,
+          weight: 0,
+          opacity: 0,
+          fillColor: fill,
+          fillOpacity: opacity,
+          className: "country-map-colour"
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        layer.on("click", async (event) => {
+          L.DomEvent.stopPropagation(event);
+          const centre = layer.getBounds().getCenter();
+          await openGlobalRisk(centre.lat, centre.lng);
+        });
+      }
+    }).addTo(regionLayer);
+  }
+
+  function matchesName(name, set) {
+    const n = String(name || "").toLowerCase();
+    for (const x of set) {
+      if (n.includes(String(x).toLowerCase())) return true;
+    }
+    return false;
+  }
+
   function icon(kind, flash = false) {
     const actual = kind === "tech" ? "ai" : kind;
-
     return L.divIcon({
       className: "",
       html: `<div class="node-dot ${actual} ${flash ? "flash" : ""}"></div>`,
@@ -188,13 +246,19 @@ window.MoneyMap = (() => {
     });
   }
 
-  function weatherIcon(kind, label, colour) {
+  function weatherIcon(label, colour) {
     return L.divIcon({
       className: "",
-      html: `<div class="weather-dot ${kind}" style="background:${colour};box-shadow:0 0 22px ${colour};">${label}</div>`,
+      html: `<div class="weather-dot" style="background:${colour};box-shadow:0 0 22px ${colour};">${label}</div>`,
       iconSize: [24, 24],
       iconAnchor: [12, 12]
     });
+  }
+
+  function dotAllowed(kind) {
+    const actual = kind === "tech" ? "ai" : kind;
+    if (["war", "terror", "disaster", "weather", "earthquake", "risk"].includes(actual)) return true;
+    return activeDotTypes.has(actual);
   }
 
   function renderLegend() {
@@ -207,7 +271,7 @@ window.MoneyMap = (() => {
       disaster: "disaster",
       earthquake: "quake",
       weather: "weather",
-      election: "politics",
+      politics: "politics",
       shipping: "shipping",
       ai: "AI",
       commodity: "commodity",
@@ -248,12 +312,12 @@ window.MoneyMap = (() => {
       ["energy", "Energy"],
       ["finance", "Finance"],
       ["city", "Cities"],
-      ["election", "Politics"]
+      ["politics", "Politics"]
     ];
 
     box.innerHTML = `
       <h3>Dots</h3>
-      <p>Vital dots stay on. Add extra categories only when needed.</p>
+      <p>Vital dots stay on. Turn extra noise on only when needed.</p>
       ${types
         .map(([key, label]) => {
           const checked = activeDotTypes.has(key) ? "checked" : "";
@@ -268,189 +332,6 @@ window.MoneyMap = (() => {
     `;
   }
 
-  function regionFillStyle(fill, opacity) {
-    return {
-      color: fill,
-      weight: 0,
-      opacity: 0,
-      fillColor: fill,
-      fillOpacity: opacity,
-      className: "region-fill"
-    };
-  }
-
-  function renderRiskRegions(regions) {
-    riskLayer.clearLayers();
-
-    if (!window.SHOW_SAFETY) {
-      if (map.hasLayer(riskLayer)) map.removeLayer(riskLayer);
-      return;
-    }
-
-    if (!map.hasLayer(riskLayer)) riskLayer.addTo(map);
-
-    for (const region of regions || []) {
-      const fill =
-        region.level === "darkred"
-          ? "#b0002f"
-          : region.level === "orange"
-          ? "#ff8c00"
-          : region.level === "yellow"
-          ? "#ffd447"
-          : region.level === "green"
-          ? "#12e680"
-          : "#ff174f";
-
-      const opacity =
-        region.level === "green" ? 0.08 :
-        region.level === "yellow" ? 0.14 :
-        region.level === "orange" ? 0.24 :
-        0.34;
-
-      const layer =
-        Array.isArray(region.poly) && region.poly.length
-          ? L.polygon(region.poly, regionFillStyle(fill, opacity))
-          : L.rectangle(region.bounds, regionFillStyle(fill, opacity));
-
-      layer.on("click", (event) => {
-        L.DomEvent.stopPropagation(event);
-        Renderers.renderRiskRegion(region);
-      });
-
-      layer.addTo(riskLayer);
-    }
-  }
-
-  function renderConflictCountries(countries) {
-    conflictCountryLayer.clearLayers();
-
-    if (!window.SHOW_SAFETY) {
-      if (map.hasLayer(conflictCountryLayer)) map.removeLayer(conflictCountryLayer);
-      return;
-    }
-
-    if (!map.hasLayer(conflictCountryLayer)) conflictCountryLayer.addTo(map);
-
-    for (const country of countries || []) {
-      if (!Array.isArray(country.poly) || !country.poly.length) continue;
-
-      const fill =
-        country.level === "high-risk"
-          ? "#ff8c00"
-          : country.level === "watch"
-          ? "#ffd447"
-          : "#ff174f";
-
-      const opacity =
-        country.level === "watch" ? 0.16 :
-        country.level === "high-risk" ? 0.26 :
-        0.42;
-
-      const layer = L.polygon(country.poly, regionFillStyle(fill, opacity));
-
-      layer.on("click", (event) => {
-        L.DomEvent.stopPropagation(event);
-        Renderers.renderCountryConflict
-          ? Renderers.renderCountryConflict(country)
-          : Renderers.renderRiskRegion(country);
-      });
-
-      layer.addTo(conflictCountryLayer);
-    }
-  }
-
-  function renderSafetyCountries(countries) {
-    safetyCountryLayer.clearLayers();
-
-    if (!window.SHOW_SAFETY) {
-      if (map.hasLayer(safetyCountryLayer)) map.removeLayer(safetyCountryLayer);
-      return;
-    }
-
-    if (!map.hasLayer(safetyCountryLayer)) safetyCountryLayer.addTo(map);
-
-    for (const country of countries || []) {
-      if (!Array.isArray(country.poly) || !country.poly.length) continue;
-
-      const fill =
-        country.level === "red"
-          ? "#ff174f"
-          : country.level === "orange"
-          ? "#ff8c00"
-          : country.level === "yellow"
-          ? "#ffd447"
-          : country.level === "green"
-          ? "#12e680"
-          : "#7f8b99";
-
-      const opacity =
-        country.level === "green" ? 0.07 :
-        country.level === "yellow" ? 0.12 :
-        country.level === "orange" ? 0.22 :
-        country.level === "red" ? 0.32 :
-        0.08;
-
-      const layer = L.polygon(country.poly, regionFillStyle(fill, opacity));
-
-      layer.on("click", (event) => {
-        L.DomEvent.stopPropagation(event);
-        Renderers.renderSafetyCountry
-          ? Renderers.renderSafetyCountry(country)
-          : Renderers.renderSafetyRegion(country);
-      });
-
-      layer.addTo(safetyCountryLayer);
-    }
-  }
-
-  function renderSafetyRegions(regions) {
-    safetyLayer.clearLayers();
-
-    if (!window.SHOW_SAFETY) {
-      if (map.hasLayer(safetyLayer)) map.removeLayer(safetyLayer);
-      return;
-    }
-
-    if (!map.hasLayer(safetyLayer)) safetyLayer.addTo(map);
-
-    for (const region of regions || []) {
-      if (!Array.isArray(region.poly) || !region.poly.length) continue;
-
-      const fill =
-        region.level === "red"
-          ? "#ff174f"
-          : region.level === "orange"
-          ? "#ff8c00"
-          : region.level === "yellow"
-          ? "#ffd447"
-          : "#12e680";
-
-      const layer = L.polygon(region.poly, regionFillStyle(fill, 0.18));
-
-      layer.on("click", (event) => {
-        L.DomEvent.stopPropagation(event);
-        Renderers.renderSafetyRegion
-          ? Renderers.renderSafetyRegion(region)
-          : Renderers.renderRiskRegion(region);
-      });
-
-      layer.addTo(safetyLayer);
-    }
-  }
-
-  function renderAllRegionFills() {
-    renderRiskRegions(window.MAP_DATA?.riskRegions || []);
-    renderConflictCountries(window.MAP_DATA?.conflictCountries || []);
-    renderSafetyCountries(window.MAP_DATA?.safetyCountries || []);
-    renderSafetyRegions(window.MAP_DATA?.safetyRegions || []);
-  }
-
-  function dotAllowed(kind) {
-    const actual = kind === "tech" ? "ai" : kind;
-    if (["war", "terror", "disaster", "weather", "earthquake", "risk"].includes(actual)) return true;
-    return activeDotTypes.has(actual);
-  }
-
   function renderBase(nodes) {
     nodesLayer.clearLayers();
 
@@ -458,12 +339,10 @@ window.MoneyMap = (() => {
       const kind = node.kind === "tech" ? "ai" : node.kind;
       if (!dotAllowed(kind)) continue;
 
-      L.marker([node.lat, node.lng], {
-        icon: icon(kind)
-      })
+      L.marker([node.lat, node.lng], { icon: icon(kind) })
         .on("click", (event) => {
           L.DomEvent.stopPropagation(event);
-          Renderers.renderNode(node);
+          if (Renderers.renderNode) Renderers.renderNode(node);
         })
         .addTo(nodesLayer);
     }
@@ -477,23 +356,13 @@ window.MoneyMap = (() => {
     if (!activeDotTypes.has("city")) return;
 
     const zoom = map.getZoom();
-    if (zoom < 4.0) return;
+    if (zoom < 4) return;
 
     const bounds = map.getBounds();
+    const limit = zoom >= 11 ? 900 : zoom >= 9 ? 650 : zoom >= 7 ? 420 : zoom >= 5 ? 220 : 120;
 
-    const limit =
-      zoom >= 11 ? 900 :
-      zoom >= 9 ? 650 :
-      zoom >= 7 ? 420 :
-      zoom >= 5 ? 220 :
-      120;
-
-    for (const city of (cities || [])
-      .filter((x) => bounds.pad(0.55).contains([x.lat, x.lng]))
-      .slice(0, limit)) {
-      L.marker([city.lat, city.lng], {
-        icon: icon(city.kind || "city")
-      })
+    for (const city of (cities || []).filter((x) => bounds.pad(0.55).contains([x.lat, x.lng])).slice(0, limit)) {
+      L.marker([city.lat, city.lng], { icon: icon(city.kind || "city") })
         .on("click", async (event) => {
           L.DomEvent.stopPropagation(event);
           await renderPlaceWithWiki(city);
@@ -510,15 +379,10 @@ window.MoneyMap = (() => {
     const zoom = map.getZoom();
     if (zoom < 6) return;
 
-    const limit =
-      zoom >= 12 ? 220 :
-      zoom >= 10 ? 160 :
-      90;
+    const limit = zoom >= 12 ? 220 : zoom >= 10 ? 160 : 90;
 
     for (const place of (places || []).slice(0, limit)) {
-      L.marker([place.lat, place.lng], {
-        icon: localIcon(place.kind)
-      })
+      L.marker([place.lat, place.lng], { icon: localIcon(place.kind) })
         .on("click", async (event) => {
           L.DomEvent.stopPropagation(event);
           await renderPlaceWithWiki(place);
@@ -536,30 +400,23 @@ window.MoneyMap = (() => {
         return;
       }
 
-      const bounds = map.getBounds();
-
-      const key = [
-        bounds.getSouth().toFixed(2),
-        bounds.getWest().toFixed(2),
-        bounds.getNorth().toFixed(2),
-        bounds.getEast().toFixed(2),
-        Math.floor(map.getZoom())
-      ].join(",");
+      const b = map.getBounds();
+      const key = [b.getSouth().toFixed(2), b.getWest().toFixed(2), b.getNorth().toFixed(2), b.getEast().toFixed(2), Math.floor(map.getZoom())].join(",");
 
       if (key === lastLocalKey) return;
       lastLocalKey = key;
 
       try {
         const url =
-          `/api/local-places?south=${bounds.getSouth()}` +
-          `&west=${bounds.getWest()}` +
-          `&north=${bounds.getNorth()}` +
-          `&east=${bounds.getEast()}` +
+          `/api/local-places?south=${b.getSouth()}` +
+          `&west=${b.getWest()}` +
+          `&north=${b.getNorth()}` +
+          `&east=${b.getEast()}` +
           `&zoom=${map.getZoom()}`;
 
         const data = await fetch(url).then((r) => r.json());
         renderLocalPlaces(data.places || []);
-      } catch (err) {
+      } catch {
         localLayer.clearLayers();
       }
     }, 550);
@@ -572,16 +429,14 @@ window.MoneyMap = (() => {
     const bounds = map.getBounds();
 
     const visible = (events || [])
-      .filter((event) => dotAllowed(event.kind))
-      .filter((event) => zoom < 4.5 || bounds.pad(0.55).contains([event.lat, event.lng]))
+      .filter((e) => dotAllowed(e.kind))
+      .filter((e) => zoom < 4.5 || bounds.pad(0.55).contains([e.lat, e.lng]))
       .slice(0, zoom >= 10 ? 900 : zoom >= 8 ? 650 : zoom >= 6 ? 460 : 300);
 
     for (const event of visible) {
       const kind = event.kind === "tech" ? "ai" : event.kind;
 
-      L.marker([event.lat, event.lng], {
-        icon: icon(kind, flashIds.has(event.id))
-      })
+      L.marker([event.lat, event.lng], { icon: icon(kind, flashIds.has(event.id)) })
         .on("click", (leafletEvent) => {
           L.DomEvent.stopPropagation(leafletEvent);
           openEventOnMap(event);
@@ -599,7 +454,6 @@ window.MoneyMap = (() => {
 
     if (window.SHOW_SEA) seaLayer.addTo(map);
     if (window.SHOW_LAND) landLayer.addTo(map);
-
     if (!window.SHOW_SEA && !window.SHOW_LAND) return;
 
     for (const route of routes || []) {
@@ -626,26 +480,9 @@ window.MoneyMap = (() => {
       })
         .on("click", (event) => {
           L.DomEvent.stopPropagation(event);
-          Renderers.renderRoute(route);
+          if (Renderers.renderRoute) Renderers.renderRoute(route);
         })
         .addTo(layer);
-
-      if (map.getZoom() >= 4.0) {
-        const mid = points[Math.floor(points.length / 2)];
-
-        L.marker(mid, {
-          icon: L.divIcon({
-            className: "route-label",
-            html: `${escapeHtml(route.name || "Route")}<br><span>${escapeHtml(route.goods || "goods")}</span>`,
-            iconSize: null
-          })
-        })
-          .on("click", (event) => {
-            L.DomEvent.stopPropagation(event);
-            Renderers.renderRoute(route);
-          })
-          .addTo(layer);
-      }
     }
   }
 
@@ -660,75 +497,49 @@ window.MoneyMap = (() => {
     if (map.hasLayer(seaLayer)) map.removeLayer(seaLayer);
     if (map.hasLayer(landLayer)) map.removeLayer(landLayer);
 
-    renderAllRegionFills();
+    renderCountryRegionColours();
     renderBase(mapData?.nodes || []);
     renderCities(mapData?.cityNodes || []);
     fetchLocalPlaces();
     renderRoutes(mapData?.routes || []);
     renderEvents(state?.events || []);
+    patchPolymarketButton();
 
     setTimeout(resize, 250);
   }
 
   async function openContext(lat, lng, zoom = null) {
-    if (map && zoom && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
-      map.setView([Number(lat), Number(lng)], Math.max(map.getZoom(), zoom));
-    }
-
-    const data = await fetch(
-      `/api/context?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
-    ).then((r) => r.json());
-
-    try {
-      const reverse = await fetch(
-        `/api/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
-      ).then((r) => r.json());
-
-      data.reverse = reverse;
-    } catch (err) {}
-
-    Renderers.renderContext(data);
+    await openGlobalRisk(lat, lng, zoom);
   }
 
-  async function openGlobalRisk(lat, lng) {
+  async function openGlobalRisk(lat, lng, zoom = null) {
+    if (zoom) map.setView([lat, lng], Math.max(map.getZoom(), zoom));
+
     riskPointLayer.clearLayers();
 
-    Panels.setInfo(
-      "Global Risk",
-      `
-        <div class="info-card">
-          <h3>Global Risk</h3>
-          <p class="plain">Loading source-backed crime, war, politics, weather and money data.</p>
-          <div class="metric-row"><span>Latitude</span><b>${Number(lat).toFixed(4)}</b></div>
-          <div class="metric-row"><span>Longitude</span><b>${Number(lng).toFixed(4)}</b></div>
-        </div>
-      `,
-      "risk"
-    );
+    setInfo("Global Risk", `
+      <div class="info-card">
+        <h3>Global Risk</h3>
+        <p class="plain">Loading crime, war, politics, weather and money data.</p>
+      </div>
+    `, "risk");
 
     try {
-      const data = await fetch(
-        `/api/global-risk/point?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
-      ).then((r) => r.json());
-
+      const data = await fetch(`/api/global-risk/point?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`).then((r) => r.json());
       renderGlobalRisk(data, lat, lng);
-    } catch (err) {
-      Panels.setInfo(
-        "Global Risk",
-        `
-          <div class="info-card">
-            <h3>Global Risk</h3>
-            <div class="index-grid real-indexes">
-              <div class="index-tile grey">
-                <div class="label">Risk</div>
-                <div class="num">N/A</div>
-                <div class="tag">source failed</div>
-              </div>
+    } catch {
+      setInfo("Global Risk", `
+        <div class="info-card">
+          <h3>Global Risk</h3>
+          <div class="index-grid real-indexes">
+            <div class="index-tile grey">
+              <div class="label">Risk</div>
+              <div class="num">N/A</div>
+              <div class="tag">source failed</div>
             </div>
           </div>
-        `,
-        "risk"
-      );
+        </div>
+      `, "risk");
     }
   }
 
@@ -745,66 +556,61 @@ window.MoneyMap = (() => {
       weight: 2
     }).addTo(riskPointLayer);
 
+    const localCrime = data.localCrime || {};
+    const localCrimeLine = localCrime.available
+      ? `${localCrime.total} official local crimes, ${localCrime.date}`
+      : "N/A, no official local crime feed connected here";
+
+    const homicide = data.national?.homicide;
+
     const eventList = [
-      ...(data.warEvents || []).slice(0, 4).map((x) => ({ ...x, type: "War" })),
-      ...(data.politicalEvents || []).slice(0, 4).map((x) => ({ ...x, type: "Politics" })),
-      ...(data.terrorEvents || []).slice(0, 4).map((x) => ({ ...x, type: "Terror" })),
-      ...(data.disasters || []).slice(0, 4).map((x) => ({ ...x, type: "Disaster" })),
-      ...(data.earthquakes || []).slice(0, 4).map((x) => ({ ...x, type: "Earthquake" }))
+      ...(data.warEvents || []).slice(0, 3).map((x) => ({ ...x, type: "War" })),
+      ...(data.politicalEvents || []).slice(0, 3).map((x) => ({ ...x, type: "Politics" })),
+      ...(data.terrorEvents || []).slice(0, 3).map((x) => ({ ...x, type: "Terror" })),
+      ...(data.disasters || []).slice(0, 3).map((x) => ({ ...x, type: "Disaster" })),
+      ...(data.earthquakes || []).slice(0, 3).map((x) => ({ ...x, type: "Earthquake" }))
     ];
 
     const eventsHtml = eventList.length
       ? eventList.map((e) => `
-          <div class="quick-item">
-            <b>${escapeHtml(e.type)}:</b>
-            ${e.url ? `<a href="${escapeAttr(e.url)}" target="_blank" rel="noopener">${escapeHtml(e.title || e.summary || "source")}</a>` : escapeHtml(e.title || e.summary || "source")}
-          </div>
-        `).join("")
-      : `<div class="quick-item"><b>Events:</b> no current source hits from connected feeds.</div>`;
+        <div class="quick-item">
+          <b>${escapeHtml(e.type)}:</b>
+          ${e.url ? `<a href="${escapeAttr(e.url)}" target="_blank" rel="noopener">${escapeHtml(e.title || e.summary || "source")}</a>` : escapeHtml(e.title || e.summary || "source")}
+        </div>
+      `).join("")
+      : `<div class="quick-item"><b>Events:</b> no current source hits.</div>`;
 
-    const localCrime = data.localCrime || {};
-    const localCrimeLine =
-      localCrime.available
-        ? `${localCrime.total} official local crimes, ${localCrime.date}`
-        : "N/A, no official local crime feed connected here";
+    setInfo("Global Risk", `
+      <div class="info-card">
+        <h3>${escapeHtml(name)}</h3>
+        <p class="source-line">Source-backed. Missing data shows N/A.</p>
 
-    const homicide = data.national?.homicide;
-
-    Panels.setInfo(
-      "Global Risk",
-      `
-        <div class="info-card">
-          <h3>${escapeHtml(name)}</h3>
-          <p class="source-line">Global source stack. Missing data shows N/A.</p>
-
-          <div class="index-grid real-indexes">
-            ${scoreTile("Safety", scores.safety?.score, scores.safety?.status, scores.safety?.reason)}
-            ${scoreTile("Crime", scores.crime?.score, scores.crime?.status, scores.crime?.source)}
-            ${countTile("War", scores.war?.count, scores.war?.status)}
-            ${countTile("Politics", scores.politics?.count, scores.politics?.status)}
-            ${countTile("Weather", scores.weather?.count, scores.weather?.status)}
-            ${scoreTile("Money", scores.money?.score, scores.money?.status, scores.money?.reason)}
-          </div>
-
-          <div class="quick-list">
-            <div class="quick-item"><b>Local crime:</b> ${escapeHtml(localCrimeLine)}</div>
-            <div class="quick-item"><b>National crime:</b> ${
-              homicide?.value !== null && homicide?.value !== undefined
-                ? `${Number(homicide.value).toFixed(1)} homicides / 100k, ${escapeHtml(homicide.year)}`
-                : "N/A"
-            }</div>
-            <div class="quick-item"><b>Weather now:</b> ${weatherSummary(data.weather)}</div>
-            <div class="quick-item yellow"><b>Rule:</b> local crime is not invented where no official feed exists.</div>
-          </div>
+        <div class="index-grid real-indexes">
+          ${scoreTile("Safety", scores.safety?.score, scores.safety?.status, scores.safety?.reason)}
+          ${scoreTile("Crime", scores.crime?.score, scores.crime?.status, scores.crime?.reason)}
+          ${countTile("War", scores.war?.count, scores.war?.status)}
+          ${countTile("Politics", scores.politics?.count, scores.politics?.status)}
+          ${countTile("Weather", scores.weather?.count, scores.weather?.status)}
+          ${scoreTile("Money", scores.money?.score, scores.money?.status, scores.money?.reason)}
         </div>
 
-        <div class="info-card">
-          <h3>Source hits</h3>
-          <div class="quick-list">${eventsHtml}</div>
+        <div class="quick-list">
+          <div class="quick-item"><b>Local crime:</b> ${escapeHtml(localCrimeLine)}</div>
+          <div class="quick-item"><b>National crime:</b> ${
+            homicide?.value !== null && homicide?.value !== undefined
+              ? `${Number(homicide.value).toFixed(1)} homicides / 100k, ${escapeHtml(homicide.year)}`
+              : "N/A"
+          }</div>
+          <div class="quick-item"><b>Weather now:</b> ${weatherSummary(data.weather)}</div>
+          <div class="quick-item yellow"><b>Rule:</b> no fake local crime numbers.</div>
         </div>
-      `,
-      "risk"
-    );
+      </div>
+
+      <div class="info-card">
+        <h3>Source hits</h3>
+        <div class="quick-list">${eventsHtml}</div>
+      </div>
+    `, "risk");
   }
 
   function scoreTile(label, value, tag, source) {
@@ -850,66 +656,50 @@ window.MoneyMap = (() => {
       const country = place.country || place.countryName || "";
 
       if (name) {
-        wiki = await fetch(
-          `/api/wiki/place?name=${encodeURIComponent(name)}&country=${encodeURIComponent(country)}`
-        ).then((r) => r.json());
+        wiki = await fetch(`/api/wiki/place?name=${encodeURIComponent(name)}&country=${encodeURIComponent(country)}`).then((r) => r.json());
       }
-    } catch (err) {
+    } catch {
       wiki = null;
     }
 
-    const wikiHtml =
-      wiki?.found && wiki.thumbnail
-        ? `
-          <div class="info-card">
-            <img src="${escapeAttr(wiki.thumbnail)}" alt="${escapeAttr(wiki.title)}" style="width:100%;max-height:190px;object-fit:cover;border:1px solid #00d8ff;margin-bottom:10px;">
-            <h3>${escapeHtml(wiki.title)}</h3>
-            <p class="plain">${escapeHtml(shortText(wiki.extract || "", 260))}</p>
-            ${wiki.url ? `<a href="${escapeAttr(wiki.url)}" target="_blank" rel="noopener">Wikipedia source</a>` : ""}
-          </div>
-        `
-        : `
-          <div class="info-card">
-            <h3>Image</h3>
-            <p class="plain">No Wikipedia image found for this place. No fake picture shown.</p>
-          </div>
-        `;
-
-    Panels.setInfo(
-      place.name || place.title || "Place",
-      `
+    const wikiHtml = wiki?.found && wiki.thumbnail
+      ? `
         <div class="info-card">
-          <h3>${escapeHtml(place.name || place.title || "Place")}</h3>
-          <div class="quick-list">
-            <div class="quick-item"><b>Type:</b> ${escapeHtml(place.kind || "place")}</div>
-            <div class="quick-item"><b>Latitude:</b> ${escapeHtml(place.lat)}</div>
-            <div class="quick-item"><b>Longitude:</b> ${escapeHtml(place.lng)}</div>
-          </div>
+          <img src="${escapeAttr(wiki.thumbnail)}" alt="${escapeAttr(wiki.title)}" style="width:100%;max-height:190px;object-fit:cover;border:1px solid #00d8ff;margin-bottom:10px;">
+          <h3>${escapeHtml(wiki.title)}</h3>
+          <p class="plain">${escapeHtml(shortText(wiki.extract || "", 260))}</p>
+          ${wiki.url ? `<a href="${escapeAttr(wiki.url)}" target="_blank" rel="noopener">Wikipedia source</a>` : ""}
         </div>
-        ${wikiHtml}
-      `,
-      "place"
-    );
+      `
+      : `
+        <div class="info-card">
+          <h3>Image</h3>
+          <p class="plain">No Wikipedia image found for this place. No fake picture shown.</p>
+        </div>
+      `;
+
+    setInfo(place.name || place.title || "Place", `
+      <div class="info-card">
+        <h3>${escapeHtml(place.name || place.title || "Place")}</h3>
+        <div class="quick-list">
+          <div class="quick-item"><b>Type:</b> ${escapeHtml(place.kind || "place")}</div>
+          <div class="quick-item"><b>Latitude:</b> ${escapeHtml(place.lat)}</div>
+          <div class="quick-item"><b>Longitude:</b> ${escapeHtml(place.lng)}</div>
+        </div>
+      </div>
+      ${wikiHtml}
+    `, "place");
   }
 
   async function loadGlobalWeather() {
     weatherLayer.clearLayers();
 
-    Panels.setInfo(
-      "Global Weather",
-      `
-        <div class="info-card">
-          <h3>Global Weather</h3>
-          <p class="plain">Loading global earthquakes and disaster alerts.</p>
-          <div class="quick-list">
-            <div class="quick-item"><b>Earthquakes:</b> USGS global feed</div>
-            <div class="quick-item"><b>Disasters:</b> GDACS global feed</div>
-            <div class="quick-item"><b>Point weather:</b> click map for Open-Meteo forecast</div>
-          </div>
-        </div>
-      `,
-      "weather"
-    );
+    setInfo("Global Weather", `
+      <div class="info-card">
+        <h3>Global Weather</h3>
+        <p class="plain">Loading global earthquakes and disaster alerts.</p>
+      </div>
+    `, "weather");
 
     const [quakeData, disasterData] = await Promise.all([
       fetch("/api/global-weather/earthquakes").then((r) => r.json()).catch(() => ({ earthquakes: [] })),
@@ -922,28 +712,22 @@ window.MoneyMap = (() => {
     for (const q of earthquakes) {
       if (q.lat === null || q.lng === null) continue;
 
-      L.marker([q.lat, q.lng], {
-        icon: weatherIcon("earthquake", "Q", "#ff174f")
-      })
+      L.marker([q.lat, q.lng], { icon: weatherIcon("Q", "#ff174f") })
         .on("click", (event) => {
           L.DomEvent.stopPropagation(event);
           map.setView([q.lat, q.lng], Math.max(map.getZoom(), 6));
-          Panels.setInfo(
-            "Earthquake",
-            `
-              <div class="info-card">
-                <h3>${escapeHtml(q.title || "Earthquake")}</h3>
-                <div class="quick-list">
-                  <div class="quick-item"><b>Magnitude:</b> ${escapeHtml(q.magnitude ?? "N/A")}</div>
-                  <div class="quick-item"><b>Place:</b> ${escapeHtml(q.place || "N/A")}</div>
-                  <div class="quick-item"><b>Depth:</b> ${escapeHtml(q.depthKm ?? "N/A")} km</div>
-                  <div class="quick-item"><b>Time:</b> ${escapeHtml(q.time || "N/A")}</div>
-                </div>
-                <p class="source-box">${q.url ? `<a href="${escapeAttr(q.url)}" target="_blank" rel="noopener">USGS source</a>` : "USGS"}</p>
+          setInfo("Earthquake", `
+            <div class="info-card">
+              <h3>${escapeHtml(q.title || "Earthquake")}</h3>
+              <div class="quick-list">
+                <div class="quick-item"><b>Magnitude:</b> ${escapeHtml(q.magnitude ?? "N/A")}</div>
+                <div class="quick-item"><b>Place:</b> ${escapeHtml(q.place || "N/A")}</div>
+                <div class="quick-item"><b>Depth:</b> ${escapeHtml(q.depthKm ?? "N/A")} km</div>
+                <div class="quick-item"><b>Time:</b> ${escapeHtml(q.time || "N/A")}</div>
               </div>
-            `,
-            "weather"
-          );
+              <p class="source-box">${q.url ? `<a href="${escapeAttr(q.url)}" target="_blank" rel="noopener">USGS source</a>` : "USGS"}</p>
+            </div>
+          `, "weather");
         })
         .addTo(weatherLayer);
     }
@@ -951,47 +735,33 @@ window.MoneyMap = (() => {
     for (const d of disasters) {
       if (d.lat === null || d.lng === null) continue;
 
-      L.marker([d.lat, d.lng], {
-        icon: weatherIcon("disaster", "!", "#ff8c00")
-      })
+      L.marker([d.lat, d.lng], { icon: weatherIcon("!", "#ff8c00") })
         .on("click", (event) => {
           L.DomEvent.stopPropagation(event);
           map.setView([d.lat, d.lng], Math.max(map.getZoom(), 6));
-          Panels.setInfo(
-            "Disaster Alert",
-            `
-              <div class="info-card">
-                <h3>${escapeHtml(d.title || "Disaster")}</h3>
-                <p class="plain">${escapeHtml(d.summary || "GDACS disaster alert")}</p>
-                <div class="quick-list">
-                  <div class="quick-item"><b>Time:</b> ${escapeHtml(d.time || "N/A")}</div>
-                  <div class="quick-item"><b>Source:</b> GDACS</div>
-                </div>
-                <p class="source-box">${d.url ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener">GDACS source</a>` : "GDACS"}</p>
-              </div>
-            `,
-            "weather"
-          );
+          setInfo("Disaster Alert", `
+            <div class="info-card">
+              <h3>${escapeHtml(d.title || "Disaster")}</h3>
+              <p class="plain">${escapeHtml(d.summary || "GDACS disaster alert")}</p>
+              <p class="source-box">${d.url ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener">GDACS source</a>` : "GDACS"}</p>
+            </div>
+          `, "weather");
         })
         .addTo(weatherLayer);
     }
 
-    Panels.setInfo(
-      "Global Weather",
-      `
-        <div class="info-card">
-          <h3>Global Weather</h3>
-          <div class="index-grid real-indexes">
-            ${countTile("Earthquakes", earthquakes.length, "USGS 24h")}
-            ${countTile("Disasters", disasters.length, "GDACS RSS")}
-          </div>
-          <p class="plain">Click a weather dot, or click the map while Global Weather is active for point weather + risk.</p>
+    setInfo("Global Weather", `
+      <div class="info-card">
+        <h3>Global Weather</h3>
+        <div class="index-grid real-indexes">
+          ${countTile("Earthquakes", earthquakes.length, "USGS 24h")}
+          ${countTile("Disasters", disasters.length, "GDACS")}
         </div>
-      `,
-      "weather"
-    );
+        <p class="plain">Click a weather dot, or click the map for point risk and weather.</p>
+      </div>
+    `, "weather");
 
-    showToast(`Global weather loaded: ${earthquakes.length} quakes, ${disasters.length} disaster alerts`);
+    showToast(`Global weather loaded`);
   }
 
   async function openEventOnMap(event) {
@@ -999,72 +769,125 @@ window.MoneyMap = (() => {
       map.setView([event.lat, event.lng], Math.max(map.getZoom(), 7));
     }
 
-    Renderers.renderEvent(event);
+    if (Renderers.renderEvent) Renderers.renderEvent(event);
 
     try {
-      const local = await fetch(
-        `/api/global-events/local?lat=${encodeURIComponent(event.lat)}&lng=${encodeURIComponent(event.lng)}`
-      ).then((r) => r.json());
-
+      const local = await fetch(`/api/global-events/local?lat=${encodeURIComponent(event.lat)}&lng=${encodeURIComponent(event.lng)}`).then((r) => r.json());
       const articles = local.articles || [];
       const body = document.getElementById("infoBody");
 
       if (body && articles.length) {
-        body.insertAdjacentHTML(
-          "beforeend",
-          `
-            <div class="info-card">
-              <h3>Local news near alert</h3>
-              <div class="quick-list">
-                ${articles.slice(0, 8).map((a) => `
-                  <div class="quick-item">
-                    <a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.title)}</a>
-                    <br><span class="source-line">${escapeHtml(a.source || "GDELT")}</span>
+        body.insertAdjacentHTML("beforeend", `
+          <div class="info-card">
+            <h3>Local news near alert</h3>
+            <div class="quick-list">
+              ${articles.slice(0, 8).map((a) => `
+                <div class="quick-item">
+                  <a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.title)}</a>
+                  <br><span class="source-line">${escapeHtml(a.source || "GDELT")}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `);
+      }
+    } catch {}
+  }
+
+  function showGlobalRiskIntro() {
+    setInfo("Global Risk", `
+      <div class="info-card">
+        <h3>Global Risk</h3>
+        <p class="plain">Click anywhere on the map.</p>
+        <div class="quick-list">
+          <div class="quick-item"><b>Crime:</b> local official feed where available, otherwise national homicide rate or N/A.</div>
+          <div class="quick-item"><b>War:</b> GDELT conflict/news hits.</div>
+          <div class="quick-item"><b>Politics:</b> GDELT politics/unrest hits.</div>
+          <div class="quick-item"><b>Weather:</b> USGS, GDACS, Open-Meteo.</div>
+          <div class="quick-item yellow"><b>Rule:</b> no fake local crime numbers.</div>
+        </div>
+      </div>
+    `, "risk");
+  }
+
+  function patchPolymarketButton() {
+    const btn = document.querySelector('[data-panel="polymarket"]');
+    if (!btn || btn.dataset.patched === "1") return;
+
+    btn.dataset.patched = "1";
+
+    btn.addEventListener("click", () => {
+      setTimeout(renderPlainPolymarket, 60);
+    });
+  }
+
+  async function renderPlainPolymarket() {
+    let state = window.APP_STATE || {};
+
+    try {
+      const fetched = await fetch("/api/state").then((r) => r.json());
+      state = fetched || state;
+    } catch {}
+
+    const markets = state.polymarket || state.predictionMarkets || state.markets?.polymarket || [];
+
+    const list = Array.isArray(markets) ? markets.slice(0, 15) : [];
+
+    const html = `
+      <div class="info-card">
+        <h3>Polymarket</h3>
+        <p class="plain">Plain view. This does not tell you to buy. It shows whether a market is readable or too weak to use.</p>
+      </div>
+
+      ${
+        list.length
+          ? list.map((m) => {
+              const title = m.title || m.question || m.name || "Market";
+              const prob = Number(m.probability ?? m.prob ?? m.yesPrice ?? m.price ?? NaN);
+              const pct = Number.isFinite(prob) ? Math.round((prob <= 1 ? prob * 100 : prob)) : null;
+              const volume = Number(m.volume ?? m.volumeNum ?? m.liquidity ?? 0);
+              const usable = pct !== null && volume > 0;
+
+              return `
+                <div class="info-card">
+                  <h3>${escapeHtml(title)}</h3>
+                  <div class="index-grid real-indexes">
+                    <div class="index-tile ${usable ? "yellow" : "grey"}">
+                      <div class="label">Market Chance</div>
+                      <div class="num">${pct === null ? "N/A" : pct + "%"}</div>
+                      <div class="tag">${usable ? "priced by market" : "not enough data"}</div>
+                      <div class="mini-source">Polymarket</div>
+                    </div>
                   </div>
-                `).join("")}
-              </div>
+                  <div class="quick-list">
+                    <div class="quick-item"><b>Use:</b> ${usable ? "Readable price. Still verify news first." : "Not useful yet."}</div>
+                    <div class="quick-item"><b>Money angle:</b> only useful if you know something the current market price has missed.</div>
+                    <div class="quick-item yellow"><b>Rule:</b> no guaranteed buy/sell call.</div>
+                  </div>
+                </div>
+              `;
+            }).join("")
+          : `
+            <div class="info-card">
+              <h3>No readable markets</h3>
+              <p class="plain">No Polymarket data loaded. No fake odds shown.</p>
             </div>
           `
-        );
       }
-    } catch (err) {}
+    `;
+
+    setInfo("Polymarket", html, "polymarket");
   }
 
   function newEvent(event) {
     if (!event || lastEventIds.has(event.id)) return;
-
     lastEventIds.add(event.id);
 
-    const title =
-      Renderers.plainEventTitle
-        ? Renderers.plainEventTitle(event)
-        : event.title;
+    const title = Renderers.plainEventTitle ? Renderers.plainEventTitle(event) : event.title;
 
     showToast(title, event);
     sound();
     renderEvents(window.APP_STATE?.events || [], new Set([event.id]));
-  }
-
-  function showGlobalRiskIntro() {
-    Panels.setInfo(
-      "Global Risk",
-      `
-        <div class="info-card">
-          <h3>Global Risk</h3>
-          <p class="plain">Click any country, city or point on the map.</p>
-          <div class="quick-list">
-            <div class="quick-item"><b>Crime:</b> official local feed where available, otherwise national homicide rate or N/A.</div>
-            <div class="quick-item"><b>War:</b> GDELT conflict/news hits.</div>
-            <div class="quick-item"><b>Politics:</b> GDELT politics/unrest hits.</div>
-            <div class="quick-item"><b>Weather:</b> USGS, GDACS and Open-Meteo.</div>
-            <div class="quick-item yellow"><b>Rule:</b> no fake local crime numbers.</div>
-          </div>
-        </div>
-      `,
-      "risk"
-    );
-
-    showToast("Global Risk on. Click the map.");
   }
 
   function showToast(text, event = null) {
@@ -1109,13 +932,29 @@ window.MoneyMap = (() => {
         oscillator.stop();
         ctx.close();
       }, 260);
-    } catch (err) {}
+    } catch {}
+  }
+
+  function setInfo(title, html, type) {
+    if (window.Panels?.setInfo) {
+      window.Panels.setInfo(title, html, type);
+      return;
+    }
+
+    const panel = document.getElementById("infoPanel");
+    const titleEl = document.getElementById("infoTitle");
+    const body = document.getElementById("infoBody");
+
+    if (panel) panel.classList.add("open");
+    if (titleEl) titleEl.textContent = title;
+    if (body) body.innerHTML = html;
   }
 
   function goHome() {
     if (!map) return;
 
-    Panels?.closeAll?.();
+    if (window.Panels?.closeAll) window.Panels.closeAll();
+
     currentMode = null;
     setButtonModes();
 
@@ -1123,40 +962,56 @@ window.MoneyMap = (() => {
     weatherLayer.clearLayers();
 
     map.setView([20, 12], 2.75);
-
     setTimeout(resize, 120);
   }
 
   function resize() {
     if (!map) return;
-
     map.invalidateSize();
     setTimeout(() => map.invalidateSize(), 220);
   }
 
-  function injectMapCss() {
-    if (document.getElementById("smeGlobalRiskCss")) return;
+  function injectCss() {
+    if (document.getElementById("smeFinalFixCss")) return;
 
     const style = document.createElement("style");
-    style.id = "smeGlobalRiskCss";
+    style.id = "smeFinalFixCss";
 
     style.textContent = `
+      .leaflet-tile-pane {
+        filter: saturate(1.15) hue-rotate(170deg) brightness(0.72) contrast(1.1);
+      }
+
+      .country-map-colour {
+        pointer-events: auto;
+        mix-blend-mode: screen;
+      }
+
+      .left-map-tools {
+        position: absolute;
+        left: 12px;
+        top: 268px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .left-map-tools button {
+        background: rgba(0, 24, 40, 0.95);
+        border: 1px solid #00d8ff;
+        color: #e8fbff;
+        padding: 7px 9px;
+        font-weight: 900;
+        cursor: pointer;
+        font-size: 11px;
+      }
+
       #globalRiskButton.active,
-      #weatherTrackerButton.active,
-      #dotToggleButton.active {
+      #weatherTrackerButton.active {
         background: #ff8c00 !important;
         color: #00121f !important;
         border-color: #ff8c00 !important;
-        box-shadow: 0 0 12px rgba(255, 140, 0, 0.55);
-      }
-
-      .leaflet-tile-pane {
-        filter: saturate(1.18) hue-rotate(168deg) brightness(0.72) contrast(1.12);
-      }
-
-      .region-fill {
-        pointer-events: auto;
-        mix-blend-mode: screen;
       }
 
       .node-dot.terror {
@@ -1192,7 +1047,7 @@ window.MoneyMap = (() => {
       .dot-toggle-panel {
         position: fixed;
         left: 12px;
-        top: 274px;
+        top: 360px;
         z-index: 9999;
         width: 180px;
         background: rgba(0, 17, 31, 0.96);
@@ -1247,20 +1102,25 @@ window.MoneyMap = (() => {
   }
 
   function shortText(text, max) {
-    const value = String(text || "").trim();
-    if (value.length <= max) return value;
-    return value.slice(0, max - 1).trim() + "…";
+    const v = String(text || "").trim();
+    if (v.length <= max) return v;
+    return v.slice(0, max - 1).trim() + "…";
+  }
+
+  function weatherSummary(weather) {
+    if (!weather || !weather.current) return "N/A";
+    const c = weather.current;
+    return `${c.temperatureC ?? "N/A"}°C, wind ${c.windKmh ?? "N/A"} km/h, gust ${c.gustKmh ?? "N/A"} km/h, rain ${c.precipitationMm ?? "N/A"} mm`;
   }
 
   function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/[&<>"']/g, (match) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      }[match]));
+    return String(value ?? "").replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[m]));
   }
 
   function escapeAttr(value) {
@@ -1277,9 +1137,9 @@ window.MoneyMap = (() => {
     renderEvents,
     renderCities,
     renderRoutes,
-    renderRiskRegions,
-    renderSafetyRegions,
-    renderConflictCountries,
-    renderSafetyCountries
+    renderRiskRegions: renderCountryRegionColours,
+    renderSafetyRegions: renderCountryRegionColours,
+    renderConflictCountries: renderCountryRegionColours,
+    renderSafetyCountries: renderCountryRegionColours
   };
 })();
