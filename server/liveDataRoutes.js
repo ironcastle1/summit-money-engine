@@ -15,42 +15,42 @@ const WB = {
   population: "SP.POP.TOTL"
 };
 
-function cacheGet(key, maxAgeMs) {
-  const item = CACHE.get(key);
-  if (!item) return null;
-  if (Date.now() - item.time > maxAgeMs) {
+function getCache(key, maxAgeMs) {
+  const hit = CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.time > maxAgeMs) {
     CACHE.delete(key);
     return null;
   }
-  return item.value;
+  return hit.value;
 }
 
-function cacheSet(key, value) {
+function setCache(key, value) {
   CACHE.set(key, { time: Date.now(), value });
   return value;
 }
 
-function n(value) {
-  const x = Number(value);
-  return Number.isFinite(x) ? x : null;
+function num(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function iso2(value) {
-  const x = String(value || "").trim().toUpperCase();
-  if (!x || x.length !== 2) return null;
-  return x === "UK" ? "GB" : x;
+  const v = String(value || "").trim().toUpperCase();
+  if (!v || v.length !== 2) return null;
+  return v === "UK" ? "GB" : v;
 }
 
-function cleanText(value, max = 500) {
+function clean(value, max = 500) {
   return String(value || "")
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max);
 }
 
 async function getJson(url, options = {}) {
-  const response = await axios.get(url, {
+  const res = await axios.get(url, {
     timeout: options.timeout || 20000,
     headers: {
       "User-Agent": "SummitMoneyEngine/1.0",
@@ -58,11 +58,11 @@ async function getJson(url, options = {}) {
       ...(options.headers || {})
     }
   });
-  return response.data;
+  return res.data;
 }
 
 async function getText(url, options = {}) {
-  const response = await axios.get(url, {
+  const res = await axios.get(url, {
     timeout: options.timeout || 20000,
     headers: {
       "User-Agent": "SummitMoneyEngine/1.0",
@@ -70,12 +70,12 @@ async function getText(url, options = {}) {
       ...(options.headers || {})
     }
   });
-  return String(response.data || "");
+  return String(res.data || "");
 }
 
 async function reverseLookup(lat, lng) {
   const key = `reverse:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}`;
-  const cached = cacheGet(key, 24 * 60 * 60 * 1000);
+  const cached = getCache(key, 24 * 60 * 60 * 1000);
   if (cached) return cached;
 
   const url =
@@ -87,16 +87,14 @@ async function reverseLookup(lat, lng) {
   const data = await getJson(url, { timeout: 15000 });
   const a = data.address || {};
 
-  const result = {
+  return setCache(key, {
     displayName: data.display_name || "",
     city: a.city || a.town || a.village || a.hamlet || a.county || "",
     state: a.state || a.region || "",
     country: a.country || "",
     countryCode: iso2(a.country_code),
     raw: a
-  };
-
-  return cacheSet(key, result);
+  });
 }
 
 async function wbLatest(countryCode, indicator) {
@@ -104,7 +102,7 @@ async function wbLatest(countryCode, indicator) {
   if (!code) return null;
 
   const key = `wb:${code}:${indicator}`;
-  const cached = cacheGet(key, 7 * 24 * 60 * 60 * 1000);
+  const cached = getCache(key, 7 * 24 * 60 * 60 * 1000);
   if (cached !== null) return cached;
 
   try {
@@ -115,20 +113,21 @@ async function wbLatest(countryCode, indicator) {
 
     const data = await getJson(url, { timeout: 20000 });
     const rows = Array.isArray(data?.[1]) ? data[1] : [];
-    const hit = rows.find((row) => row.value !== null && row.value !== undefined);
+    const hit = rows.find((r) => r.value !== null && r.value !== undefined);
 
-    const result = hit
-      ? {
-          value: n(hit.value),
-          year: hit.date || null,
-          indicator,
-          source: "World Bank"
-        }
-      : null;
-
-    return cacheSet(key, result);
-  } catch (err) {
-    return cacheSet(key, null);
+    return setCache(
+      key,
+      hit
+        ? {
+            value: num(hit.value),
+            year: hit.date || null,
+            indicator,
+            source: "World Bank"
+          }
+        : null
+    );
+  } catch {
+    return setCache(key, null);
   }
 }
 
@@ -169,45 +168,45 @@ async function worldBankBundle(countryCode) {
   };
 }
 
-function safetyFromHomicide(homicide) {
+function crimeScoreFromHomicide(homicide) {
   if (!homicide || homicide.value === null || homicide.value === undefined) {
     return {
       score: null,
       status: "N/A",
-      reason: "No World Bank homicide indicator"
+      reason: "No national homicide indicator"
     };
   }
 
-  const value = Number(homicide.value);
-
+  const v = Number(homicide.value);
   let score = 85;
-  if (value >= 25) score = 15;
-  else if (value >= 15) score = 28;
-  else if (value >= 8) score = 42;
-  else if (value >= 4) score = 58;
-  else if (value >= 2) score = 72;
+
+  if (v >= 25) score = 15;
+  else if (v >= 15) score = 28;
+  else if (v >= 8) score = 42;
+  else if (v >= 4) score = 58;
+  else if (v >= 2) score = 72;
   else score = 88;
 
   return {
     score,
     status:
       score >= 75
-        ? "Lower risk"
+        ? "Lower crime signal"
         : score >= 55
         ? "Caution"
         : score >= 35
-        ? "High risk"
-        : "Severe risk",
-    reason: `${value.toFixed(1)} homicides per 100k, ${homicide.year || "year N/A"}`
+        ? "High crime signal"
+        : "Severe crime signal",
+    reason: `${v.toFixed(1)} homicides per 100k, ${homicide.year || "year N/A"}`
   };
 }
 
-function moneyFromMacro(bundle) {
+function moneyScore(bundle) {
   if (!bundle) {
     return {
       score: null,
       status: "N/A",
-      reason: "No World Bank macro data"
+      reason: "No macro data"
     };
   }
 
@@ -218,13 +217,13 @@ function moneyFromMacro(bundle) {
     const v = Number(bundle.gdpGrowth.value);
     if (v >= 5) {
       score += 18;
-      reasons.push("strong GDP growth");
+      reasons.push("strong growth");
     } else if (v >= 2) {
       score += 8;
-      reasons.push("positive GDP growth");
+      reasons.push("positive growth");
     } else if (v < 0) {
       score -= 18;
-      reasons.push("GDP shrinking");
+      reasons.push("shrinking GDP");
     }
   }
 
@@ -238,7 +237,7 @@ function moneyFromMacro(bundle) {
       reasons.push("high inflation");
     } else if (v >= 0 && v <= 4) {
       score += 8;
-      reasons.push("inflation controlled");
+      reasons.push("controlled inflation");
     }
   }
 
@@ -254,18 +253,9 @@ function moneyFromMacro(bundle) {
   }
 
   if (bundle.tradeGdp?.value !== null && bundle.tradeGdp?.value !== undefined) {
-    const v = Number(bundle.tradeGdp.value);
-    if (v > 70) {
+    if (Number(bundle.tradeGdp.value) > 70) {
       score += 8;
-      reasons.push("trade-heavy economy");
-    }
-  }
-
-  if (bundle.internet?.value !== null && bundle.internet?.value !== undefined) {
-    const v = Number(bundle.internet.value);
-    if (v > 80) {
-      score += 6;
-      reasons.push("high internet use");
+      reasons.push("trade-heavy");
     }
   }
 
@@ -280,7 +270,7 @@ function moneyFromMacro(bundle) {
 
 async function gdeltArticles(query, maxRecords = 30) {
   const key = `gdelt:${query}:${maxRecords}`;
-  const cached = cacheGet(key, 15 * 60 * 1000);
+  const cached = getCache(key, 15 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -295,52 +285,39 @@ async function gdeltArticles(query, maxRecords = 30) {
     const data = await getJson(url, { timeout: 25000 });
     const articles = Array.isArray(data.articles) ? data.articles : [];
 
-    const result = articles.map((a) => ({
-      title: cleanText(a.title, 180),
-      url: a.url || "",
-      source: a.domain || a.source || "GDELT",
-      sourceCountry: a.sourceCountry || "",
-      language: a.language || "",
-      seenDate: a.seendate || "",
-      summary: cleanText(a.title, 220)
-    }));
-
-    return cacheSet(key, result);
-  } catch (err) {
-    return cacheSet(key, []);
+    return setCache(
+      key,
+      articles.map((a) => ({
+        title: clean(a.title, 180),
+        url: a.url || "",
+        source: a.domain || a.source || "GDELT",
+        sourceCountry: a.sourceCountry || "",
+        language: a.language || "",
+        seenDate: a.seendate || ""
+      }))
+    );
+  } catch {
+    return setCache(key, []);
   }
 }
 
-async function gdeltCountryBundle(countryName) {
-  if (!countryName) {
-    return {
-      war: [],
-      politics: [],
-      terror: []
-    };
-  }
+async function gdeltBundle(countryName, cityName) {
+  const country = countryName ? `"${countryName}"` : "global";
+  const local = cityName ? `"${cityName}" "${countryName}"` : country;
 
-  const safeCountry = `"${countryName}"`;
-
-  const [war, politics, terror] = await Promise.all([
-    gdeltArticles(`${safeCountry} (war OR missile OR drone OR shelling OR battle OR invasion OR clashes OR military)`, 25),
-    gdeltArticles(`${safeCountry} (election OR protest OR coup OR sanctions OR parliament OR unrest OR government)`, 25),
-    gdeltArticles(`${safeCountry} (terror OR terrorist OR bombing OR attack OR extremist OR insurgent)`, 25)
+  const [war, politics, terror, localNews] = await Promise.all([
+    gdeltArticles(`${country} (war OR missile OR drone OR shelling OR battle OR invasion OR clashes OR military)`, 25),
+    gdeltArticles(`${country} (election OR protest OR coup OR sanctions OR parliament OR unrest OR government)`, 25),
+    gdeltArticles(`${country} (terror OR terrorist OR bombing OR attack OR extremist OR insurgent)`, 25),
+    gdeltArticles(`${local}`, 20)
   ]);
 
-  return { war, politics, terror };
-}
-
-async function gdeltLocalBundle(placeName, countryName) {
-  const queryPlace = [placeName, countryName].filter(Boolean).join(" ");
-  if (!queryPlace) return [];
-
-  return gdeltArticles(`"${queryPlace}"`, 20);
+  return { war, politics, terror, localNews };
 }
 
 async function gdacsDisasters() {
   const key = "gdacs:rss";
-  const cached = cacheGet(key, 10 * 60 * 1000);
+  const cached = getCache(key, 10 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -350,89 +327,86 @@ async function gdacsDisasters() {
     });
 
     const items = [];
-    const itemRegex = /<item[\s\S]*?<\/item>/gi;
-    const matches = xml.match(itemRegex) || [];
+    const matches = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
 
     for (const item of matches.slice(0, 80)) {
-      const title = cleanText((item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i) || item.match(/<title>([\s\S]*?)<\/title>/i) || [])[1], 180);
-      const link = cleanText((item.match(/<link>([\s\S]*?)<\/link>/i) || [])[1], 300);
-      const desc = cleanText((item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i) || item.match(/<description>([\s\S]*?)<\/description>/i) || [])[1], 400);
-      const pubDate = cleanText((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1], 80);
+      const title = clean((item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i) || item.match(/<title>([\s\S]*?)<\/title>/i) || [])[1], 180);
+      const url = clean((item.match(/<link>([\s\S]*?)<\/link>/i) || [])[1], 300);
+      const desc = clean((item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i) || item.match(/<description>([\s\S]*?)<\/description>/i) || [])[1], 400);
+      const time = clean((item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1], 80);
       const point = (item.match(/<georss:point>([\s\S]*?)<\/georss:point>/i) || [])[1];
 
       let lat = null;
       let lng = null;
 
       if (point) {
-        const parts = point.trim().split(/\s+/).map(Number);
-        if (Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
-          lat = parts[0];
-          lng = parts[1];
+        const p = point.trim().split(/\s+/).map(Number);
+        if (Number.isFinite(p[0]) && Number.isFinite(p[1])) {
+          lat = p[0];
+          lng = p[1];
         }
       }
 
       items.push({
-        id: link || title,
+        id: url || title,
         kind: "disaster",
         title,
         summary: desc || title,
-        url: link,
+        url,
         source: "GDACS",
-        time: pubDate,
-        place: title,
+        time,
         lat,
         lng
       });
     }
 
-    return cacheSet(key, items);
-  } catch (err) {
-    return cacheSet(key, []);
+    return setCache(key, items);
+  } catch {
+    return setCache(key, []);
   }
 }
 
 async function usgsEarthquakes() {
-  const key = "usgs:earthquakes:day";
-  const cached = cacheGet(key, 5 * 60 * 1000);
+  const key = "usgs:earthquakes";
+  const cached = getCache(key, 5 * 60 * 1000);
   if (cached) return cached;
 
   try {
-    const data = await getJson(
-      "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson",
-      { timeout: 25000 }
-    );
+    const data = await getJson("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson", {
+      timeout: 25000
+    });
 
     const features = Array.isArray(data.features) ? data.features : [];
 
-    const result = features.map((f) => {
-      const p = f.properties || {};
-      const c = f.geometry?.coordinates || [];
+    return setCache(
+      key,
+      features.map((f) => {
+        const p = f.properties || {};
+        const c = f.geometry?.coordinates || [];
 
-      return {
-        id: f.id || p.code || p.url || `${p.title}-${p.time}`,
-        kind: "earthquake",
-        title: p.title || "Earthquake",
-        summary: p.title || "USGS earthquake",
-        place: p.place || "",
-        magnitude: n(p.mag),
-        time: p.time ? new Date(p.time).toISOString() : null,
-        url: p.url || "",
-        source: "USGS",
-        lat: n(c[1]),
-        lng: n(c[0]),
-        depthKm: n(c[2])
-      };
-    });
-
-    return cacheSet(key, result);
-  } catch (err) {
-    return cacheSet(key, []);
+        return {
+          id: f.id || p.url || `${p.title}-${p.time}`,
+          kind: "earthquake",
+          title: p.title || "Earthquake",
+          place: p.place || "",
+          magnitude: num(p.mag),
+          time: p.time ? new Date(p.time).toISOString() : null,
+          url: p.url || "",
+          source: "USGS",
+          lat: num(c[1]),
+          lng: num(c[0]),
+          depthKm: num(c[2])
+        };
+      })
+    );
+  } catch {
+    return setCache(key, []);
   }
 }
 
 async function openMeteoPoint(lat, lng) {
-  const key = `openmeteo:${Number(lat).toFixed(2)}:${Number(lng).toFixed(2)}`;
-  const cached = cacheGet(key, 10 * 60 * 1000);
+  const key = `weather:${Number(lat).toFixed(2)}:${Number(lng).toFixed(2)}`;
+  const cached = getCache(key, 10 * 60 * 1000);
   if (cached) return cached;
 
   try {
@@ -442,55 +416,45 @@ async function openMeteoPoint(lat, lng) {
       `&longitude=${encodeURIComponent(lng)}` +
       "&current=temperature_2m,precipitation,rain,showers,snowfall,weather_code,wind_speed_10m,wind_gusts_10m" +
       "&hourly=precipitation_probability,precipitation,wind_gusts_10m,temperature_2m" +
-      "&forecast_days=1" +
-      "&timezone=auto";
+      "&forecast_days=1&timezone=auto";
 
     const data = await getJson(url, { timeout: 20000 });
+    const c = data.current || {};
 
-    const current = data.current || {};
-    const gust = n(current.wind_gusts_10m);
-    const wind = n(current.wind_speed_10m);
-    const precip = n(current.precipitation);
-    const rain = n(current.rain);
-    const snow = n(current.snowfall);
+    const gust = num(c.wind_gusts_10m);
+    const wind = num(c.wind_speed_10m);
+    const precip = num(c.precipitation);
+    const rain = num(c.rain);
+    const snow = num(c.snowfall);
 
-    const severe =
-      (gust !== null && gust >= 80) ||
-      (wind !== null && wind >= 60) ||
-      (precip !== null && precip >= 10) ||
-      (rain !== null && rain >= 10) ||
-      (snow !== null && snow >= 5);
-
-    const result = {
+    return setCache(key, {
       source: "Open-Meteo",
-      coverage: "Global forecast model data",
-      lat,
-      lng,
-      severe,
+      coverage: "Global model weather",
+      severe:
+        (gust !== null && gust >= 80) ||
+        (wind !== null && wind >= 60) ||
+        (precip !== null && precip >= 10) ||
+        (rain !== null && rain >= 10) ||
+        (snow !== null && snow >= 5),
       current: {
-        temperatureC: n(current.temperature_2m),
+        temperatureC: num(c.temperature_2m),
         precipitationMm: precip,
         rainMm: rain,
         snowMm: snow,
         windKmh: wind,
         gustKmh: gust,
-        weatherCode: n(current.weather_code),
-        time: current.time || null
+        weatherCode: num(c.weather_code),
+        time: c.time || null
       }
-    };
-
-    return cacheSet(key, result);
-  } catch (err) {
-    return cacheSet(key, null);
+    });
+  } catch {
+    return setCache(key, null);
   }
 }
 
 async function policeUkPoint(lat, lng) {
   try {
-    const latest = await getJson("https://data.police.uk/api/crime-last-updated", {
-      timeout: 15000
-    });
-
+    const latest = await getJson("https://data.police.uk/api/crime-last-updated", { timeout: 15000 });
     const date = latest.date;
 
     const url =
@@ -500,75 +464,63 @@ async function policeUkPoint(lat, lng) {
       `&lng=${encodeURIComponent(lng)}`;
 
     const crimes = await getJson(url, { timeout: 30000 });
-
     const byCategory = {};
-    for (const crime of crimes) {
-      const c = crime.category || "unknown";
-      byCategory[c] = (byCategory[c] || 0) + 1;
-    }
 
-    const categories = Object.entries(byCategory)
-      .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count);
+    for (const crime of crimes) {
+      const cat = crime.category || "unknown";
+      byCategory[cat] = (byCategory[cat] || 0) + 1;
+    }
 
     return {
       available: true,
       source: "data.police.uk",
       date,
       total: crimes.length,
-      categories,
-      note: "Police.uk gives approximate street-level locations, not exact addresses."
+      categories: Object.entries(byCategory)
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count),
+      note: "Approximate street-level locations, not exact addresses."
     };
-  } catch (err) {
+  } catch {
     return {
       available: false,
       source: null,
       total: null,
       categories: [],
-      note: "No Police.uk local crime result for this point."
+      note: "No official local crime feed connected for this point."
     };
   }
 }
 
-function countEvents(list) {
-  return Array.isArray(list) ? list.length : 0;
-}
-
-function globalRiskScores({ localCrime, national, gdelt, weather, earthquakes, disasters }) {
-  const crimeNational = safetyFromHomicide(national?.homicide || null);
-  const money = moneyFromMacro(national);
+function scoreAll({ localCrime, national, gdelt, weather, earthquakes, disasters }) {
+  const nationalCrime = crimeScoreFromHomicide(national?.homicide || null);
+  const money = moneyScore(national);
 
   const crimeScore =
     localCrime?.available && localCrime.total !== null
-      ? Math.max(0, Math.min(100, 85 - Math.min(80, localCrime.total / 3)))
-      : crimeNational.score;
+      ? Math.max(0, Math.min(100, Math.round(85 - Math.min(80, localCrime.total / 3))))
+      : nationalCrime.score;
 
-  const warCount = countEvents(gdelt?.war);
-  const terrorCount = countEvents(gdelt?.terror);
-  const politicsCount = countEvents(gdelt?.politics);
-  const quakeCount = countEvents(earthquakes);
-  const disasterCount = countEvents(disasters);
+  const war = Array.isArray(gdelt?.war) ? gdelt.war.length : 0;
+  const politics = Array.isArray(gdelt?.politics) ? gdelt.politics.length : 0;
+  const terror = Array.isArray(gdelt?.terror) ? gdelt.terror.length : 0;
+  const quake = Array.isArray(earthquakes) ? earthquakes.length : 0;
+  const disaster = Array.isArray(disasters) ? disasters.length : 0;
 
   let safety = crimeScore === null || crimeScore === undefined ? 60 : crimeScore;
-  safety -= Math.min(35, warCount * 3);
-  safety -= Math.min(25, terrorCount * 4);
-  safety -= Math.min(20, disasterCount * 3);
-  safety -= Math.min(10, quakeCount * 1);
+  safety -= Math.min(35, war * 3);
+  safety -= Math.min(20, terror * 4);
+  safety -= Math.min(15, politics * 1);
+  safety -= Math.min(20, disaster * 3);
+  safety -= Math.min(10, quake * 1);
   if (weather?.severe) safety -= 10;
   safety = Math.max(0, Math.min(100, Math.round(safety)));
 
   return {
     safety: {
       score: safety,
-      status:
-        safety >= 75
-          ? "Lower risk"
-          : safety >= 55
-          ? "Caution"
-          : safety >= 35
-          ? "High risk"
-          : "Severe risk",
-      reason: "crime indicator + war/political/disaster/weather events"
+      status: safety >= 75 ? "Lower risk" : safety >= 55 ? "Caution" : safety >= 35 ? "High risk" : "Severe risk",
+      reason: "crime + war + politics + weather/disaster"
     },
     crime: {
       score: crimeScore === null || crimeScore === undefined ? null : Math.round(crimeScore),
@@ -582,34 +534,53 @@ function globalRiskScores({ localCrime, national, gdelt, weather, earthquakes, d
           : crimeScore >= 35
           ? "High crime signal"
           : "Severe crime signal",
-      source: localCrime?.available ? "data.police.uk local count" : crimeNational.reason
+      reason: localCrime?.available ? "official local crime count" : nationalCrime.reason
     },
-    war: {
-      count: warCount,
-      status: warCount ? "Active source hits" : "No current source hits"
-    },
-    politics: {
-      count: politicsCount,
-      status: politicsCount ? "Active political source hits" : "No current source hits"
-    },
-    terror: {
-      count: terrorCount,
-      status: terrorCount ? "Active terror source hits" : "No current source hits"
-    },
-    weather: {
-      count: quakeCount + disasterCount + (weather?.severe ? 1 : 0),
-      status:
-        weather?.severe || quakeCount || disasterCount
-          ? "Weather/disaster source hits"
-          : "No current mapped weather/disaster hit"
-    },
+    war: { count: war, status: war ? "Source hits found" : "No current hits" },
+    politics: { count: politics, status: politics ? "Source hits found" : "No current hits" },
+    terror: { count: terror, status: terror ? "Source hits found" : "No current hits" },
+    weather: { count: quake + disaster + (weather?.severe ? 1 : 0), status: "USGS/GDACS/Open-Meteo" },
     money
   };
 }
 
+router.get("/boundaries/admin0", async (req, res) => {
+  try {
+    const cached = getCache("boundaries:admin0", 24 * 60 * 60 * 1000);
+    if (cached) return res.json(cached);
+
+    const url = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson";
+    const geojson = await getJson(url, { timeout: 30000 });
+
+    const cleaned = {
+      type: "FeatureCollection",
+      source: "Natural Earth Admin 0 countries",
+      features: (geojson.features || []).map((f) => {
+        const p = f.properties || {};
+        return {
+          type: "Feature",
+          properties: {
+            name: p.NAME_LONG || p.ADMIN || p.NAME || "Unknown",
+            admin: p.ADMIN || p.NAME || "Unknown",
+            iso2: p.ISO_A2_EH || p.ISO_A2 || "",
+            iso3: p.ISO_A3_EH || p.ISO_A3 || "",
+            region: p.REGION_UN || "",
+            subregion: p.SUBREGION || ""
+          },
+          geometry: f.geometry
+        };
+      })
+    };
+
+    return res.json(setCache("boundaries:admin0", cleaned));
+  } catch (err) {
+    return res.status(500).json({ error: "Could not load boundaries", detail: err.message });
+  }
+});
+
 router.get("/global-risk/point", async (req, res) => {
-  const lat = n(req.query.lat);
-  const lng = n(req.query.lng);
+  const lat = num(req.query.lat);
+  const lng = num(req.query.lng);
 
   if (lat === null || lng === null) {
     return res.status(400).json({ error: "lat and lng are required" });
@@ -618,7 +589,7 @@ router.get("/global-risk/point", async (req, res) => {
   let place = null;
   try {
     place = await reverseLookup(lat, lng);
-  } catch (err) {
+  } catch {
     place = null;
   }
 
@@ -626,22 +597,11 @@ router.get("/global-risk/point", async (req, res) => {
   const countryName = place?.country || "";
   const city = place?.city || "";
 
-  const isUk =
-    countryCode === "GB" ||
-    /united kingdom|england|wales|northern ireland/i.test(countryName);
+  const isUk = countryCode === "GB" || /united kingdom|england|wales|northern ireland/i.test(countryName);
 
-  const [
-    national,
-    gdelt,
-    localNews,
-    disastersAll,
-    quakesAll,
-    weather,
-    localCrime
-  ] = await Promise.all([
+  const [national, gdelt, disastersAll, quakesAll, weather, localCrime] = await Promise.all([
     worldBankBundle(countryCode),
-    gdeltCountryBundle(countryName),
-    gdeltLocalBundle(city, countryName),
+    gdeltBundle(countryName, city),
     gdacsDisasters(),
     usgsEarthquakes(),
     openMeteoPoint(lat, lng),
@@ -650,21 +610,14 @@ router.get("/global-risk/point", async (req, res) => {
       source: null,
       total: null,
       categories: [],
-      note: "No official local crime feed connected for this country."
+      note: "No official local crime feed connected here."
     })
   ]);
 
-  const nearQuakes = (quakesAll || []).filter((q) => {
-    if (q.lat === null || q.lng === null) return false;
-    return Math.abs(q.lat - lat) <= 8 && Math.abs(q.lng - lng) <= 8;
-  });
+  const nearQuakes = (quakesAll || []).filter((q) => q.lat !== null && q.lng !== null && Math.abs(q.lat - lat) <= 8 && Math.abs(q.lng - lng) <= 8);
+  const nearDisasters = (disastersAll || []).filter((d) => d.lat !== null && d.lng !== null && Math.abs(d.lat - lat) <= 10 && Math.abs(d.lng - lng) <= 10);
 
-  const nearDisasters = (disastersAll || []).filter((d) => {
-    if (d.lat === null || d.lng === null) return false;
-    return Math.abs(d.lat - lat) <= 10 && Math.abs(d.lng - lng) <= 10;
-  });
-
-  const scores = globalRiskScores({
+  const scores = scoreAll({
     localCrime,
     national,
     gdelt,
@@ -675,7 +628,6 @@ router.get("/global-risk/point", async (req, res) => {
 
   return res.json({
     ok: true,
-    sourceMode: "global-risk-stack",
     place,
     countryCode,
     countryName,
@@ -687,35 +639,29 @@ router.get("/global-risk/point", async (req, res) => {
     warEvents: gdelt.war,
     politicalEvents: gdelt.politics,
     terrorEvents: gdelt.terror,
-    localNews,
+    localNews: gdelt.localNews,
     weather,
     earthquakes: nearQuakes.slice(0, 20),
     disasters: nearDisasters.slice(0, 20),
     sourceStatus: {
-      localCrime:
-        localCrime.available
-          ? "official local feed"
-          : "N/A, no official local feed connected here",
-      nationalCrime:
-        national?.homicide
-          ? "World Bank homicide indicator"
-          : "N/A",
-      warPolitics:
-        "GDELT article/event monitor",
-      disasters:
-        "GDACS + USGS + Open-Meteo"
+      localCrime: localCrime.available ? "official local feed" : "N/A, no official local feed connected here",
+      nationalCrime: national?.homicide ? "World Bank homicide indicator" : "N/A",
+      warPolitics: "GDELT",
+      disasters: "GDACS + USGS + Open-Meteo"
     }
   });
 });
 
 router.get("/crime/point", async (req, res) => {
-  req.url = `/global-risk/point?lat=${encodeURIComponent(req.query.lat)}&lng=${encodeURIComponent(req.query.lng)}`;
+  const lat = req.query.lat;
+  const lng = req.query.lng;
+  req.url = `/global-risk/point?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`;
   return router.handle(req, res);
 });
 
 router.get("/global-events/local", async (req, res) => {
-  const lat = n(req.query.lat);
-  const lng = n(req.query.lng);
+  const lat = num(req.query.lat);
+  const lng = num(req.query.lng);
 
   if (lat === null || lng === null) {
     return res.status(400).json({ error: "lat and lng are required" });
@@ -724,63 +670,31 @@ router.get("/global-events/local", async (req, res) => {
   let place = null;
   try {
     place = await reverseLookup(lat, lng);
-  } catch (err) {
+  } catch {
     place = null;
   }
 
-  const articles = await gdeltLocalBundle(place?.city || place?.state || place?.country || "", place?.country || "");
-
-  return res.json({
-    ok: true,
-    source: "GDELT",
-    place,
-    articles
-  });
-});
-
-router.get("/global-events/conflict", async (req, res) => {
-  const q = String(req.query.country || "global conflict").trim();
-  const events = await gdeltArticles(`"${q}" (war OR missile OR drone OR shelling OR battle OR invasion OR clashes)`, 50);
-  return res.json({ ok: true, source: "GDELT", events });
-});
-
-router.get("/global-events/political", async (req, res) => {
-  const q = String(req.query.country || "global politics").trim();
-  const events = await gdeltArticles(`"${q}" (election OR protest OR coup OR sanctions OR parliament OR unrest OR government)`, 50);
-  return res.json({ ok: true, source: "GDELT", events });
+  const bundle = await gdeltBundle(place?.country || "", place?.city || place?.state || "");
+  return res.json({ ok: true, source: "GDELT", place, articles: bundle.localNews });
 });
 
 router.get("/global-weather/earthquakes", async (req, res) => {
-  const earthquakes = await usgsEarthquakes();
-  return res.json({
-    ok: true,
-    source: "USGS",
-    earthquakes
-  });
+  return res.json({ ok: true, source: "USGS", earthquakes: await usgsEarthquakes() });
 });
 
 router.get("/global-weather/disasters", async (req, res) => {
-  const disasters = await gdacsDisasters();
-  return res.json({
-    ok: true,
-    source: "GDACS",
-    disasters
-  });
+  return res.json({ ok: true, source: "GDACS", disasters: await gdacsDisasters() });
 });
 
 router.get("/global-weather/point", async (req, res) => {
-  const lat = n(req.query.lat);
-  const lng = n(req.query.lng);
+  const lat = num(req.query.lat);
+  const lng = num(req.query.lng);
 
   if (lat === null || lng === null) {
     return res.status(400).json({ error: "lat and lng are required" });
   }
 
-  const weather = await openMeteoPoint(lat, lng);
-  return res.json({
-    ok: !!weather,
-    weather
-  });
+  return res.json({ ok: true, weather: await openMeteoPoint(lat, lng) });
 });
 
 router.get("/wiki/place", async (req, res) => {
@@ -793,17 +707,13 @@ router.get("/wiki/place", async (req, res) => {
     }
 
     const key = `wiki:${name}:${country}`.toLowerCase();
-    const cached = cacheGet(key, 7 * 24 * 60 * 60 * 1000);
+    const cached = getCache(key, 7 * 24 * 60 * 60 * 1000);
     if (cached) return res.json(cached);
 
     const searchTerm = country ? `${name} ${country}` : name;
-
     const searchUrl =
       "https://en.wikipedia.org/w/api.php" +
-      "?action=query" +
-      "&list=search" +
-      "&format=json" +
-      "&utf8=1" +
+      "?action=query&list=search&format=json&utf8=1" +
       `&srsearch=${encodeURIComponent(searchTerm)}` +
       "&srlimit=1";
 
@@ -811,26 +721,21 @@ router.get("/wiki/place", async (req, res) => {
     const hit = search?.query?.search?.[0];
 
     if (!hit?.title) {
-      return res.json(
-        cacheSet(key, {
-          found: false,
-          title: name,
-          thumbnail: null,
-          originalImage: null,
-          extract: null,
-          url: null,
-          source: "Wikipedia search"
-        })
-      );
+      return res.json(setCache(key, {
+        found: false,
+        title: name,
+        thumbnail: null,
+        extract: null,
+        url: null,
+        source: "Wikipedia search"
+      }));
     }
 
-    const summaryUrl =
-      "https://en.wikipedia.org/api/rest_v1/page/summary/" +
-      encodeURIComponent(hit.title);
+    const summary = await getJson(
+      "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(hit.title)
+    );
 
-    const summary = await getJson(summaryUrl);
-
-    const result = {
+    return res.json(setCache(key, {
       found: true,
       title: summary.title || hit.title,
       description: summary.description || "",
@@ -838,15 +743,10 @@ router.get("/wiki/place", async (req, res) => {
       thumbnail: summary.thumbnail?.source || null,
       originalImage: summary.originalimage?.source || null,
       url: summary.content_urls?.desktop?.page || null,
-      source: "Wikipedia / Wikimedia page summary"
-    };
-
-    return res.json(cacheSet(key, result));
+      source: "Wikipedia / Wikimedia summary"
+    }));
   } catch (err) {
-    return res.status(500).json({
-      error: "Could not load Wikipedia place image",
-      detail: err.message
-    });
+    return res.status(500).json({ error: "Could not load wiki image", detail: err.message });
   }
 });
 
