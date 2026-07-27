@@ -49,13 +49,16 @@
       <button data-panel="layers">SAFETY MAP</button>
       <button id="globalRiskButton">GLOBAL RISK</button>
       <button id="weatherTrackerButton">GLOBAL WEATHER</button>
-      <button id="dotToggleButton">DOT FILTERS</button>
       <button data-panel="sources">SOURCES</button>
-      <button id="refresh">REFRESH</button>
     </nav>
 
     <main class="stage">
       <section id="map"></section>
+
+      <div class="left-map-tools">
+        <button id="dotToggleButton">DOTS</button>
+        <button id="refresh">REFRESH</button>
+      </div>
 
       <aside id="infoPanel" class="panel side-panel">
         <button class="close" data-close="info">×</button>
