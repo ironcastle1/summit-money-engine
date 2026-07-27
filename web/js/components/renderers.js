@@ -16,13 +16,16 @@ window.Renderers = (() => {
   function money(value) {
     if (!hasNum(value)) return "N/A";
 
-    return "$" + Number(value).toLocaleString(undefined, {
-      maximumFractionDigits: Number(value) < 10 ? 4 : 2
+    const n = Number(value);
+
+    return "$" + n.toLocaleString(undefined, {
+      maximumFractionDigits: n < 10 ? 4 : 2
     });
   }
 
   function pct(value) {
     if (!hasNum(value)) return "N/A";
+
     const n = Number(value);
     return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
   }
@@ -39,27 +42,17 @@ window.Renderers = (() => {
     const titleEl = document.getElementById("infoTitle");
     const body = document.getElementById("infoBody");
 
-    if (panel) {
-      panel.style.display = "";
-      panel.classList.add("open");
-      panel.classList.add("active");
-    }
-
+    if (panel) panel.classList.add("open", "active");
     if (titleEl) titleEl.textContent = title || "Info";
     if (body) body.innerHTML = html || "";
   }
 
   function setDrawer(title, html, type) {
-    const drawer = document.getElementById("drawerPanel");
+    const panel = document.getElementById("drawerPanel");
     const titleEl = document.getElementById("drawerTitle");
     const body = document.getElementById("drawerBody");
 
-    if (drawer) {
-      drawer.style.display = "";
-      drawer.classList.add("open");
-      drawer.classList.add("active");
-    }
-
+    if (panel) panel.classList.add("open", "active");
     if (titleEl) titleEl.textContent = title || "Detail";
     if (body) body.innerHTML = html || "";
   }
@@ -83,6 +76,7 @@ window.Renderers = (() => {
 
   function plainEventTitle(event) {
     const kind = normalKind(event.kind);
+
     const label = {
       war: "War",
       terror: "Terror",
@@ -110,27 +104,32 @@ window.Renderers = (() => {
     const raw = String(event.summary || event.title || "").trim();
 
     if (!raw || isForeignText(raw)) {
-      return `English fallback: source-backed report near ${eventPlace(event)}. Open the original source for the full article.`;
+      return `English fallback: source-backed report near ${eventPlace(event)}. Open the source for the original article.`;
     }
 
-    return raw.slice(0, 300);
+    return raw.slice(0, 320);
+  }
+
+  function sourceLink(item) {
+    if (!item.url) return esc(item.source || "source");
+    return `<a target="_blank" rel="noopener" href="${esc(item.url)}">${esc(item.source || "open source")}</a>`;
   }
 
   function renderMarkets(markets) {
     const ticker = document.getElementById("ticker");
     if (!ticker) return;
 
-    const list = Array.isArray(markets) ? markets : [];
+    const rows = Array.isArray(markets) ? markets : [];
 
-    ticker.innerHTML = list.length
-      ? list.slice(0, 20).map((m) => {
+    ticker.innerHTML = rows.length
+      ? rows.slice(0, 18).map((m) => {
           const move = Number(m.changePct || 0);
           const cls = move >= 0 ? "up" : "down";
-          const name = m.id || m.symbol || "ASSET";
+          const id = m.id || m.symbol || "ASSET";
 
           return `
             <span>
-              <b>${esc(name)}</b>
+              <b>${esc(id)}</b>
               ${money(m.price)}
               <span class="${cls}">${pct(move)}</span>
             </span>
@@ -139,36 +138,14 @@ window.Renderers = (() => {
       : "<span>No market data</span>";
   }
 
-  function scoreTile(label, value, tag, source) {
-    const missing = value === null || value === undefined || Number.isNaN(Number(value));
-    const n = missing ? null : Number(value);
-
-    let cls = "grey";
-    if (!missing) {
-      if (n >= 75) cls = "green";
-      else if (n >= 55) cls = "yellow";
-      else if (n >= 35) cls = "orange";
-      else cls = "red";
-    }
-
-    return `
-      <div class="index-tile ${cls}">
-        <div class="label">${esc(label)}</div>
-        <div class="num">${missing ? "N/A" : Math.round(n)}</div>
-        <div class="tag">${esc(tag || (missing ? "No data" : "Measured"))}</div>
-        <div class="mini-source">${esc(source || "")}</div>
-      </div>
-    `;
-  }
-
-  function marketRows(list) {
-    const rows = Array.isArray(list) ? list : [];
+  function marketRows(rows) {
+    const list = Array.isArray(rows) ? rows : [];
 
     return `
       <div class="market-table compact-market-table">
         ${
-          rows.length
-            ? rows.map((m) => {
+          list.length
+            ? list.map((m) => {
                 const move = Number(m.changePct || 0);
                 const cls = move >= 0 ? "up" : "down";
                 const id = m.id || m.symbol || "ASSET";
@@ -187,46 +164,53 @@ window.Renderers = (() => {
                   </div>
                 `;
               }).join("")
-            : `<div class="warn">No data</div>`
+            : `<div class="warn">No data loaded.</div>`
         }
       </div>
     `;
   }
 
+  function scoreTile(label, value, tag, source) {
+    const missing = value === null || value === undefined || Number.isNaN(Number(value));
+    const n = missing ? null : Number(value);
+
+    let cls = "grey";
+
+    if (!missing) {
+      if (n >= 75) cls = "green";
+      else if (n >= 55) cls = "yellow";
+      else if (n >= 35) cls = "orange";
+      else cls = "red";
+    }
+
+    return `
+      <div class="index-tile ${cls}">
+        <div class="label">${esc(label)}</div>
+        <div class="num">${missing ? "N/A" : Math.round(n)}</div>
+        <div class="tag">${esc(tag || (missing ? "No data" : "Measured"))}</div>
+        <div class="mini-source">${esc(source || "")}</div>
+      </div>
+    `;
+  }
+
   function renderEvent(event) {
+    const title = plainEventTitle(event);
     const original = isForeignText(event.title) ? event.title : event.originalTitle;
 
-    setInfo(plainEventTitle(event), `
+    setInfo(title, `
       <div class="info-card">
-        <h3>${esc(plainEventTitle(event))}</h3>
+        <h3>${esc(title)}</h3>
 
         <div class="quick-list">
-          <div class="quick-item">
-            <b>Type:</b> ${esc(normalKind(event.kind))}
-          </div>
-
-          <div class="quick-item">
-            <b>Place:</b> ${esc(eventPlace(event))}
-          </div>
-
-          <div class="quick-item">
-            <b>What happened:</b> ${esc(plainSummary(event))}
-          </div>
-
-          <div class="quick-item yellow">
-            <b>Check:</b> open the source, compare local news, then check market reaction.
-          </div>
+          <div class="quick-item"><b>Type:</b> ${esc(normalKind(event.kind))}</div>
+          <div class="quick-item"><b>Place:</b> ${esc(eventPlace(event))}</div>
+          <div class="quick-item"><b>What happened:</b> ${esc(plainSummary(event))}</div>
+          <div class="quick-item yellow"><b>Use:</b> open the source, check local reports, then check market reaction.</div>
         </div>
 
         ${original ? `<p class="original-title"><b>Original title:</b> ${esc(original)}</p>` : ""}
 
-        <p class="source-box">
-          ${
-            event.url
-              ? `<a target="_blank" rel="noopener" href="${esc(event.url)}">${esc(event.source || "source")}</a>`
-              : esc(event.source || "source")
-          }
-        </p>
+        <p class="source-box">${sourceLink(event)}</p>
       </div>
     `, normalKind(event.kind));
   }
@@ -247,6 +231,7 @@ window.Renderers = (() => {
 
   function renderLocalPlace(place) {
     const title = place.name || place.title || "Place";
+    const wikiId = `wiki-${String(place.id || title).replace(/[^a-z0-9]/gi, "-")}`;
 
     setInfo(title, `
       <div class="info-card">
@@ -261,273 +246,241 @@ window.Renderers = (() => {
         </div>
       </div>
 
-      <div class="info-card">
-        <h3>Image</h3>
-        <p class="plain">Wikipedia image lookup will show here when the source returns one.</p>
+      <div id="${esc(wikiId)}" class="info-card">
+        <h3>Place image</h3>
+        <div class="loader-bar"><span></span></div>
+        <p class="plain">Checking Wikipedia. If no source image exists, no fake image is shown.</p>
       </div>
     `, "place");
+
+    loadWiki(wikiId, title, place.tags?.wikidata);
   }
 
-  function renderRoute(route) {
-    setInfo(route.name || "Route", `
-      <div class="info-card">
-        <h3>${esc(route.name || "Route")}</h3>
+  function loadWiki(targetId, title, wikidata) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
 
-        <div class="quick-list">
-          <div class="quick-item"><b>Type:</b> ${esc(route.type || "route")}</div>
-          <div class="quick-item"><b>Rank:</b> ${esc(route.rank || "major estimated lane")}</div>
-          <div class="quick-item"><b>Direction:</b> ${esc(route.direction || "two-way")}</div>
-          <div class="quick-item"><b>Goods:</b> ${esc(route.goods || "containers, oil, LNG, bulk goods")}</div>
-          <div class="quick-item"><b>Used by:</b> ${esc(route.users || "shipping lines, freight forwarders, commodity traders")}</div>
-          <div class="quick-item"><b>Chokepoints:</b> ${esc((route.chokepoints || []).join(", ") || "N/A")}</div>
-          <div class="quick-item yellow"><b>Accuracy:</b> estimated major lane. Not metre-level AIS track.</div>
-        </div>
+    const params = new URLSearchParams();
+    params.set("name", title || "");
+    if (wikidata) params.set("wikidata", wikidata);
+
+    fetch(`/api/wiki/place?${params.toString()}`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data || !data.found) {
+          target.innerHTML = `
+            <h3>Place image</h3>
+            <p class="plain">No Wikipedia image found for this place. No stock image inserted.</p>
+          `;
+          return;
+        }
+
+        target.innerHTML = `
+          <h3>${esc(data.title || title)}</h3>
+          ${data.thumbnail ? `<img class="wiki-img" src="${esc(data.thumbnail)}" alt="${esc(data.title || title)}">` : ""}
+          <p class="plain">${esc(String(data.extract || "").slice(0, 360) || "No summary returned.")}</p>
+          <p class="source-box">${data.url ? `<a target="_blank" rel="noopener" href="${esc(data.url)}">Wikipedia source</a>` : "Wikipedia"}</p>
+        `;
+      })
+      .catch(() => {
+        target.innerHTML = `
+          <h3>Place image</h3>
+          <p class="plain">Wikipedia lookup failed.</p>
+        `;
+      });
+  }
+
+  function renderLiveBrief() {
+    const state = window.APP_STATE || {};
+    const events = (state.events || []).slice(0, 12);
+
+    setDrawer("Live Brief", `
+      <div class="info-card">
+        <h3>Live Brief</h3>
+        <p class="plain">Fast summary of important map events. Non-English headlines are replaced with a plain English fallback.</p>
       </div>
-    `, "routes");
-  }
 
-  function renderSearch(result) {
-    const places = result?.places || [];
-
-    setInfo("Search", `
       <div class="info-card">
-        <h3>Search results</h3>
-
+        <h3>Priority alerts</h3>
         <div class="quick-list">
           ${
-            places.length
-              ? places.map((p) => `
-                <button class="result-row" data-lat="${esc(p.lat)}" data-lng="${esc(p.lng)}">
-                  <b>${esc(p.name || p.displayName || "Place")}</b>
-                  <span>${esc(p.displayName || "")}</span>
-                </button>
+            events.length
+              ? events.map((event) => `
+                <div class="quick-item ${esc(normalKind(event.kind))}">
+                  <b>${esc(normalKind(event.kind))}:</b> ${esc(plainEventTitle(event))}
+                  <br><span class="source-line">${esc(event.source || "source")} | ${esc(eventPlace(event))}</span>
+                </div>
               `).join("")
-              : `<div class="warn">No data</div>`
+              : `<div class="warn">No live events loaded.</div>`
           }
         </div>
       </div>
-    `, "search");
 
-    document.querySelectorAll(".result-row").forEach((button) => {
-      button.addEventListener("click", () => {
-        if (window.MoneyMap?.openContext) {
-          window.MoneyMap.openContext(button.dataset.lat, button.dataset.lng, 9);
-        }
-      });
-    });
+      <div class="info-card">
+        <h3>How to use</h3>
+        <div class="quick-list">
+          <div class="quick-item"><b>1.</b> Click the event or the affected area on the map.</div>
+          <div class="quick-item"><b>2.</b> Check whether crypto or commodities moved after the event.</div>
+          <div class="quick-item"><b>3.</b> Ignore events with no market reaction unless you are using it for safety.</div>
+          <div class="quick-item yellow"><b>Rule:</b> this is not a trade command.</div>
+        </div>
+      </div>
+    `, "brief");
   }
 
-  function openPanel(name) {
+  function renderPredictions() {
+    const state = window.APP_STATE || {};
+    const predictions = state.predictions || [];
+
+    setDrawer("Predictions", `
+      <div class="info-card">
+        <h3>Predictions</h3>
+        <p class="plain">This panel ranks possible market setups. It does not guarantee price movement.</p>
+
+        <div class="quick-list">
+          <div class="quick-item"><b>Score 75-100:</b> strong setup, check chart and source quickly.</div>
+          <div class="quick-item"><b>Score 55-74:</b> mixed setup, needs confirmation.</div>
+          <div class="quick-item"><b>Score below 55:</b> weak setup, usually ignore.</div>
+          <div class="quick-item"><b>Direction:</b> current lean from price/events, not a certainty.</div>
+          <div class="quick-item yellow"><b>Use:</b> shortlist only. Do not buy or sell from this panel alone.</div>
+        </div>
+      </div>
+
+      ${
+        predictions.length
+          ? predictions.map((p) => `
+            <div class="info-card">
+              <h3>${esc(p.asset || p.id || "Asset")} - ${esc(p.direction || "N/A")}</h3>
+
+              <div class="index-grid real-indexes">
+                ${scoreTile("Setup score", p.rating, "current strength", "price + event feed")}
+              </div>
+
+              <div class="quick-list">
+                <div class="quick-item"><b>Reason:</b> ${esc((p.reasons || []).join(" | ") || "No reason loaded")}</div>
+                <div class="quick-item"><b>What to check:</b> chart direction, latest source, related live map events.</div>
+                <div class="quick-item yellow"><b>Warning:</b> no guaranteed rise/fall percentage.</div>
+              </div>
+            </div>
+          `).join("")
+          : `<div class="warn">No prediction data loaded.</div>`
+      }
+    `, "predictions");
+  }
+
+  function renderCrypto() {
     const state = window.APP_STATE || {};
     const markets = state.markets || [];
 
-    if (name === "crypto") {
-      const crypto = markets.filter((m) =>
-        /BTC|ETH|SOL|XRP|BNB|ADA|DOGE|AVAX|LINK/i.test(String(m.id || m.symbol || ""))
-      );
+    const crypto = markets.filter((m) =>
+      /BTC|ETH|SOL|XRP|BNB|ADA|DOGE|AVAX|LINK|MATIC|DOT/i.test(String(m.id || m.symbol || ""))
+    );
 
-      setDrawer("Crypto", `
-        <div class="info-card">
-          <h3>Crypto</h3>
-          <p class="plain">Compact live crypto feed. No empty graph blocks.</p>
-        </div>
-        ${marketRows(crypto.length ? crypto : markets.slice(0, 12))}
-      `, "crypto");
-      return;
-    }
+    setDrawer("Crypto", `
+      <div class="info-card">
+        <h3>Crypto</h3>
+        <p class="plain">Live price table. Use it to check whether map events are moving crypto now.</p>
+      </div>
 
-    if (name === "commodities") {
-      const commodities = markets.filter((m) =>
-        /gold|silver|oil|brent|wti|copper|gas|gld|slv|commodity/i.test(`${m.id} ${m.name} ${m.source}`)
-      );
+      ${marketRows(crypto.length ? crypto : markets.slice(0, 12))}
+    `, "crypto");
+  }
 
-      setDrawer("Commodities", `
-        <div class="info-card">
-          <h3>Commodities</h3>
-          <p class="plain">Use this to check whether war, crisis or route disruption is moving prices.</p>
-        </div>
-        ${marketRows(commodities.length ? commodities : markets.slice(0, 12))}
-      `, "commodities");
-      return;
-    }
+  function renderCommodities() {
+    const state = window.APP_STATE || {};
+    const markets = state.markets || [];
 
-    if (name === "brief") {
-      const events = (state.events || []).slice(0, 10);
+    const commodities = markets.filter((m) =>
+      /gold|silver|oil|brent|wti|copper|gas|gld|slv|commodity/i.test(`${m.id || ""} ${m.name || ""} ${m.source || ""}`)
+    );
 
-      setDrawer("Live Brief", `
-        <div class="info-card">
-          <h3>Live Brief</h3>
-          <p class="plain">Priority events and market checks. This is a summary screen, not a trade command.</p>
-        </div>
+    setDrawer("Commodities", `
+      <div class="info-card">
+        <h3>Commodities</h3>
+        <p class="plain">Use this to check whether war, crisis or shipping disruption is moving commodities.</p>
+      </div>
 
-        <div class="info-card">
-          <h3>Priority alerts</h3>
-          <div class="quick-list">
-            ${
-              events.length
-                ? events.map((e) => `
-                  <div class="quick-item">
-                    <b>${esc(normalKind(e.kind))}:</b> ${esc(plainEventTitle(e))}
-                    <br><span class="source-line">${esc(e.source || "source")} | ${esc(eventPlace(e))}</span>
-                  </div>
-                `).join("")
-                : `<div class="warn">No alerts loaded.</div>`
-            }
-          </div>
-        </div>
+      ${marketRows(commodities.length ? commodities : markets.slice(0, 12))}
+    `, "commodities");
+  }
 
-        <div class="info-card">
-          <h3>How to use</h3>
-          <div class="quick-list">
-            <div class="quick-item"><b>Step 1:</b> click the event or map area.</div>
-            <div class="quick-item"><b>Step 2:</b> check commodities, crypto, routes and Polymarket.</div>
-            <div class="quick-item"><b>Step 3:</b> act only if source, timing and market reaction agree.</div>
-          </div>
-        </div>
-      `, "brief");
-      return;
-    }
+  function renderRapid() {
+    const state = window.APP_STATE || {};
+    const rapid = state.rapid || [];
 
-    if (name === "predictions") {
-      const predictions = state.predictions || [];
+    setDrawer("Rapid Movers", `
+      <div class="info-card">
+        <h3>Rapid Movers</h3>
+        <p class="plain">Assets moving quickly now. Empty means the backend has not loaded usable rapid-move data.</p>
+      </div>
 
-      setDrawer("Predictions", `
-        <div class="info-card">
-          <h3>Predictions</h3>
-          <p class="plain">Ranks possible setups. It does not know the future and it is not a buy/sell order.</p>
-        </div>
+      ${
+        rapid.length
+          ? rapid.map((item) => `
+            <div class="info-card">
+              <h3>${esc(item.asset || item.id || "Asset")}</h3>
 
-        ${
-          predictions.length
-            ? predictions.map((p) => `
-              <div class="info-card">
-                <h3>${esc(p.asset || p.id || "Asset")} - ${esc(p.direction || "N/A")}</h3>
-                <div class="index-grid real-indexes">
-                  ${scoreTile("Setup score", p.rating, "engine score", "price/events")}
-                </div>
-                <div class="quick-list">
-                  <div class="quick-item"><b>Reason:</b> ${esc((p.reasons || []).join(" | ") || "No reason loaded")}</div>
-                  <div class="quick-item yellow"><b>Use:</b> shortlist only. Verify with chart and source.</div>
-                </div>
+              <div class="quick-list">
+                <div class="quick-item"><b>Direction:</b> ${esc(item.direction || "N/A")}</div>
+                <div class="quick-item"><b>Move:</b> ${esc(item.move || item.shortMove || item.windowMove || "N/A")}</div>
+                <div class="quick-item"><b>Reason:</b> ${esc((item.reasons || []).join(" | ") || "No reason loaded")}</div>
+                <div class="quick-item yellow"><b>Use:</b> check if the move already happened. Do not chase blindly.</div>
               </div>
-            `).join("")
-            : `<div class="warn">No data</div>`
-        }
-      `, "predictions");
-      return;
-    }
-
-    if (name === "polymarket") {
-      const rows = state.polymarket || state.predictionMarkets || [];
-
-      setInfo("Polymarket", `
-        <div class="info-card">
-          <h3>Polymarket</h3>
-          <p class="plain">Ranked by chance/activity. High chance does not automatically mean good value.</p>
-        </div>
-
-        ${
-          rows.length
-            ? rows.slice(0, 20).map((m, i) => {
-              const probability = Number(m.probability ?? m.prob ?? m.price ?? NaN);
-              const chance = Number.isFinite(probability)
-                ? Math.round(probability <= 1 ? probability * 100 : probability)
-                : null;
-
-              return `
-                <div class="info-card">
-                  <h3>#${i + 1} ${esc(m.title || m.question || m.name || "Market")}</h3>
-                  <div class="index-grid real-indexes">
-                    ${scoreTile("Market chance", chance, chance === null ? "N/A" : `${chance}%`, "Polymarket")}
-                  </div>
-                  <div class="quick-list">
-                    <div class="quick-item"><b>Money angle:</b> only interesting if fresh news says the market price is wrong.</div>
-                    <div class="quick-item yellow"><b>Warning:</b> high chance can already be priced in.</div>
-                  </div>
-                  <p class="source-box">${m.url ? `<a target="_blank" rel="noopener" href="${esc(m.url)}">open market</a>` : "Polymarket source"}</p>
-                </div>
-              `;
-            }).join("")
-            : `<div class="warn">No Polymarket data loaded.</div>`
-        }
-      `, "polymarket");
-      return;
-    }
-
-    if (name === "routes") {
-      const routes = window.MoneyMap?.getTradeRoutes ? window.MoneyMap.getTradeRoutes() : (window.ROUTES || []);
-
-      setInfo("Routes", `
-        <div class="info-card">
-          <h3>Routes</h3>
-          <p class="plain">Toggle route layers and search routes. Exact AIS/metre-level routing is not available without a real AIS feed.</p>
-
-          <div class="toggle-row">
-            <label><input type="checkbox" id="seaToggle" ${window.SHOW_SEA ? "checked" : ""}> Sea route web</label>
-            <label><input type="checkbox" id="landToggle" ${window.SHOW_LAND ? "checked" : ""}> Land route web</label>
-          </div>
-
-          <input id="routeSearch" class="route-search" placeholder="Search route, goods, chokepoint..." />
-        </div>
-
-        <div id="routeList" class="route-list">
-          ${
-            routes.map((r) => `
-              <div class="info-card route-row">
-                <h3>${esc(r.name || "Route")}</h3>
-                <div class="quick-list">
-                  <div class="quick-item"><b>Type:</b> ${esc(r.type || "route")}</div>
-                  <div class="quick-item"><b>Goods:</b> ${esc(r.goods || "containers, oil, LNG, bulk goods")}</div>
-                  <div class="quick-item"><b>Chokepoints:</b> ${esc((r.chokepoints || []).join(", ") || "N/A")}</div>
-                </div>
-                <button class="route-open" data-route-id="${esc(r.id)}">Open route card</button>
-              </div>
-            `).join("")
-          }
-        </div>
-      `, "routes");
-
-      const search = document.getElementById("routeSearch");
-      if (search) {
-        search.addEventListener("input", () => {
-          const q = search.value.toLowerCase();
-          document.querySelectorAll(".route-row").forEach((row) => {
-            row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
-          });
-        });
+            </div>
+          `).join("")
+          : `<div class="warn">No rapid movers loaded. No fake movers shown.</div>`
       }
+    `, "rapid");
+  }
 
-      document.querySelectorAll(".route-open").forEach((button) => {
-        button.addEventListener("click", () => {
-          const route = routes.find((r) => r.id === button.dataset.routeId);
-          if (route) renderRoute(route);
-        });
-      });
+  function renderSources() {
+    setDrawer("Sources", `
+      <div class="info-card">
+        <h3>Sources</h3>
 
-      return;
-    }
+        <div class="quick-list">
+          <div class="quick-item"><b>Global events:</b> GDELT</div>
+          <div class="quick-item"><b>Disasters:</b> GDACS</div>
+          <div class="quick-item"><b>Earthquakes:</b> USGS</div>
+          <div class="quick-item"><b>Macro indicators:</b> World Bank</div>
+          <div class="quick-item"><b>Places:</b> OpenStreetMap / Nominatim</div>
+          <div class="quick-item"><b>Weather:</b> Open-Meteo</div>
+          <div class="quick-item"><b>Place images:</b> Wikipedia / Wikimedia where available</div>
+          <div class="quick-item yellow"><b>Missing data:</b> shown as missing. Not replaced with fake numbers.</div>
+        </div>
+      </div>
+    `, "sources");
+  }
 
-    if (name === "sources") {
-      setDrawer("Sources", `
+  function openPanel(name) {
+    if (name === "brief") return renderLiveBrief();
+    if (name === "predictions") return renderPredictions();
+    if (name === "crypto") return renderCrypto();
+    if (name === "commodities") return renderCommodities();
+    if (name === "rapid") return renderRapid();
+    if (name === "sources") return renderSources();
+
+    if (name === "layers") {
+      setInfo("Safety Map", `
         <div class="info-card">
-          <h3>Sources</h3>
+          <h3>Safety Map</h3>
+          <p class="plain">Country colours show broad current risk. Click a town or country for detailed local information.</p>
+
           <div class="quick-list">
-            <div class="quick-item"><b>Global events:</b> GDELT</div>
-            <div class="quick-item"><b>Disasters:</b> GDACS</div>
-            <div class="quick-item"><b>Earthquakes:</b> USGS</div>
-            <div class="quick-item"><b>Macro:</b> World Bank</div>
-            <div class="quick-item"><b>Places:</b> OpenStreetMap</div>
-            <div class="quick-item"><b>Weather:</b> Open-Meteo</div>
+            <div class="quick-item red"><b>Red:</b> active conflict or severe instability signal.</div>
+            <div class="quick-item orange"><b>Orange:</b> high-risk watch area.</div>
+            <div class="quick-item"><b>Green/blue:</b> lower current mapped risk.</div>
+            <div class="quick-item yellow"><b>Warning:</b> this is not an exact frontline map.</div>
           </div>
         </div>
-      `, "sources");
+      `, "layers");
       return;
     }
 
     setDrawer("Panel", `
       <div class="info-card">
         <h3>${esc(name || "Panel")}</h3>
-        <p class="plain">No renderer loaded for this panel.</p>
+        <p class="plain">Panel not configured.</p>
       </div>
     `, name);
   }
@@ -535,11 +488,9 @@ window.Renderers = (() => {
   return {
     renderMarkets,
     openPanel,
-    renderSearch,
-    plainEventTitle,
     renderNode,
     renderLocalPlace,
     renderEvent,
-    renderRoute
+    plainEventTitle
   };
 })();
