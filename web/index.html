@@ -5,95 +5,1401 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Summit Money Engine</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <link rel="stylesheet" href="/styles/base.css" />
-  <link rel="stylesheet" href="/styles/layout.css" />
-  <link rel="stylesheet" href="/styles/map.css" />
-  <link rel="stylesheet" href="/styles/panels.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #061827;
+      color: #e8fbff;
+      font-family: Arial, sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    .topbar {
+      height: 42px;
+      background: #00111f;
+      border-bottom: 1px solid #00d8ff;
+      display: grid;
+      grid-template-columns: 430px 1fr 140px 120px;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 12px;
+      color: #e8fbff;
+      position: relative;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .brand-light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00ff87;
+      box-shadow: 0 0 14px #00ff87;
+      flex: 0 0 auto;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: #00ff87;
+      letter-spacing: 6px;
+      font-size: 20px;
+      line-height: 19px;
+      white-space: nowrap;
+    }
+
+    .brand p {
+      margin: 0;
+      color: #4cecff;
+      font-size: 11px;
+      letter-spacing: 3px;
+      white-space: nowrap;
+    }
+
+    .ticker {
+      white-space: nowrap;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .ticker span {
+      margin-right: 22px;
+    }
+
+    .up {
+      color: #00ff87;
+    }
+
+    .down {
+      color: #ff3860;
+    }
+
+    .langbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #00eaff;
+      font-weight: 900;
+      font-size: 12px;
+      direction: ltr !important;
+    }
+
+    .langbox select {
+      background: #001827;
+      color: #fff;
+      border: 1px solid #00d8ff;
+      height: 25px;
+      width: 82px;
+    }
+
+    .status {
+      color: #00ff87;
+      text-align: right;
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    .menu {
+      height: 31px;
+      background: #001827;
+      border-bottom: 1px solid #00d8ff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      position: relative;
+      z-index: 50;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .menu form {
+      display: flex;
+      height: 24px;
+      gap: 4px;
+      flex: 0 0 auto;
+    }
+
+    .menu input {
+      width: 185px;
+      background: #061827;
+      color: #e8fbff;
+      border: 1px solid #234b62;
+      padding: 0 8px;
+      outline: none;
+    }
+
+    .menu button {
+      background: #001827;
+      color: #e8fbff;
+      border: 1px solid #00d8ff;
+      height: 24px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .menu button:hover,
+    .left-tools button:hover {
+      background: #00d8ff;
+      color: #00111f;
+    }
+
+    .stage {
+      position: relative;
+      height: calc(100vh - 73px);
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: #061827;
+    }
+
+    .leaflet-container {
+      background: #061827;
+    }
+
+    .leaflet-tile-pane {
+      filter: saturate(1.12) hue-rotate(170deg) brightness(0.72) contrast(1.1);
+    }
+
+    .left-tools {
+      position: absolute;
+      left: 12px;
+      top: 96px;
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .left-tools button {
+      background: rgba(0, 24, 40, 0.96);
+      border: 1px solid #00d8ff;
+      color: #e8fbff;
+      padding: 8px 10px;
+      font-weight: 900;
+      cursor: pointer;
+      min-width: 72px;
+      text-align: left;
+      font-size: 11px;
+    }
+
+    .panel {
+      display: none;
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 1000;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 110px);
+      overflow-y: auto;
+      background: rgba(0, 18, 32, 0.97);
+      border: 1px solid #00d8ff;
+      box-shadow: 0 0 22px rgba(0, 216, 255, 0.26);
+      padding: 12px;
+    }
+
+    .panel.open {
+      display: block;
+    }
+
+    .panel h2 {
+      margin: 0 34px 10px 0;
+      color: #00eaff;
+      letter-spacing: 2px;
+      font-size: 22px;
+    }
+
+    .close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 27px;
+      height: 27px;
+      border: 1px solid #00d8ff;
+      background: #001827;
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .card {
+      background: rgba(0, 35, 58, 0.82);
+      border: 1px solid rgba(0, 216, 255, 0.35);
+      padding: 11px;
+      margin: 10px 0;
+    }
+
+    .card h3 {
+      margin: 0 0 9px;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .plain {
+      line-height: 1.4;
+      color: #dff8ff;
+      margin: 6px 0;
+    }
+
+    .list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .item {
+      background: rgba(0, 18, 32, 0.76);
+      border-left: 3px solid #00d8ff;
+      padding: 7px;
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    .item.warn {
+      border-left-color: #ffd94a;
+    }
+
+    .item.red {
+      border-left-color: #ff174f;
+    }
+
+    .item.orange {
+      border-left-color: #ff8c00;
+    }
+
+    .indexes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .tile {
+      background: #001827;
+      border: 1px solid rgba(0, 216, 255, 0.35);
+      text-align: center;
+      padding: 8px 5px;
+      min-height: 82px;
+    }
+
+    .tile .label {
+      font-size: 10px;
+      color: #9edfff;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .tile .num {
+      font-size: 27px;
+      font-weight: 900;
+      margin: 2px 0;
+    }
+
+    .tile .tag {
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .green .num {
+      color: #00ff87;
+    }
+
+    .yellow .num {
+      color: #ffd94a;
+    }
+
+    .orange .num {
+      color: #ff8c00;
+    }
+
+    .red .num {
+      color: #ff174f;
+    }
+
+    .grey .num {
+      color: #99aab4;
+    }
+
+    .dot {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+
+    .dot-war {
+      background: #ff174f;
+      box-shadow: 0 0 16px #ff174f;
+    }
+
+    .dot-terror {
+      background: #ff8c00;
+      box-shadow: 0 0 16px #ff8c00;
+    }
+
+    .dot-crisis {
+      background: #fff;
+      box-shadow: 0 0 16px #fff;
+    }
+
+    .dot-politics {
+      background: #b24cff;
+      box-shadow: 0 0 16px #b24cff;
+    }
+
+    .dot-shipping {
+      background: #00d8ff;
+      box-shadow: 0 0 16px #00d8ff;
+    }
+
+    .dot-energy {
+      background: #00ff87;
+      box-shadow: 0 0 16px #00ff87;
+    }
+
+    .dot-finance {
+      background: #3ea0ff;
+      box-shadow: 0 0 16px #3ea0ff;
+    }
+
+    .dot-city {
+      background: #7aa7ff;
+      box-shadow: 0 0 16px #7aa7ff;
+    }
+
+    .legend {
+      position: absolute;
+      left: 16px;
+      bottom: 34px;
+      z-index: 900;
+      background: rgba(0, 18, 32, 0.92);
+      border: 1px solid #00d8ff;
+      color: #e8fbff;
+      padding: 8px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 11px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend i {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .home-control-button {
+      width: 30px !important;
+      height: 30px !important;
+      line-height: 30px !important;
+      text-align: center;
+      background: #001827 !important;
+      color: #00eaff !important;
+      font-weight: 900;
+      font-size: 19px;
+      text-decoration: none;
+    }
+
+    .moving-route {
+      stroke-dasharray: 2 12;
+      animation: routeFlow 14s linear infinite;
+    }
+
+    @keyframes routeFlow {
+      to {
+        stroke-dashoffset: -120;
+      }
+    }
+
+    .market-row {
+      display: grid;
+      grid-template-columns: 70px 1fr 95px;
+      gap: 8px;
+      padding: 8px;
+      margin: 6px 0;
+      background: rgba(0, 18, 32, 0.76);
+      border: 1px solid rgba(0, 216, 255, 0.25);
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .sym {
+      color: #00eaff;
+      font-weight: 900;
+    }
+
+    .source-link {
+      color: #00eaff;
+    }
+
+    .small-button {
+      border: 1px solid #00d8ff;
+      background: #001827;
+      color: #e8fbff;
+      padding: 7px 9px;
+      cursor: pointer;
+      font-weight: 900;
+      margin: 4px 4px 4px 0;
+    }
+
+    .route-search {
+      width: 100%;
+      background: #001827;
+      color: #e8fbff;
+      border: 1px solid #00d8ff;
+      padding: 8px;
+      margin: 8px 0;
+    }
+
+    @media (max-width: 850px) {
+      .topbar {
+        grid-template-columns: 1fr 90px;
+        height: 64px;
+      }
+
+      .ticker,
+      .status {
+        display: none;
+      }
+
+      .brand h1 {
+        font-size: 15px;
+        letter-spacing: 3px;
+      }
+
+      .brand p {
+        letter-spacing: 1px;
+      }
+
+      .stage {
+        height: calc(100vh - 95px);
+      }
+    }
+  </style>
 </head>
 
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="dot"></span>
-        <div>
-          <h1>SUMMIT MONEY ENGINE</h1>
-          <p id="subtitle">AI data for gain and safety</p>
-        </div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-light"></span>
+      <div>
+        <h1>SUMMIT MONEY ENGINE</h1>
+        <p id="subtitle">AI data for gain and safety</p>
       </div>
+    </div>
 
-      <div id="ticker" class="ticker">loading live market tape...</div>
+    <div id="ticker" class="ticker">loading live market tape...</div>
 
-      <div class="language-box">
-        <label for="languageSelect">LANG</label>
-        <select id="languageSelect">
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-          <option value="de">Deutsch</option>
-          <option value="ar">العربية</option>
-        </select>
-      </div>
+    <div class="langbox">
+      <label for="languageSelect">LANG</label>
+      <select id="languageSelect">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
 
-      <div id="status" class="status">loading</div>
-    </header>
+    <div id="status" class="status">loading</div>
+  </header>
 
-    <nav class="menu" id="menu">
-      <form id="placeSearch" class="place-search">
-        <input id="placeQuery" name="q" autocomplete="off" placeholder="Search city or country" />
-        <button id="searchButton" type="submit">SEARCH</button>
-      </form>
+  <nav class="menu">
+    <form id="placeSearch">
+      <input id="placeQuery" placeholder="Search city or country" />
+      <button id="searchButton" type="submit">SEARCH</button>
+    </form>
 
-      <button data-panel="brief" id="liveBriefButton">LIVE BRIEF</button>
-      <button data-panel="predictions" id="predictionsButton">PREDICTIONS</button>
-      <button data-panel="crypto" id="cryptoButton">CRYPTO</button>
-      <button data-panel="commodities" id="commoditiesButton">COMMODITIES</button>
-      <button data-panel="polymarket" id="polymarketButton">POLYMARKET</button>
-      <button data-panel="routes" id="routesButton">ROUTES</button>
-      <button data-panel="rapid" id="rapidButton">RAPID MOVERS</button>
-      <button data-panel="layers" id="safetyButton">SAFETY MAP</button>
-      <button id="globalRiskButton">GLOBAL RISK</button>
-      <button id="weatherTrackerButton">CRISIS</button>
-      <button data-panel="sources" id="sourcesButton">SOURCES</button>
-    </nav>
+    <button data-panel="brief" id="briefButton">LIVE BRIEF</button>
+    <button data-panel="predictions" id="predictionsButton">PREDICTIONS</button>
+    <button data-panel="crypto" id="cryptoButton">CRYPTO</button>
+    <button data-panel="commodities" id="commoditiesButton">COMMODITIES</button>
+    <button data-panel="polymarket" id="polymarketButton">POLYMARKET</button>
+    <button data-panel="routes" id="routesButton">ROUTES</button>
+    <button data-panel="rapid" id="rapidButton">RAPID MOVERS</button>
+    <button data-panel="safety" id="safetyButton">SAFETY MAP</button>
+    <button data-panel="risk" id="riskButton">GLOBAL RISK</button>
+    <button data-panel="crisis" id="crisisButton">CRISIS</button>
+    <button data-panel="sources" id="sourcesButton">SOURCES</button>
+  </nav>
 
-    <main class="stage">
-      <section id="map"></section>
+  <main class="stage">
+    <section id="map"></section>
 
-      <div class="left-map-tools">
-        <button id="dotToggleButton">DOTS</button>
-        <button id="refresh">REFRESH</button>
-      </div>
+    <div class="left-tools">
+      <button id="dotsButton">DOTS ON</button>
+      <button id="refreshButton">REFRESH</button>
+    </div>
 
-      <aside id="infoPanel" class="panel side-panel">
-        <button class="close" data-close="info" type="button">×</button>
-        <h2 id="infoTitle">INFO</h2>
-        <div id="infoBody"></div>
-      </aside>
+    <aside id="panel" class="panel">
+      <button id="closePanel" class="close" type="button">×</button>
+      <h2 id="panelTitle">INFO</h2>
+      <div id="panelBody"></div>
+    </aside>
 
-      <aside id="drawerPanel" class="drawer">
-        <button class="close" data-close="drawer" type="button">×</button>
-        <h2 id="drawerTitle">DETAIL</h2>
-        <div id="drawerBody"></div>
-      </aside>
-
-      <div id="legend" class="legend"></div>
-      <div id="toast" class="toast"></div>
-    </main>
-  </div>
+    <div id="legend" class="legend"></div>
+  </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script src="/js/components/panels.js"></script>
-  <script src="/js/components/renderers.js"></script>
-  <script src="/js/components/charting.js"></script>
-  <script src="/js/components/map.js"></script>
-  <script src="/js/app.js"></script>
+  <script>
+    (function () {
+      let map;
+      let dotsLayer;
+      let routeLayer;
+      let crisisLayer;
+      let countryLayer;
+
+      const state = {
+        events: [],
+        markets: [],
+        predictions: [],
+        rapid: [],
+        polymarket: [],
+        mapData: {
+          nodes: [],
+          routes: [],
+          cityNodes: []
+        },
+        dotsOn: true,
+        seaRoutes: false,
+        landRoutes: false
+      };
+
+      const labels = {
+        en: {
+          subtitle: "AI data for gain and safety",
+          search: "SEARCH",
+          brief: "LIVE BRIEF",
+          predictions: "PREDICTIONS",
+          crypto: "CRYPTO",
+          commodities: "COMMODITIES",
+          polymarket: "POLYMARKET",
+          routes: "ROUTES",
+          rapid: "RAPID MOVERS",
+          safety: "SAFETY MAP",
+          risk: "GLOBAL RISK",
+          crisis: "CRISIS",
+          sources: "SOURCES",
+          dotsOn: "DOTS ON",
+          dotsOff: "DOTS OFF",
+          refresh: "REFRESH"
+        },
+        es: {
+          subtitle: "Datos de IA para dinero y seguridad",
+          search: "BUSCAR",
+          brief: "RESUMEN",
+          predictions: "PREDICCIONES",
+          crypto: "CRIPTO",
+          commodities: "MATERIAS",
+          polymarket: "POLYMARKET",
+          routes: "RUTAS",
+          rapid: "MOVIMIENTOS",
+          safety: "SEGURIDAD",
+          risk: "RIESGO GLOBAL",
+          crisis: "CRISIS",
+          sources: "FUENTES",
+          dotsOn: "PUNTOS ON",
+          dotsOff: "PUNTOS OFF",
+          refresh: "ACTUALIZAR"
+        },
+        fr: {
+          subtitle: "Données IA pour gain et sécurité",
+          search: "CHERCHER",
+          brief: "BRIEF",
+          predictions: "PRÉVISIONS",
+          crypto: "CRYPTO",
+          commodities: "MATIÈRES",
+          polymarket: "POLYMARKET",
+          routes: "ROUTES",
+          rapid: "MOUVEMENTS",
+          safety: "SÉCURITÉ",
+          risk: "RISQUE GLOBAL",
+          crisis: "CRISE",
+          sources: "SOURCES",
+          dotsOn: "POINTS ON",
+          dotsOff: "POINTS OFF",
+          refresh: "ACTUALISER"
+        },
+        de: {
+          subtitle: "KI-Daten für Gewinn und Sicherheit",
+          search: "SUCHE",
+          brief: "LIVE-BRIEF",
+          predictions: "PROGNOSEN",
+          crypto: "KRYPTO",
+          commodities: "ROHSTOFFE",
+          polymarket: "POLYMARKET",
+          routes: "ROUTEN",
+          rapid: "BEWEGUNGEN",
+          safety: "SICHERHEIT",
+          risk: "GLOBALRISIKO",
+          crisis: "KRISE",
+          sources: "QUELLEN",
+          dotsOn: "PUNKTE ON",
+          dotsOff: "PUNKTE OFF",
+          refresh: "NEU LADEN"
+        },
+        ar: {
+          subtitle: "بيانات للربح والأمان",
+          search: "بحث",
+          brief: "ملخص",
+          predictions: "توقعات",
+          crypto: "عملات",
+          commodities: "سلع",
+          polymarket: "POLYMARKET",
+          routes: "مسارات",
+          rapid: "حركات",
+          safety: "أمان",
+          risk: "خطر عالمي",
+          crisis: "أزمة",
+          sources: "مصادر",
+          dotsOn: "نقاط ON",
+          dotsOff: "نقاط OFF",
+          refresh: "تحديث"
+        }
+      };
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function lang() {
+        return $("languageSelect").value || "en";
+      }
+
+      function t(key) {
+        return (labels[lang()] && labels[lang()][key]) || labels.en[key] || key;
+      }
+
+      function esc(value) {
+        return String(value ?? "").replace(/[&<>"']/g, function (m) {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+          }[m];
+        });
+      }
+
+      function num(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function money(value) {
+        const n = num(value);
+        if (n === null) return "N/A";
+        return "$" + n.toLocaleString(undefined, { maximumFractionDigits: n < 10 ? 4 : 2 });
+      }
+
+      function pct(value) {
+        const n = num(value);
+        if (n === null) return "N/A";
+        return (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
+      }
+
+      async function getJson(url) {
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error(url + " failed " + res.status);
+        return res.json();
+      }
+
+      function openPanel(title, body) {
+        $("panelTitle").textContent = title || "Info";
+        $("panelBody").innerHTML = body || "";
+        $("panel").classList.add("open");
+      }
+
+      function closePanel() {
+        $("panel").classList.remove("open");
+      }
+
+      function setStatus(text) {
+        $("status").textContent = text;
+      }
+
+      function applyLanguage() {
+        document.documentElement.dir = "ltr";
+        document.documentElement.lang = lang();
+
+        $("subtitle").textContent = t("subtitle");
+        $("searchButton").textContent = t("search");
+        $("briefButton").textContent = t("brief");
+        $("predictionsButton").textContent = t("predictions");
+        $("cryptoButton").textContent = t("crypto");
+        $("commoditiesButton").textContent = t("commodities");
+        $("polymarketButton").textContent = t("polymarket");
+        $("routesButton").textContent = t("routes");
+        $("rapidButton").textContent = t("rapid");
+        $("safetyButton").textContent = t("safety");
+        $("riskButton").textContent = t("risk");
+        $("crisisButton").textContent = t("crisis");
+        $("sourcesButton").textContent = t("sources");
+        $("refreshButton").textContent = t("refresh");
+        $("dotsButton").textContent = state.dotsOn ? t("dotsOn") : t("dotsOff");
+      }
+
+      function initMap() {
+        map = L.map("map", {
+          preferCanvas: true,
+          minZoom: 2,
+          maxZoom: 16,
+          zoomControl: true
+        }).setView([20, 12], 2.75);
+
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+          subdomains: "abcd",
+          attribution: "&copy; OpenStreetMap &copy; CARTO"
+        }).addTo(map);
+
+        const Home = L.Control.extend({
+          options: { position: "topleft" },
+          onAdd: function () {
+            const box = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+            const button = L.DomUtil.create("a", "home-control-button", box);
+            button.href = "#";
+            button.title = "Home";
+            button.innerHTML = "⌂";
+            L.DomEvent.on(button, "click", function (e) {
+              L.DomEvent.preventDefault(e);
+              L.DomEvent.stopPropagation(e);
+              closePanel();
+              map.setView([20, 12], 2.75);
+            });
+            return box;
+          }
+        });
+
+        map.addControl(new Home());
+
+        dotsLayer = L.layerGroup().addTo(map);
+        routeLayer = L.layerGroup();
+        crisisLayer = L.layerGroup();
+        countryLayer = L.layerGroup().addTo(map);
+
+        map.on("click", function (e) {
+          openRisk(e.latlng.lat, e.latlng.lng);
+        });
+
+        setTimeout(function () {
+          map.invalidateSize();
+        }, 300);
+      }
+
+      async function load() {
+        setStatus("loading");
+
+        try {
+          const s = await getJson("/api/state");
+          state.events = s.events || [];
+          state.markets = s.markets || [];
+          state.predictions = s.predictions || [];
+          state.rapid = s.rapid || [];
+          state.polymarket = s.polymarket || s.predictionMarkets || [];
+          renderTicker();
+        } catch (err) {
+          console.warn(err);
+          renderTicker();
+        }
+
+        try {
+          const m = await getJson("/api/map-data");
+          state.mapData = m || state.mapData;
+        } catch (err) {
+          console.warn(err);
+        }
+
+        renderDots();
+        renderLegend();
+        setStatus("LIVE " + new Date().toLocaleTimeString());
+      }
+
+      function renderTicker() {
+        const rows = state.markets || [];
+        $("ticker").innerHTML = rows.length
+          ? rows.slice(0, 18).map(function (m) {
+              const move = Number(m.changePct || 0);
+              const cls = move >= 0 ? "up" : "down";
+              return "<span><b>" + esc(m.id || m.symbol || "ASSET") + "</b> " + money(m.price) + " <span class='" + cls + "'>" + pct(move) + "</span></span>";
+            }).join("")
+          : "<span>No market data</span>";
+      }
+
+      function kind(x) {
+        const k = x.kind || "risk";
+        if (["disaster", "weather", "earthquake", "quake"].includes(k)) return "crisis";
+        if (k === "tech") return "ai";
+        if (k === "election") return "politics";
+        return k;
+      }
+
+      function icon(k) {
+        return L.divIcon({
+          className: "",
+          html: "<div class='dot dot-" + esc(k) + "'></div>",
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+      }
+
+      function renderDots() {
+        dotsLayer.clearLayers();
+
+        if (!state.dotsOn) return;
+
+        const all = []
+          .concat(state.events || [])
+          .concat(state.mapData.nodes || [])
+          .slice(0, 700);
+
+        for (const item of all) {
+          const lat = num(item.lat);
+          const lng = num(item.lng);
+          if (lat === null || lng === null) continue;
+
+          const k = kind(item);
+
+          L.marker([lat, lng], { icon: icon(k) })
+            .on("click", function (ev) {
+              L.DomEvent.stopPropagation(ev);
+              openEvent(item);
+            })
+            .addTo(dotsLayer);
+        }
+      }
+
+      function renderLegend() {
+        const rows = [
+          ["war", "#ff174f"],
+          ["terror", "#ff8c00"],
+          ["crisis", "#ffffff"],
+          ["politics", "#b24cff"],
+          ["shipping", "#00d8ff"],
+          ["energy", "#00ff87"],
+          ["finance", "#3ea0ff"],
+          ["city", "#7aa7ff"]
+        ];
+
+        $("legend").innerHTML = rows.map(function (r) {
+          return "<span><i style='background:" + r[1] + "'></i>" + esc(r[0]) + "</span>";
+        }).join("");
+      }
+
+      function openEvent(item) {
+        const title = item.title || item.name || item.summary || "Map item";
+
+        openPanel(title, `
+          <div class="card">
+            <h3>${esc(title)}</h3>
+            <div class="list">
+              <div class="item"><b>Type:</b> ${esc(kind(item))}</div>
+              <div class="item"><b>Place:</b> ${esc(item.place || item.country || "Mapped point")}</div>
+              <div class="item"><b>Source:</b> ${esc(item.source || "source")}</div>
+              <div class="item"><b>Summary:</b> ${esc(item.summary || item.title || item.name || "No summary")}</div>
+              <div class="item warn"><b>Use:</b> verify source, then check market/route reaction.</div>
+            </div>
+            <p>${item.url ? `<a class="source-link" href="${esc(item.url)}" target="_blank" rel="noopener">open source</a>` : "No source URL"}</p>
+          </div>
+        `);
+      }
+
+      async function openRisk(lat, lng) {
+        openPanel("Loading clicked place", `
+          <div class="card">
+            <h3>Checking exact point</h3>
+            <div class="list">
+              <div class="item"><b>Latitude:</b> ${esc(lat.toFixed(5))}</div>
+              <div class="item"><b>Longitude:</b> ${esc(lng.toFixed(5))}</div>
+            </div>
+          </div>
+        `);
+
+        try {
+          const data = await getJson("/api/global-risk/point?lat=" + encodeURIComponent(lat) + "&lng=" + encodeURIComponent(lng));
+          renderRisk(data, lat, lng);
+        } catch (err) {
+          openPanel("Risk data failed", `
+            <div class="card">
+              <h3>Source failed</h3>
+              <p class="plain">No fake values shown.</p>
+              <div class="list">
+                <div class="item"><b>Latitude:</b> ${esc(lat.toFixed(5))}</div>
+                <div class="item"><b>Longitude:</b> ${esc(lng.toFixed(5))}</div>
+              </div>
+            </div>
+          `);
+        }
+      }
+
+      function tile(label, value, tag) {
+        const n = num(value);
+        let cls = "grey";
+
+        if (n !== null) {
+          if (n >= 75) cls = "green";
+          else if (n >= 55) cls = "yellow";
+          else if (n >= 35) cls = "orange";
+          else cls = "red";
+        }
+
+        return `
+          <div class="tile ${cls}">
+            <div class="label">${esc(label)}</div>
+            <div class="num">${n === null ? "N/A" : Math.round(n)}</div>
+            <div class="tag">${esc(tag || "")}</div>
+          </div>
+        `;
+      }
+
+      function renderRisk(data, lat, lng) {
+        const place = data.place || {};
+        const raw = place.raw || {};
+        const country = place.country || data.countryName || "";
+        const scores = data.scores || {};
+
+        if (!country && !data.countryCode) {
+          openPanel("Ocean / unmapped area", `
+            <div class="card">
+              <h3>Ocean / unmapped area</h3>
+              <p class="plain">This did not resolve to land. Crime and country safety are not shown for ocean clicks.</p>
+              <div class="list">
+                <div class="item"><b>Latitude:</b> ${esc(lat.toFixed(5))}</div>
+                <div class="item"><b>Longitude:</b> ${esc(lng.toFixed(5))}</div>
+                <div class="item warn"><b>Rule:</b> no fake country values for ocean clicks.</div>
+              </div>
+            </div>
+          `);
+          return;
+        }
+
+        const exact = [
+          raw.neighbourhood,
+          raw.suburb,
+          raw.city,
+          raw.town,
+          raw.village,
+          raw.county,
+          raw.state,
+          country
+        ].filter(Boolean).join(", ");
+
+        const homicide = data.national && data.national.homicide;
+        const crime = data.localCrime;
+
+        openPanel("Global Risk", `
+          <div class="card">
+            <h3>${esc(exact || country || "Selected land area")}</h3>
+            <p class="plain">${esc(place.displayName || exact || country)}</p>
+
+            <div class="indexes">
+              ${tile("Safety", scores.safety && scores.safety.score, scores.safety && scores.safety.status)}
+              ${tile("Crime", scores.crime && scores.crime.score, scores.crime && scores.crime.status)}
+              ${tile("Money", scores.money && scores.money.score, scores.money && scores.money.status)}
+            </div>
+
+            <div class="list">
+              <div class="item"><b>Clicked point:</b> ${esc(lat.toFixed(5))}, ${esc(lng.toFixed(5))}</div>
+              <div class="item"><b>Country:</b> ${esc(country || "N/A")} ${data.countryCode ? "(" + esc(data.countryCode) + ")" : ""}</div>
+              <div class="item"><b>Exact place:</b> ${esc(exact || "N/A")}</div>
+              <div class="item"><b>Local crime:</b> ${crime && crime.available ? esc(crime.total + " crimes, " + crime.date) : "N/A, no official local crime feed connected here"}</div>
+              <div class="item"><b>National homicide:</b> ${
+                homicide && homicide.value !== null && homicide.value !== undefined
+                  ? esc(Number(homicide.value).toFixed(1) + " per 100k, " + homicide.year)
+                  : "N/A"
+              }</div>
+              <div class="item"><b>Weather:</b> ${esc(weather(data.weather))}</div>
+              <div class="item warn"><b>Rule:</b> missing data is not replaced with fake local numbers.</div>
+            </div>
+          </div>
+        `);
+      }
+
+      function weather(w) {
+        if (!w || !w.current) return "N/A";
+        const c = w.current;
+        return (c.temperatureC ?? "N/A") + "°C, wind " + (c.windKmh ?? "N/A") + " km/h, gust " + (c.gustKmh ?? "N/A") + " km/h";
+      }
+
+      function openNamedPanel(name) {
+        if (name === "brief") {
+          const events = state.events.slice(0, 10);
+
+          openPanel("Live Brief", `
+            <div class="card">
+              <h3>Live Brief</h3>
+              <p class="plain">Priority events and what to check next.</p>
+            </div>
+
+            <div class="card">
+              <h3>Priority alerts</h3>
+              <div class="list">
+                ${events.length ? events.map(function (e) {
+                  return "<div class='item'><b>" + esc(kind(e)) + ":</b> " + esc(e.title || e.summary || "Event") + "<br>" + esc(e.source || "source") + " | " + esc(e.place || e.country || "mapped area") + "</div>";
+                }).join("") : "<div class='item'>No alerts loaded.</div>"}
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>How to use</h3>
+              <div class="list">
+                <div class="item"><b>1:</b> click the affected map area.</div>
+                <div class="item"><b>2:</b> check route, commodity, crypto and Polymarket reaction.</div>
+                <div class="item"><b>3:</b> only act if source and market reaction agree.</div>
+              </div>
+            </div>
+          `);
+          return;
+        }
+
+        if (name === "crypto") {
+          const rows = state.markets.filter(function (m) {
+            return /BTC|ETH|SOL|XRP|BNB|ADA|DOGE|AVAX|LINK/i.test(String(m.id || m.symbol || ""));
+          });
+
+          openPanel("Crypto", `
+            <div class="card">
+              <h3>Crypto</h3>
+              <p class="plain">Compact live market table. No empty graph boxes.</p>
+            </div>
+            ${marketTable(rows.length ? rows : state.markets.slice(0, 10))}
+          `);
+          return;
+        }
+
+        if (name === "commodities") {
+          const rows = state.markets.filter(function (m) {
+            return /gold|silver|oil|brent|wti|copper|gas|gld|slv|commodity/i.test((m.id || "") + " " + (m.name || "") + " " + (m.source || ""));
+          });
+
+          openPanel("Commodities", `
+            <div class="card">
+              <h3>Commodities</h3>
+              <p class="plain">Check whether crisis/war/route events are moving price.</p>
+            </div>
+            ${marketTable(rows)}
+          `);
+          return;
+        }
+
+        if (name === "routes") {
+          openPanel("Routes", `
+            <div class="card">
+              <h3>Routes</h3>
+              <p class="plain">Toggle routes. Click a route line to see goods, users and chokepoints.</p>
+              <button class="small-button" id="seaRouteButton">Toggle sea routes</button>
+              <button class="small-button" id="landRouteButton">Toggle land routes</button>
+            </div>
+          `);
+
+          $("seaRouteButton").onclick = function () {
+            state.seaRoutes = !state.seaRoutes;
+            renderRoutes();
+          };
+
+          $("landRouteButton").onclick = function () {
+            state.landRoutes = !state.landRoutes;
+            renderRoutes();
+          };
+
+          return;
+        }
+
+        if (name === "crisis") {
+          loadCrisis();
+          return;
+        }
+
+        if (name === "sources") {
+          openPanel("Sources", `
+            <div class="card">
+              <h3>Sources</h3>
+              <div class="list">
+                <div class="item"><b>Global events:</b> GDELT</div>
+                <div class="item"><b>Disasters:</b> GDACS</div>
+                <div class="item"><b>Earthquakes:</b> USGS</div>
+                <div class="item"><b>Macro:</b> World Bank</div>
+                <div class="item"><b>Places:</b> OpenStreetMap</div>
+                <div class="item"><b>Weather:</b> Open-Meteo</div>
+              </div>
+            </div>
+          `);
+          return;
+        }
+
+        if (name === "polymarket") {
+          const rows = state.polymarket || [];
+
+          openPanel("Polymarket", `
+            <div class="card">
+              <h3>Polymarket</h3>
+              <p class="plain">Profit depends on whether the market price is wrong. High probability alone is not enough.</p>
+            </div>
+
+            ${rows.length ? rows.slice(0, 15).map(function (m) {
+              return `
+                <div class="card">
+                  <h3>${esc(m.title || m.question || m.name || "Market")}</h3>
+                  <div class="list">
+                    <div class="item"><b>Price/chance:</b> ${esc(m.probability || m.prob || m.price || "N/A")}</div>
+                    <div class="item warn"><b>Money angle:</b> only useful if fresh news makes this price wrong.</div>
+                  </div>
+                </div>
+              `;
+            }).join("") : "<div class='card'><h3>No Polymarket data loaded</h3></div>"}
+          `);
+          return;
+        }
+
+        if (name === "predictions") {
+          const rows = state.predictions || [];
+
+          openPanel("Predictions", `
+            <div class="card">
+              <h3>Predictions</h3>
+              <p class="plain">Setup ranking only. Not a buy or sell order.</p>
+            </div>
+
+            ${rows.length ? rows.map(function (p) {
+              return `
+                <div class="card">
+                  <h3>${esc(p.asset || p.id || "Asset")}</h3>
+                  <div class="list">
+                    <div class="item"><b>Direction:</b> ${esc(p.direction || "N/A")}</div>
+                    <div class="item"><b>Score:</b> ${esc(p.rating || "N/A")}</div>
+                    <div class="item"><b>Reasons:</b> ${esc((p.reasons || []).join(" | ") || "N/A")}</div>
+                  </div>
+                </div>
+              `;
+            }).join("") : "<div class='card'><h3>No prediction data loaded</h3></div>"}
+          `);
+          return;
+        }
+
+        openPanel(name, `
+          <div class="card">
+            <h3>${esc(name)}</h3>
+            <p class="plain">Click the map for detailed point info.</p>
+          </div>
+        `);
+      }
+
+      function marketTable(rows) {
+        return rows.length ? rows.map(function (m) {
+          const move = Number(m.changePct || 0);
+          const cls = move >= 0 ? "up" : "down";
+
+          return `
+            <div class="market-row">
+              <div class="sym">${esc(m.id || m.symbol || "ASSET")}</div>
+              <div>
+                <div>${esc(m.name || m.id || m.symbol || "Asset")}</div>
+                <div>${esc(m.source || "market feed")}</div>
+              </div>
+              <div>
+                <b>${money(m.price)}</b><br>
+                <span class="${cls}">${pct(move)}</span>
+              </div>
+            </div>
+          `;
+        }).join("") : "<div class='card'><h3>No data loaded</h3></div>";
+      }
+
+      function route(type, name, points, chokepoints) {
+        return {
+          type,
+          name,
+          points,
+          chokepoints,
+          goods: type === "sea" ? "containers, oil, LNG, machinery, electronics, grain" : "rail freight, trucks, fuel, food, industrial goods",
+          users: type === "sea" ? "shipping lines, freight forwarders, commodity traders, insurers" : "rail operators, truck freight, customs brokers, distributors"
+        };
+      }
+
+      function buildRoutes() {
+        return [
+          route("sea", "Shanghai → Rotterdam", [[31.23, 121.49], [1.43, 103.86], [30.59, 32.27], [51.95, 4.14]], ["Malacca", "Suez"]),
+          route("sea", "Singapore → Felixstowe", [[1.29, 103.85], [1.43, 103.86], [30.59, 32.27], [51.96, 1.35]], ["Malacca", "Suez"]),
+          route("sea", "Busan → Los Angeles", [[35.1, 129.04], [33.74, -118.27]], []),
+          route("sea", "Jebel Ali → Rotterdam", [[25.01, 55.06], [26.57, 56.25], [30.59, 32.27], [51.95, 4.14]], ["Hormuz", "Suez"]),
+          route("land", "London → Paris → Berlin → Warsaw", [[51.5, -0.12], [48.85, 2.35], [52.52, 13.4], [52.23, 21.01]], ["Channel", "EU rail"]),
+          route("land", "Istanbul → Baku → Tehran → Dubai", [[41.01, 28.97], [40.41, 49.86], [35.69, 51.39], [25.2, 55.27]], ["Caucasus", "Iran corridor"])
+        ];
+      }
+
+      function renderRoutes() {
+        routeLayer.clearLayers();
+
+        if (map.hasLayer(routeLayer)) {
+          map.removeLayer(routeLayer);
+        }
+
+        if (!state.seaRoutes && !state.landRoutes) return;
+
+        routeLayer.addTo(map);
+
+        for (const r of buildRoutes()) {
+          if (r.type === "sea" && !state.seaRoutes) continue;
+          if (r.type === "land" && !state.landRoutes) continue;
+
+          L.polyline(r.points, {
+            color: r.type === "sea" ? "#00d8ff" : "#ffd94a",
+            weight: 1.3,
+            opacity: 0.58,
+            className: "moving-route"
+          }).on("click", function (e) {
+            L.DomEvent.stopPropagation(e);
+            openPanel(r.name, `
+              <div class="card">
+                <h3>${esc(r.name)}</h3>
+                <div class="list">
+                  <div class="item"><b>Type:</b> ${esc(r.type)}</div>
+                  <div class="item"><b>Goods:</b> ${esc(r.goods)}</div>
+                  <div class="item"><b>Used by:</b> ${esc(r.users)}</div>
+                  <div class="item"><b>Chokepoints:</b> ${esc(r.chokepoints.join(", ") || "N/A")}</div>
+                  <div class="item warn"><b>Accuracy:</b> estimated major lane, not metre-level AIS.</div>
+                </div>
+              </div>
+            `);
+          }).addTo(routeLayer);
+        }
+      }
+
+      async function loadCrisis() {
+        openPanel("Crisis", `
+          <div class="card">
+            <h3>Loading crisis data</h3>
+            <p class="plain">Checking earthquakes and disasters.</p>
+          </div>
+        `);
+
+        try {
+          const q = await getJson("/api/global-weather/earthquakes");
+          const quakes = q.earthquakes || [];
+
+          openPanel("Crisis", `
+            <div class="card">
+              <h3>Crisis</h3>
+              <p class="plain">${quakes.length} earthquake records loaded.</p>
+            </div>
+            ${quakes.slice(0, 12).map(function (x) {
+              return `
+                <div class="card">
+                  <h3>${esc(x.title || "Earthquake")}</h3>
+                  <div class="list">
+                    <div class="item"><b>Magnitude:</b> ${esc(x.magnitude || "N/A")}</div>
+                    <div class="item"><b>Place:</b> ${esc(x.place || "N/A")}</div>
+                    <div class="item"><b>Depth:</b> ${esc(x.depthKm || "N/A")} km</div>
+                    <div class="item">${x.url ? `<a class="source-link" href="${esc(x.url)}" target="_blank">USGS source</a>` : "USGS"}</div>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          `);
+        } catch (err) {
+          openPanel("Crisis", `
+            <div class="card">
+              <h3>Crisis failed</h3>
+              <p class="plain">Crisis endpoint did not respond.</p>
+            </div>
+          `);
+        }
+      }
+
+      function bind() {
+        $("closePanel").onclick = closePanel;
+
+        $("dotsButton").onclick = function () {
+          state.dotsOn = !state.dotsOn;
+          $("dotsButton").textContent = state.dotsOn ? t("dotsOn") : t("dotsOff");
+          renderDots();
+        };
+
+        $("refreshButton").onclick = load;
+
+        $("languageSelect").onchange = applyLanguage;
+
+        document.querySelectorAll("[data-panel]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            openNamedPanel(button.dataset.panel);
+          });
+        });
+
+        $("placeSearch").addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const q = $("placeQuery").value.trim();
+          if (!q) return;
+
+          openPanel("Search", `
+            <div class="card">
+              <h3>Searching</h3>
+              <p class="plain">${esc(q)}</p>
+            </div>
+          `);
+
+          try {
+            const result = await getJson("/api/search?q=" + encodeURIComponent(q));
+            const first = result.places && result.places[0];
+
+            if (first) {
+              map.setView([Number(first.lat), Number(first.lng)], 9);
+              openRisk(Number(first.lat), Number(first.lng));
+            } else {
+              openPanel("Search", "<div class='card'><h3>No result</h3></div>");
+            }
+          } catch (err) {
+            openPanel("Search failed", "<div class='card'><h3>Search failed</h3></div>");
+          }
+        });
+      }
+
+      function boot() {
+        bind();
+        applyLanguage();
+        initMap();
+        load();
+      }
+
+      boot();
+    })();
+  </script>
 </body>
 </html>
