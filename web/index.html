@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Summit Security Companion</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/styles/base.css">
+  <link rel="stylesheet" href="/styles/panels.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand"><span class="pulse"></span><div><h1>SUMMIT SECURITY COMPANION</h1><small>Europe-first travel security, family watch, resilience and money intelligence</small></div></div>
+    <div id="ticker">loading live security tape...</div>
+    <div class="lang">LANG <select id="languageSelect"><option>English</option><option>Arabic</option><option>Deutsch</option><option>Français</option></select></div>
+  </header>
+  <nav id="tabs">
+    <input id="searchBox" placeholder="Search city or country">
+    <button id="searchBtn">SEARCH</button>
+    <button data-tab="live">LIVE BRIEF</button>
+    <button data-tab="travel">TRAVEL SECURITY</button>
+    <button data-tab="family">FAMILY WATCH</button>
+    <button data-tab="europe">EUROPE</button>
+    <button data-tab="middleeast">MIDDLE EAST</button>
+    <button data-tab="risk">COUNTRY RISK</button>
+    <button data-tab="crisis">CRISIS</button>
+    <button data-tab="money">MONEY</button>
+    <button data-tab="sources">SOURCES</button>
+  </nav>
+  <main id="app">
+    <div id="map"></div>
+    <div class="left-map-tools"><button id="homeBtn">HOME</button><button id="overlayBtn">OVERLAYS</button><button id="dotBtn">DOTS ON</button><button id="refreshBtn">REFRESH</button></div>
+    <div id="legend"></div>
+    <section id="panel"><button id="panelClose">×</button><h2 id="panelTitle">Live Brief</h2><div id="panelBody"></div></section>
+    <div id="toast"></div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/renderers.js"></script>
+  <script src="/js/map.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
