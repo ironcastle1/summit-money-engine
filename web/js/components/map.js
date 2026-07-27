@@ -1,133 +1,243 @@
-window.Renderers = (() => {
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[m]));
+(function () {
+  const MoneyMap = {};
 
-  const hasNum = (n) => Number.isFinite(Number(n));
+  let map = null;
+  let countryLayer = null;
+  let eventLayer = null;
+  let nodeLayer = null;
+  let cityLayer = null;
+  let localLayer = null;
+  let crisisLayer = null;
+  let selectedLayer = null;
 
-  const money = (n) =>
-    hasNum(n)
-      ? "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: Number(n) < 10 ? 4 : 2 })
-      : "N/A";
+  let countryGeoJson = null;
+  let dotsVisible = true;
+  let localTimer = null;
+  let lastLocalKey = "";
+  let riskCache = new Map();
+  let wikiCache = new Map();
 
-  const pct = (n) =>
-    hasNum(n)
-      ? `${Number(n) >= 0 ? "+" : ""}${Number(n).toFixed(2)}%`
-      : "N/A";
+  const riskCountries = new Set([
+    "Ukraine",
+    "Russia",
+    "Syria",
+    "Yemen",
+    "Sudan",
+    "Myanmar",
+    "Afghanistan",
+    "Israel",
+    "Palestine",
+    "Lebanon",
+    "Somalia",
+    "Mali",
+    "Burkina Faso",
+    "Niger",
+    "Haiti"
+  ]);
 
-  const kindLabel = {
-    war: "War",
-    terror: "Terror",
-    disaster: "Crisis",
-    weather: "Crisis",
-    earthquake: "Crisis",
-    quake: "Crisis",
-    crisis: "Crisis",
-    election: "Politics",
-    politics: "Politics",
-    shipping: "Shipping",
-    energy: "Energy",
-    ai: "AI",
-    tech: "AI",
-    commodity: "Commodity",
-    finance: "Finance",
-    city: "City",
-    risk: "Risk"
+  const watchCountries = new Set([
+    "Iran",
+    "Iraq",
+    "Pakistan",
+    "North Korea",
+    "Venezuela",
+    "Libya",
+    "Ethiopia",
+    "Democratic Republic of the Congo"
+  ]);
+
+  const dotColours = {
+    war: "#ff174f",
+    terror: "#ff8c00",
+    crisis: "#ffffff",
+    politics: "#b24cff",
+    shipping: "#00d8ff",
+    ai: "#00fff0",
+    commodity: "#ffd94a",
+    energy: "#00ff87",
+    finance: "#3ea0ff",
+    city: "#7aa7ff",
+    risk: "#ff326a"
   };
 
-  const TEXT = {
-    en: {
-      liveBrief: "Live Brief",
-      predictions: "Predictions",
-      crypto: "Crypto",
-      commodities: "Commodities",
-      polymarket: "Polymarket",
-      routes: "Routes",
-      rapid: "Rapid Movers",
-      safety: "Safety Map",
-      sources: "Sources",
-      use: "How to use this",
-      check: "Check before acting",
-      noData: "No data",
-      notAdvice: "This is not a buy/sell instruction.",
-      noFake: "Missing data is shown as missing. No fake figures."
-    },
-    es: {
-      liveBrief: "Resumen en vivo",
-      predictions: "Predicciones",
-      crypto: "Cripto",
-      commodities: "Materias primas",
-      polymarket: "Polymarket",
-      routes: "Rutas",
-      rapid: "Movimientos rápidos",
-      safety: "Mapa de seguridad",
-      sources: "Fuentes",
-      use: "Cómo usar esto",
-      check: "Verifica antes de actuar",
-      noData: "Sin datos",
-      notAdvice: "Esto no es una orden de compra/venta.",
-      noFake: "Los datos faltantes se muestran como faltantes."
-    },
-    fr: {
-      liveBrief: "Brief en direct",
-      predictions: "Prédictions",
-      crypto: "Crypto",
-      commodities: "Matières premières",
-      polymarket: "Polymarket",
-      routes: "Routes",
-      rapid: "Mouvements rapides",
-      safety: "Carte sécurité",
-      sources: "Sources",
-      use: "Comment utiliser",
-      check: "Vérifier avant d'agir",
-      noData: "Aucune donnée",
-      notAdvice: "Ce n'est pas un ordre d'achat/vente.",
-      noFake: "Les données manquantes sont indiquées comme manquantes."
-    },
-    de: {
-      liveBrief: "Live-Überblick",
-      predictions: "Prognosen",
-      crypto: "Krypto",
-      commodities: "Rohstoffe",
-      polymarket: "Polymarket",
-      routes: "Routen",
-      rapid: "Schnelle Bewegungen",
-      safety: "Sicherheitskarte",
-      sources: "Quellen",
-      use: "So nutzt du es",
-      check: "Vor dem Handeln prüfen",
-      noData: "Keine Daten",
-      notAdvice: "Dies ist keine Kauf-/Verkaufsanweisung.",
-      noFake: "Fehlende Daten werden als fehlend angezeigt."
-    },
-    ar: {
-      liveBrief: "ملخص مباشر",
-      predictions: "توقعات",
-      crypto: "العملات الرقمية",
-      commodities: "السلع",
-      polymarket: "Polymarket",
-      routes: "المسارات",
-      rapid: "حركات سريعة",
-      safety: "خريطة الأمان",
-      sources: "المصادر",
-      use: "طريقة الاستخدام",
-      check: "تحقق قبل التصرف",
-      noData: "لا توجد بيانات",
-      notAdvice: "هذا ليس أمر شراء أو بيع.",
-      noFake: "البيانات غير المتوفرة تظهر كذلك."
-    }
-  };
-
-  function lang() {
-    return window.SME_LANG || localStorage.getItem("sme-language") || "en";
+  function $(selector) {
+    return document.querySelector(selector);
   }
 
-  function t(key) {
-    return TEXT[lang()]?.[key] || TEXT.en[key] || key;
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (match) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[match]));
+  }
+
+  function num(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  async function getJson(url) {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`${url} failed with ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  function init() {
+    if (map) return;
+
+    injectCss();
+
+    map = L.map("map", {
+      preferCanvas: true,
+      minZoom: 2,
+      maxZoom: 16,
+      zoomControl: true,
+      worldCopyJump: false
+    }).setView([20, 12], 2.85);
+
+    window.map = map;
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      attribution: "&copy; OpenStreetMap &copy; CARTO",
+      updateWhenIdle: false,
+      keepBuffer: 4
+    }).addTo(map);
+
+    countryLayer = L.layerGroup().addTo(map);
+    eventLayer = L.layerGroup().addTo(map);
+    nodeLayer = L.layerGroup().addTo(map);
+    cityLayer = L.layerGroup().addTo(map);
+    localLayer = L.layerGroup().addTo(map);
+    crisisLayer = L.layerGroup();
+    selectedLayer = L.layerGroup().addTo(map);
+
+    map.on("click", (event) => {
+      openRiskAt(event.latlng.lat, event.latlng.lng);
+    });
+
+    map.on("zoomend moveend", () => {
+      renderCities(window.MAP_DATA?.cityNodes || []);
+      fetchLocalPlaces();
+    });
+
+    bindLanguage();
+    bindDotButton();
+
+    renderLegend();
+    loadCountryColours();
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+  }
+
+  function bindLanguage() {
+    const select = $("#languageSelect");
+    if (!select) return;
+
+    select.addEventListener("change", () => {
+      document.documentElement.dir = "ltr";
+      document.documentElement.lang = select.value || "en";
+    });
+  }
+
+  function bindDotButton() {
+    const button = $("#dotToggleButton");
+    if (!button) return;
+
+    button.addEventListener("click", () => {
+      dotsVisible = !dotsVisible;
+      button.textContent = dotsVisible ? "DOTS ON" : "DOTS OFF";
+      renderEvents(window.APP_STATE?.events || []);
+      renderNodes(window.MAP_DATA?.nodes || []);
+      renderCities(window.MAP_DATA?.cityNodes || []);
+      fetchLocalPlaces();
+    });
+  }
+
+  async function loadCountryColours() {
+    try {
+      countryGeoJson = await getJson("/api/boundaries/admin0");
+      renderCountryColours();
+    } catch (error) {
+      console.warn("country boundary colours failed", error);
+    }
+  }
+
+  function renderCountryColours() {
+    if (!countryLayer || !countryGeoJson || !Array.isArray(countryGeoJson.features)) return;
+
+    countryLayer.clearLayers();
+
+    L.geoJSON(countryGeoJson, {
+      style: (feature) => {
+        const p = feature.properties || {};
+        const name = p.name || p.admin || p.NAME || "";
+
+        let fill = "#00a66a";
+        let opacity = 0.055;
+
+        if (nameMatch(name, riskCountries)) {
+          fill = "#ff174f";
+          opacity = 0.34;
+        } else if (nameMatch(name, watchCountries)) {
+          fill = "#ff8c00";
+          opacity = 0.20;
+        }
+
+        return {
+          color: fill,
+          weight: 1,
+          opacity: 0.55,
+          fillColor: fill,
+          fillOpacity: opacity,
+          className: "country-risk-fill"
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        layer.on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
+          openRiskAt(event.latlng.lat, event.latlng.lng);
+        });
+      }
+    }).addTo(countryLayer);
+  }
+
+  function nameMatch(name, set) {
+    const n = String(name || "").toLowerCase();
+
+    for (const item of set) {
+      if (n.includes(String(item).toLowerCase())) return true;
+    }
+
+    return false;
+  }
+
+  function setData(mapData, state) {
+    window.MAP_DATA = mapData || {};
+    window.APP_STATE = state || {};
+
+    renderCountryColours();
+    renderNodes(window.MAP_DATA.nodes || []);
+    renderCities(window.MAP_DATA.cityNodes || []);
+    renderEvents(window.APP_STATE.events || []);
+    fetchLocalPlaces();
+
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+    }, 200);
   }
 
   function normalKind(kind) {
@@ -137,668 +247,695 @@ window.Renderers = (() => {
     return kind || "risk";
   }
 
-  function isForeignText(text) {
-    const s = String(text || "");
-    if (!s) return false;
+  function iconFor(kind) {
+    const k = normalKind(kind);
+    const colour = dotColours[k] || dotColours.risk;
 
-    const nonAscii = (s.match(/[^\x00-\x7F]/g) || []).length;
-    const hasForeignPunctuation = /[¿¡]/.test(s);
-    const hasCyrillic = /[\u0400-\u04FF]/.test(s);
-    const hasArabic = /[\u0600-\u06FF]/.test(s);
-    const hasHan = /[\u4E00-\u9FFF]/.test(s);
-
-    return hasForeignPunctuation || hasCyrillic || hasArabic || hasHan || nonAscii / Math.max(s.length, 1) > 0.08;
+    return L.divIcon({
+      className: "",
+      html: `<div class="sme-dot sme-dot-${esc(k)}" style="background:${colour};box-shadow:0 0 16px ${colour};"></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
   }
 
-  function eventPlace(e) {
-    return e.place || e.city || e.country || e.sourceCountry || "mapped area";
-  }
+  function renderEvents(events) {
+    if (!eventLayer) return;
 
-  function plainEventTitle(e) {
-    const kind = kindLabel[normalKind(e.kind)] || "Event";
-    const place = eventPlace(e);
-    const raw = String(e.title || e.summary || "").trim();
+    eventLayer.clearLayers();
 
-    if (!raw || isForeignText(raw)) return `${kind} report near ${place}`;
-    return raw.slice(0, 135);
-  }
+    if (!dotsVisible) return;
 
-  function plainSummary(e) {
-    const kind = kindLabel[normalKind(e.kind)] || "Event";
-    const place = eventPlace(e);
-    const raw = String(e.summary || e.title || "").trim();
+    for (const item of events || []) {
+      const lat = num(item.lat);
+      const lng = num(item.lng);
+      if (lat === null || lng === null) continue;
 
-    if (!raw || isForeignText(raw)) {
-      return `English fallback: ${kind} report near ${place}. Open the source to inspect the original article.`;
-    }
+      L.marker([lat, lng], {
+        icon: iconFor(item.kind)
+      })
+        .on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
 
-    return raw.slice(0, 280);
-  }
-
-  function sourceLink(e) {
-    const url = e.url || e.link || "";
-    const source = e.source || e.domain || "source";
-    if (!url) return esc(source);
-    return `<a target="_blank" rel="noopener" href="${esc(url)}">${esc(source)}</a>`;
-  }
-
-  function setInfo(title, html, type) {
-    if (window.Panels?.setInfo) {
-      window.Panels.setInfo(title, html, type);
-      return;
-    }
-
-    const panel = document.getElementById("infoPanel");
-    const titleEl = document.getElementById("infoTitle");
-    const body = document.getElementById("infoBody");
-
-    if (panel) {
-      panel.style.display = "";
-      panel.classList.add("open");
-    }
-
-    if (titleEl) titleEl.textContent = title;
-    if (body) body.innerHTML = html;
-  }
-
-  function setDrawer(title, html, type) {
-    if (window.Panels?.setDrawer) {
-      window.Panels.setDrawer(title, html, type);
-      return;
-    }
-
-    const drawer = document.getElementById("drawerPanel");
-    const titleEl = document.getElementById("drawerTitle");
-    const body = document.getElementById("drawerBody");
-
-    if (drawer) {
-      drawer.style.display = "";
-      drawer.classList.add("open");
-    }
-
-    if (titleEl) titleEl.textContent = title;
-    if (body) body.innerHTML = html;
-  }
-
-  function renderMarkets(markets) {
-    const el = document.getElementById("ticker");
-    if (!el) return;
-
-    el.innerHTML =
-      (markets || [])
-        .slice(0, 22)
-        .map((m) => {
-          const move = hasNum(m.changePct) ? Number(m.changePct) : 0;
-          const cls = move >= 0 ? "up" : "down";
-          return `<span><b>${esc(m.id || m.symbol || "ASSET")}</b> ${money(m.price)} <span class="${cls}">${pct(move)}</span></span>`;
+          if (window.Renderers && typeof window.Renderers.renderEvent === "function") {
+            window.Renderers.renderEvent(item);
+          }
         })
-        .join("") || "<span>No market data</span>";
+        .addTo(eventLayer);
+    }
   }
 
-  function scoreClass(value) {
-    if (value === null || value === undefined || value === "N/A") return "grey";
-    const v = Number(value);
-    if (v >= 75) return "green";
-    if (v >= 55) return "yellow";
-    if (v >= 35) return "orange";
-    return "red";
+  function renderNodes(nodes) {
+    if (!nodeLayer) return;
+
+    nodeLayer.clearLayers();
+
+    if (!dotsVisible) return;
+
+    for (const item of nodes || []) {
+      const lat = num(item.lat);
+      const lng = num(item.lng);
+      if (lat === null || lng === null) continue;
+
+      L.marker([lat, lng], {
+        icon: iconFor(item.kind)
+      })
+        .on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
+
+          if (window.Renderers && typeof window.Renderers.renderNode === "function") {
+            window.Renderers.renderNode(item);
+          }
+        })
+        .addTo(nodeLayer);
+    }
+  }
+
+  function renderCities(cities) {
+    if (!cityLayer || !map) return;
+
+    cityLayer.clearLayers();
+
+    if (!dotsVisible) return;
+    if (map.getZoom() < 5) return;
+
+    const bounds = map.getBounds();
+    const limit = map.getZoom() >= 10 ? 700 : map.getZoom() >= 8 ? 400 : 170;
+
+    for (const city of (cities || []).filter((c) => bounds.pad(0.45).contains([c.lat, c.lng])).slice(0, limit)) {
+      L.marker([city.lat, city.lng], {
+        icon: iconFor("city")
+      })
+        .on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
+
+          if (window.Renderers && typeof window.Renderers.renderLocalPlace === "function") {
+            window.Renderers.renderLocalPlace(city);
+          }
+        })
+        .addTo(cityLayer);
+    }
+  }
+
+  function fetchLocalPlaces() {
+    clearTimeout(localTimer);
+
+    localTimer = setTimeout(async () => {
+      if (!map || !localLayer) return;
+
+      localLayer.clearLayers();
+
+      if (!dotsVisible) return;
+      if (map.getZoom() < 8) return;
+
+      const bounds = map.getBounds();
+
+      const key = [
+        bounds.getSouth().toFixed(2),
+        bounds.getWest().toFixed(2),
+        bounds.getNorth().toFixed(2),
+        bounds.getEast().toFixed(2),
+        Math.floor(map.getZoom())
+      ].join(",");
+
+      if (key === lastLocalKey) return;
+      lastLocalKey = key;
+
+      try {
+        const url =
+          `/api/local-places?south=${bounds.getSouth()}` +
+          `&west=${bounds.getWest()}` +
+          `&north=${bounds.getNorth()}` +
+          `&east=${bounds.getEast()}` +
+          `&zoom=${map.getZoom()}`;
+
+        const data = await getJson(url);
+        const places = data.places || [];
+
+        for (const place of places.slice(0, 160)) {
+          const lat = num(place.lat);
+          const lng = num(place.lng);
+          if (lat === null || lng === null) continue;
+
+          L.marker([lat, lng], {
+            icon: iconFor("city")
+          })
+            .on("click", (event) => {
+              L.DomEvent.stopPropagation(event);
+
+              if (window.Renderers && typeof window.Renderers.renderLocalPlace === "function") {
+                window.Renderers.renderLocalPlace(place);
+              }
+            })
+            .addTo(localLayer);
+        }
+      } catch (error) {
+        console.warn("local places failed", error);
+      }
+    }, 350);
+  }
+
+  async function openContext(lat, lng, zoom = null) {
+    if (zoom && map) {
+      map.setView([lat, lng], Math.max(map.getZoom(), zoom));
+    }
+
+    await openRiskAt(Number(lat), Number(lng));
+  }
+
+  async function openRiskAt(lat, lng) {
+    if (!map) return;
+
+    selectedLayer.clearLayers();
+
+    L.circleMarker([lat, lng], {
+      radius: 7,
+      color: "#00eaff",
+      weight: 2,
+      fillColor: "#00eaff",
+      fillOpacity: 0.18
+    }).addTo(selectedLayer);
+
+    setInfo("Loading place", `
+      <div class="info-card">
+        <h3>Checking exact place</h3>
+        <div class="loader-bar"><span></span></div>
+
+        <div class="quick-list">
+          <div class="quick-item"><b>Clicked latitude:</b> ${esc(lat.toFixed(5))}</div>
+          <div class="quick-item"><b>Clicked longitude:</b> ${esc(lng.toFixed(5))}</div>
+          <div class="quick-item"><b>Status:</b> loading town, country, crime, safety, weather and image data.</div>
+        </div>
+      </div>
+    `, "risk");
+
+    const cacheKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+
+    if (riskCache.has(cacheKey)) {
+      renderRiskCard(riskCache.get(cacheKey), lat, lng);
+      return;
+    }
+
+    try {
+      const data = await getJson(`/api/global-risk/point?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+      riskCache.set(cacheKey, data);
+      renderRiskCard(data, lat, lng);
+    } catch (error) {
+      console.error(error);
+
+      setInfo("Risk failed", `
+        <div class="info-card">
+          <h3>Risk data failed</h3>
+          <p class="plain">The backend did not return data. No fake values shown.</p>
+
+          <div class="quick-list">
+            <div class="quick-item"><b>Latitude:</b> ${esc(lat.toFixed(5))}</div>
+            <div class="quick-item"><b>Longitude:</b> ${esc(lng.toFixed(5))}</div>
+          </div>
+        </div>
+      `, "risk");
+    }
+  }
+
+  function renderRiskCard(data, lat, lng) {
+    const place = data.place || {};
+    const raw = place.raw || {};
+    const country = place.country || data.countryName || "";
+    const scores = data.scores || {};
+    const localCrime = data.localCrime || {};
+    const homicide = data.national && data.national.homicide;
+
+    if (!country && !data.countryCode) {
+      setInfo("Ocean / unmapped area", `
+        <div class="info-card">
+          <h3>Ocean / unmapped area</h3>
+          <p class="plain">This click did not resolve to land. Crime and country safety are not shown for ocean points.</p>
+
+          <div class="quick-list">
+            <div class="quick-item"><b>Latitude:</b> ${esc(lat.toFixed(5))}</div>
+            <div class="quick-item"><b>Longitude:</b> ${esc(lng.toFixed(5))}</div>
+            <div class="quick-item yellow"><b>Rule:</b> no fake country values for ocean clicks.</div>
+          </div>
+        </div>
+      `, "risk");
+      return;
+    }
+
+    const exactParts = [
+      raw.neighbourhood,
+      raw.suburb,
+      raw.city,
+      raw.town,
+      raw.village,
+      raw.county,
+      raw.state,
+      country
+    ].filter(Boolean);
+
+    const exactName = exactParts.join(", ") || country || "Selected land area";
+    const imageId = `place-image-${Math.random().toString(16).slice(2)}`;
+
+    setInfo("Place Risk", `
+      <div class="info-card">
+        <h3>${esc(exactName)}</h3>
+        <p class="plain">${esc(place.displayName || exactName)}</p>
+
+        <div class="index-grid real-indexes">
+          ${scoreTile("Safety", scores.safety && scores.safety.score, scores.safety && scores.safety.status, scores.safety && scores.safety.reason)}
+          ${scoreTile("Crime", scores.crime && scores.crime.score, scores.crime && scores.crime.status, scores.crime && scores.crime.reason)}
+          ${scoreTile("War", scores.war && scores.war.value, scores.war && scores.war.status, scores.war && scores.war.reason)}
+          ${scoreTile("Politics", scores.politics && scores.politics.value, scores.politics && scores.politics.status, scores.politics && scores.politics.reason)}
+          ${scoreTile("Crisis", scores.crisis && scores.crisis.value, scores.crisis && scores.crisis.status, scores.crisis && scores.crisis.reason)}
+        </div>
+
+        <div class="quick-list">
+          <div class="quick-item"><b>Clicked point:</b> ${esc(lat.toFixed(5))}, ${esc(lng.toFixed(5))}</div>
+          <div class="quick-item"><b>Exact place:</b> ${esc(exactName)}</div>
+          <div class="quick-item"><b>Country:</b> ${esc(country || "N/A")} ${data.countryCode ? `(${esc(data.countryCode)})` : ""}</div>
+          <div class="quick-item"><b>Local crime:</b> ${
+            localCrime.available
+              ? esc(`${localCrime.total} official local crimes, ${localCrime.date}`)
+              : "N/A, no official local crime feed connected here"
+          }</div>
+          <div class="quick-item"><b>National homicide:</b> ${
+            homicide && homicide.value !== null && homicide.value !== undefined
+              ? `${esc(Number(homicide.value).toFixed(1))} per 100k, ${esc(homicide.year)}`
+              : "N/A"
+          }</div>
+          <div class="quick-item"><b>Weather now:</b> ${esc(weatherLine(data.weather))}</div>
+          <div class="quick-item yellow"><b>Crime accuracy:</b> local crime only changes by town where an official local feed exists. Otherwise national indicators repeat because that is the available source.</div>
+        </div>
+      </div>
+
+      <div id="${imageId}" class="info-card">
+        <h3>Place image</h3>
+        <div class="loader-bar"><span></span></div>
+        <p class="plain">Checking Wikipedia for a sourced image.</p>
+      </div>
+    `, "risk");
+
+    loadWikiForPlace(imageId, exactParts[0] || country, country);
   }
 
   function scoreTile(label, value, tag, source) {
-    const missing = value === null || value === undefined || Number.isNaN(Number(value));
-    const v = missing ? "N/A" : Math.round(Number(value));
+    const n = num(value);
+
+    let cls = "grey";
+
+    if (n !== null) {
+      if (n >= 75) cls = "green";
+      else if (n >= 55) cls = "yellow";
+      else if (n >= 35) cls = "orange";
+      else cls = "red";
+    }
 
     return `
-      <div class="index-tile ${scoreClass(value)}">
+      <div class="index-tile ${cls}">
         <div class="label">${esc(label)}</div>
-        <div class="num">${esc(v)}</div>
-        <div class="tag">${esc(tag || (missing ? "No data" : "Measured"))}</div>
+        <div class="num">${n === null ? "N/A" : Math.round(n)}</div>
+        <div class="tag">${esc(tag || (n === null ? "No data" : "Current"))}</div>
         <div class="mini-source">${esc(source || "")}</div>
       </div>
     `;
   }
 
-  function eventCard(e) {
-    const kind = normalKind(e.kind);
-    const original = isForeignText(e.title) ? e.title : e.originalTitle;
+  function weatherLine(weather) {
+    if (!weather || !weather.current) return "N/A";
 
-    return `
-      <div class="info-card">
-        <h3>${esc(plainEventTitle(e))}</h3>
-        <div class="quick-list">
-          <div class="quick-item ${kind}">
-            <b>Type:</b> ${esc(kindLabel[kind] || kind)} | <b>Place:</b> ${esc(eventPlace(e))}
-          </div>
-          <div class="quick-item">
-            <b>What happened:</b> ${esc(plainSummary(e))}
-          </div>
-          <div class="quick-item yellow">
-            <b>${t("check")}:</b> open the source, check local reports, then check price reaction.
-          </div>
-        </div>
-        ${original ? `<p class="original-title"><b>Original title:</b> ${esc(original)}</p>` : ""}
-        <p class="source-box">${sourceLink(e)}</p>
-      </div>
-    `;
+    const c = weather.current;
+
+    return `${c.temperatureC ?? "N/A"}°C, wind ${c.windKmh ?? "N/A"} km/h, gust ${c.gustKmh ?? "N/A"} km/h, rain ${c.precipitationMm ?? "N/A"} mm`;
   }
 
-  function renderEvent(e) {
-    setInfo(plainEventTitle(e), eventCard(e), normalKind(e.kind));
-  }
+  function loadWikiForPlace(targetId, placeName, countryName) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
 
-  function marketRows(list) {
-    return `
-      <div class="market-table compact-market-table">
-        ${(list || [])
-          .map((m) => {
-            const move = Number(m.changePct || 0);
-            const cls = move >= 0 ? "up" : "down";
-            const id = m.id || m.symbol || "ASSET";
-            const chart = marketChartUrl(id);
+    const query = [placeName, countryName].filter(Boolean).join(", ");
+    const cacheKey = query.toLowerCase();
 
-            return `
-              <div class="market-row">
-                <div class="sym">${esc(id)}</div>
-                <div>
-                  <div class="name">${esc(m.name || id)}</div>
-                  <div class="sub">${esc(m.source || "market feed")} | ${esc(m.status || "live/delayed")}</div>
-                </div>
-                <div class="price">
-                  <b>${money(m.price)}</b><br>
-                  <span class="${cls}">${pct(move)}</span><br>
-                  <a target="_blank" rel="noopener" href="${esc(chart)}">chart</a>
-                </div>
-              </div>
-            `;
-          })
-          .join("") || `<div class="warn">${t("noData")}</div>`}
-      </div>
-    `;
-  }
-
-  function marketChartUrl(id) {
-    const key = String(id || "").toUpperCase();
-
-    const map = {
-      BTC: "https://www.tradingview.com/symbols/BTCUSDT/",
-      ETH: "https://www.tradingview.com/symbols/ETHUSDT/",
-      SOL: "https://www.tradingview.com/symbols/SOLUSDT/",
-      XRP: "https://www.tradingview.com/symbols/XRPUSDT/",
-      BNB: "https://www.tradingview.com/symbols/BNBUSDT/",
-      ADA: "https://www.tradingview.com/symbols/ADAUSDT/",
-      GOLD: "https://www.tradingview.com/symbols/TVC-GOLD/",
-      GLD: "https://www.tradingview.com/symbols/AMEX-GLD/",
-      SILVER: "https://www.tradingview.com/symbols/TVC-SILVER/",
-      SLV: "https://www.tradingview.com/symbols/AMEX-SLV/",
-      COPPER: "https://www.tradingview.com/symbols/COMEX-HG1!/",
-      BRENT: "https://www.tradingview.com/symbols/TVC-UKOIL/",
-      WTI: "https://www.tradingview.com/symbols/TVC-USOIL/"
-    };
-
-    return map[key] || `https://www.tradingview.com/search/?query=${encodeURIComponent(key)}`;
-  }
-
-  function openPanel(name) {
-    const state = window.APP_STATE || {};
-    const markets = state.markets || [];
-
-    if (name === "brief") return renderLiveBrief();
-    if (name === "predictions") return renderPredictions();
-    if (name === "polymarket") return renderPolymarket();
-    if (name === "routes") return renderRoutesPanel();
-    if (name === "sources") return renderSources();
-    if (name === "rapid") return renderRapid();
-
-    if (name === "crypto") {
-      const crypto = markets.filter((m) => /binance|crypto/i.test(m.source || "") || /BTC|ETH|SOL|XRP|BNB|ADA|DOGE|AVAX|LINK/i.test(m.id || ""));
-      return setDrawer(t("crypto"), `
-        <div class="info-card">
-          <h3>${t("crypto")}</h3>
-          <p class="plain">Compact feed. Open the chart link for full external chart detail.</p>
-        </div>
-        ${marketRows(crypto.length ? crypto : markets.slice(0, 12))}
-      `, "crypto");
+    if (wikiCache.has(cacheKey)) {
+      renderWiki(target, wikiCache.get(cacheKey));
+      return;
     }
 
-    if (name === "commodities") {
-      const commodities = markets.filter((m) => /gold|silver|oil|brent|wti|copper|gas|commodity|gld|slv/i.test(`${m.id} ${m.name} ${m.source}`));
-      return setDrawer(t("commodities"), `
-        <div class="info-card">
-          <h3>${t("commodities")}</h3>
-          <p class="plain">Use these to check whether war, route, or crisis events are actually moving prices.</p>
-        </div>
-        ${marketRows(commodities.length ? commodities : markets.slice(0, 12))}
-      `, "commodities");
-    }
+    const params = new URLSearchParams();
+    params.set("name", query);
 
-    if (name === "layers") {
-      return setInfo(t("safety"), `
-        <div class="info-card">
-          <h3>${t("safety")}</h3>
-          <p class="plain">Country fill colours show broad risk layer. Click the map for the detailed point card.</p>
-          <div class="toggle-row">
-            <label><input id="safetyToggle" type="checkbox" ${window.SHOW_SAFETY ? "checked" : ""}> Country risk colours</label>
-          </div>
-          <div class="quick-list">
-            <div class="quick-item red"><b>Red:</b> active conflict / major risk region</div>
-            <div class="quick-item orange"><b>Orange:</b> high risk watch</div>
-            <div class="quick-item green"><b>Green:</b> lower current mapped risk</div>
-            <div class="quick-item yellow"><b>Warning:</b> not a frontline map.</div>
-          </div>
-        </div>
-      `, "layers");
-    }
-  }
-
-  function renderLiveBrief() {
-    const state = window.APP_STATE || {};
-    const events = (state.events || [])
-      .filter((e) => ["war", "terror", "crisis", "risk"].includes(normalKind(e.kind)))
-      .slice(0, 10);
-
-    const markets = (state.markets || []).slice(0, 10);
-    const predictions = (state.predictions || []).slice(0, 6);
-
-    setDrawer(t("liveBrief"), `
-      <div class="info-card">
-        <h3>${t("liveBrief")}</h3>
-        <p class="plain">Plain summary of what is worth checking now. It filters for war, terror, crisis and market-sensitive events.</p>
-      </div>
-
-      <div class="info-card">
-        <h3>1. Priority alerts</h3>
-        <div class="quick-list">
-          ${
-            events.length
-              ? events.map((e) => `
-                <div class="quick-item ${normalKind(e.kind)}">
-                  <b>${esc(kindLabel[normalKind(e.kind)] || "Event")}:</b>
-                  <a target="_blank" rel="noopener" href="${esc(e.url || "#")}">${esc(plainEventTitle(e))}</a>
-                  <br><span class="source-line">${esc(e.source || "source")} | ${esc(eventPlace(e))}</span>
-                </div>
-              `).join("")
-              : `<div class="warn">No priority alerts loaded.</div>`
-          }
-        </div>
-      </div>
-
-      <div class="info-card">
-        <h3>2. Market reaction</h3>
-        <p class="plain">Check whether the market has already reacted. If there is no price movement, the alert may not matter financially.</p>
-        ${marketRows(markets)}
-      </div>
-
-      <div class="info-card">
-        <h3>3. What to do</h3>
-        <div class="quick-list">
-          <div class="quick-item"><b>Safety:</b> click the affected map area and read Global Risk.</div>
-          <div class="quick-item"><b>Money:</b> check related commodities, crypto, routes and Polymarket.</div>
-          <div class="quick-item"><b>Trade:</b> only act if price, source and timing agree.</div>
-          <div class="quick-item yellow"><b>Do not:</b> buy because a card says “alert”.</div>
-        </div>
-      </div>
-
-      <div class="info-card">
-        <h3>4. Current prediction shortlist</h3>
-        <div class="quick-list">
-          ${
-            predictions.length
-              ? predictions.map((p) => `
-                <div class="quick-item">
-                  <b>${esc(p.asset || p.id || "Asset")}:</b>
-                  ${esc(p.rating || "N/A")} score | ${esc(p.direction || "N/A")} | ${esc((p.reasons || []).slice(0, 2).join(" / ") || "No reason loaded")}
-                </div>
-              `).join("")
-              : `<div class="warn">No prediction rows loaded.</div>`
-          }
-        </div>
-      </div>
-    `, "brief");
-  }
-
-  function renderPredictions() {
-    const state = window.APP_STATE || {};
-    const predictions = state.predictions || [];
-
-    setDrawer(t("predictions"), `
-      <div class="info-card">
-        <h3>${t("predictions")}</h3>
-        <p class="plain">This ranks setups. It does not know the future. A high score means stronger recent price/event evidence, not guaranteed profit.</p>
-        <div class="quick-list">
-          <div class="quick-item"><b>Score:</b> current setup strength.</div>
-          <div class="quick-item"><b>Direction:</b> whether the signal leans up, down or mixed.</div>
-          <div class="quick-item"><b>Reason:</b> price movement, event match, volatility or market confirmation.</div>
-          <div class="quick-item yellow"><b>Use:</b> shortlist only. Verify with chart and source before action.</div>
-        </div>
-      </div>
-
-      ${
-        predictions.length
-          ? predictions.map((p) => {
-            const rating = hasNum(p.rating) ? Number(p.rating) : null;
-            return `
-              <div class="info-card">
-                <h3>${esc(p.asset || p.id || "Asset")} - ${esc(p.direction || "N/A")}</h3>
-                <div class="index-grid real-indexes">
-                  ${scoreTile("Setup score", rating, rating >= 70 ? "stronger" : rating >= 55 ? "mixed" : "weak", "engine score")}
-                  ${scoreTile("Event match", Math.min(100, Number(p.eventMatches || 0) * 20), `${p.eventMatches || 0} hits`, "event feed")}
-                </div>
-                <div class="quick-list">
-                  <div class="quick-item"><b>Plain meaning:</b> ${rating >= 70 ? "watch closely" : rating >= 55 ? "mixed, needs confirmation" : "not strong enough yet"}</div>
-                  <div class="quick-item"><b>Reasons:</b> ${esc((p.reasons || []).join(" | ") || "No reason loaded")}</div>
-                  <div class="quick-item yellow"><b>${t("check")}:</b> ${t("notAdvice")}</div>
-                </div>
-              </div>
-            `;
-          }).join("")
-          : `<div class="warn">${t("noData")}</div>`
-      }
-    `, "predictions");
-  }
-
-  function renderPolymarket() {
-    const state = window.APP_STATE || {};
-    const markets = state.polymarket || state.predictionMarkets || state.markets?.polymarket || [];
-    const list = Array.isArray(markets) ? markets : [];
-
-    const ranked = list.map((m) => {
-      const prob = Number(m.probability ?? m.prob ?? m.yesPrice ?? m.price ?? NaN);
-      const chance = Number.isFinite(prob) ? (prob <= 1 ? prob * 100 : prob) : null;
-      const volume = Number(m.volume ?? m.volumeNum ?? m.liquidity ?? 0);
-      const moneyRank = chance === null ? 0 : Math.min(100, Math.round((chance * 0.7) + (Math.min(volume, 100000) / 100000) * 30));
-
-      return { ...m, chance, volume, moneyRank };
-    }).sort((a, b) => b.moneyRank - a.moneyRank).slice(0, 20);
-
-    setInfo(t("polymarket"), `
-      <div class="info-card">
-        <h3>${t("polymarket")}</h3>
-        <p class="plain">Ranked by market chance and available activity. This still cannot prove profit. It shows which markets are most worth checking.</p>
-      </div>
-
-      ${
-        ranked.length
-          ? ranked.map((m, i) => `
-            <div class="info-card">
-              <h3>#${i + 1} ${esc(m.title || m.question || m.name || "Market")}</h3>
-              <div class="index-grid real-indexes">
-                ${scoreTile("Market chance", m.chance, m.chance === null ? "N/A" : `${Math.round(m.chance)}% priced chance`, "Polymarket")}
-                ${scoreTile("Money check", m.moneyRank, "ranking score", "chance + activity")}
-              </div>
-              <div class="quick-list">
-                <div class="quick-item"><b>Best use:</b> compare current price with fresh news. Only interesting if you think the market is wrong.</div>
-                <div class="quick-item"><b>Activity:</b> ${esc(m.volume || "N/A")}</div>
-                <div class="quick-item yellow"><b>Rule:</b> high chance does not mean good value. It may already be priced in.</div>
-              </div>
-              <p class="source-box">${m.url ? `<a target="_blank" rel="noopener" href="${esc(m.url)}">open market</a>` : "Polymarket source"}</p>
-            </div>
-          `).join("")
-          : `<div class="info-card"><h3>No markets loaded</h3><p class="plain">No fake odds shown.</p></div>`
-      }
-    `, "polymarket");
-  }
-
-  function renderRoutesPanel() {
-    const routes = window.MoneyMap?.getTradeRoutes ? window.MoneyMap.getTradeRoutes() : (window.ROUTES || []);
-
-    setInfo(t("routes"), `
-      <div class="info-card">
-        <h3>${t("routes")}</h3>
-        <p class="plain">Search and toggle specific route lines. Exact metre-level AIS routing is not included because no AIS feed is connected.</p>
-
-        <div class="toggle-row">
-          <label><input type="checkbox" id="seaToggle" ${window.SHOW_SEA ? "checked" : ""}> Sea route web</label>
-          <label><input type="checkbox" id="landToggle" ${window.SHOW_LAND ? "checked" : ""}> Land route web</label>
-        </div>
-
-        <input id="routeSearch" class="route-search" placeholder="Search route, port, goods, chokepoint..." />
-      </div>
-
-      <div id="routeList" class="route-list">
-        ${routes.map((r) => routeRow(r)).join("")}
-      </div>
-    `, "routes");
-
-    const search = document.getElementById("routeSearch");
-    if (search) {
-      search.addEventListener("input", () => {
-        const q = search.value.toLowerCase();
-        document.querySelectorAll(".route-row").forEach((row) => {
-          row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
-        });
-      });
-    }
-
-    document.querySelectorAll(".route-line-toggle").forEach((box) => {
-      box.addEventListener("change", () => {
-        const selected = [...document.querySelectorAll(".route-line-toggle:checked")].map((x) => x.value);
-        window.ROUTE_FILTER_IDS = new Set(selected);
-        if (window.MoneyMap?.renderRoutes) window.MoneyMap.renderRoutes(window.ROUTES || []);
-      });
-    });
-
-    document.querySelectorAll(".route-open").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.routeId;
-        const route = routes.find((r) => r.id === id);
-        if (route) renderRoute(route);
-      });
-    });
-  }
-
-  function routeRow(r) {
-    return `
-      <div class="info-card route-row">
-        <label class="route-toggle-line">
-          <input class="route-line-toggle" type="checkbox" value="${esc(r.id)}" checked>
-          <span>${esc(r.name)}</span>
-        </label>
-        <div class="quick-list">
-          <div class="quick-item"><b>Type:</b> ${esc(r.type || "route")} | <b>Rank:</b> ${esc(r.rank || "major estimated lane")}</div>
-          <div class="quick-item"><b>Goods:</b> ${esc(r.goods || "containers, oil, LNG, bulk goods")}</div>
-          <div class="quick-item"><b>Used by:</b> ${esc(r.users || "shipping lines, freight forwarders, commodity traders")}</div>
-          <div class="quick-item"><b>Chokepoints:</b> ${esc((r.chokepoints || []).join(", ") || "N/A")}</div>
-        </div>
-        <button class="route-open" data-route-id="${esc(r.id)}">Open route card</button>
-      </div>
-    `;
-  }
-
-  function renderRoute(r) {
-    setInfo(r.name || "Route", `
-      <div class="info-card">
-        <h3>${esc(r.name || "Route")}</h3>
-        <div class="quick-list">
-          <div class="quick-item"><b>Type:</b> ${esc(r.type || "route")}</div>
-          <div class="quick-item"><b>Rank:</b> ${esc(r.rank || "major estimated lane")}</div>
-          <div class="quick-item"><b>Direction:</b> ${esc(r.direction || "two-way")}</div>
-          <div class="quick-item"><b>Goods:</b> ${esc(r.goods || "containers, oil, LNG, bulk goods")}</div>
-          <div class="quick-item"><b>Used by:</b> ${esc(r.users || "shipping lines, freight forwarders, commodity traders")}</div>
-          <div class="quick-item"><b>Chokepoints:</b> ${esc((r.chokepoints || []).join(", ") || "N/A")}</div>
-          <div class="quick-item"><b>Watch:</b> ${esc((r.watch || []).join(", ") || "freight, insurance, energy, FX, port delays")}</div>
-          <div class="quick-item yellow"><b>Accuracy:</b> estimated major lane. Not metre-level AIS track.</div>
-        </div>
-      </div>
-    `, "routes");
-  }
-
-  function renderRapid() {
-    const state = window.APP_STATE || {};
-    const rows = state.rapid || [];
-
-    setDrawer(t("rapid"), `
-      <div class="info-card">
-        <h3>${t("rapid")}</h3>
-        <p class="plain">Recent speed screen. This tells you what moved, not what is guaranteed to keep moving.</p>
-      </div>
-      ${
-        rows.length
-          ? rows.map((r) => `
-            <div class="info-card">
-              <h3>${esc(r.asset || "Asset")}</h3>
-              <div class="quick-list">
-                <div class="quick-item"><b>Direction:</b> ${esc(r.direction || "N/A")}</div>
-                <div class="quick-item"><b>Short move:</b> ${esc(r.shortMove || r.moveShort || "N/A")}</div>
-                <div class="quick-item"><b>Window move:</b> ${esc(r.windowMove || r.moveWindow || "N/A")}</div>
-                <div class="quick-item"><b>Reason:</b> ${esc((r.reasons || []).join(" | ") || "No reason loaded")}</div>
-                <div class="quick-item yellow"><b>Use:</b> avoid chasing if move already extended.</div>
-              </div>
-            </div>
-          `).join("")
-          : `<div class="warn">${t("noData")}</div>`
-      }
-    `, "rapid");
-  }
-
-  function renderSources() {
-    setDrawer(t("sources"), `<div class="info-card"><h3>${t("sources")}</h3><div class="loader-bar"><span></span></div><p>Loading source list...</p></div>`, "sources");
-
-    fetch("/api/sources")
-      .then((r) => r.json())
+    fetch(`/api/wiki/place?${params.toString()}`)
+      .then((response) => response.json())
       .then((data) => {
-        const rows = data.sources || [];
-        setDrawer(t("sources"), `
-          <div class="info-card">
-            <h3>${t("sources")}</h3>
-            <p class="plain">All bottom-right source text has been moved here.</p>
-          </div>
-          ${
-            rows.length
-              ? rows.map((s) => `
-                <div class="info-card">
-                  <h3>${esc(s.name || "Source")}</h3>
-                  <div class="quick-list">
-                    <div class="quick-item"><b>Category:</b> ${esc(s.category || "N/A")}</div>
-                    <div class="quick-item"><b>Provides:</b> ${esc((s.provides || []).join(", ") || "N/A")}</div>
-                    <div class="quick-item"><b>Missing means:</b> ${esc(s.missingMeans || "Data unavailable")}</div>
-                  </div>
-                  <p class="source-box">${s.url ? `<a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.url)}</a>` : "No source URL"}</p>
-                </div>
-              `).join("")
-              : `<div class="warn">No source list loaded.</div>`
-          }
-        `, "sources");
+        wikiCache.set(cacheKey, data);
+        renderWiki(target, data);
       })
       .catch(() => {
-        setDrawer(t("sources"), `
-          <div class="info-card">
-            <h3>${t("sources")}</h3>
-            <p class="plain">Source endpoint unavailable.</p>
-            <div class="quick-list">
-              <div class="quick-item"><b>Global events:</b> GDELT</div>
-              <div class="quick-item"><b>Disasters:</b> GDACS</div>
-              <div class="quick-item"><b>Earthquakes:</b> USGS</div>
-              <div class="quick-item"><b>Macro:</b> World Bank</div>
-              <div class="quick-item"><b>Local places:</b> OpenStreetMap</div>
-              <div class="quick-item"><b>Weather:</b> Open-Meteo</div>
-            </div>
+        target.innerHTML = `
+          <h3>Place image</h3>
+          <p class="plain">Wikipedia image lookup failed.</p>
+        `;
+      });
+  }
+
+  function renderWiki(target, data) {
+    if (!data || !data.found) {
+      target.innerHTML = `
+        <h3>Place image</h3>
+        <p class="plain">No Wikipedia image found. No fake image inserted.</p>
+      `;
+      return;
+    }
+
+    target.innerHTML = `
+      <h3>${esc(data.title || "Wikipedia")}</h3>
+      ${data.thumbnail ? `<img class="wiki-img" src="${esc(data.thumbnail)}" alt="${esc(data.title || "Place image")}">` : ""}
+      <p class="plain">${esc(String(data.extract || "").slice(0, 360) || "No summary returned.")}</p>
+      <p class="source-box">${data.url ? `<a target="_blank" rel="noopener" href="${esc(data.url)}">Wikipedia source</a>` : "Wikipedia"}</p>
+    `;
+  }
+
+  async function loadCrisis() {
+    crisisLayer.clearLayers();
+
+    if (!map.hasLayer(crisisLayer)) {
+      crisisLayer.addTo(map);
+    }
+
+    setInfo("Crisis", `
+      <div class="info-card">
+        <h3>Loading crisis data</h3>
+        <div class="loader-bar"><span></span></div>
+        <p class="plain">Checking earthquakes and disaster feeds.</p>
+      </div>
+    `, "crisis");
+
+    try {
+      const [quakeData, disasterData] = await Promise.all([
+        getJson("/api/global-weather/earthquakes").catch(() => ({ earthquakes: [] })),
+        getJson("/api/global-weather/disasters").catch(() => ({ disasters: [] }))
+      ]);
+
+      const earthquakes = quakeData.earthquakes || [];
+      const disasters = disasterData.disasters || [];
+
+      for (const q of earthquakes.slice(0, 120)) {
+        const lat = num(q.lat);
+        const lng = num(q.lng);
+        if (lat === null || lng === null) continue;
+
+        L.marker([lat, lng], {
+          icon: iconFor("crisis")
+        })
+          .on("click", (event) => {
+            L.DomEvent.stopPropagation(event);
+
+            setInfo("Earthquake", `
+              <div class="info-card">
+                <h3>${esc(q.title || "Earthquake")}</h3>
+
+                <div class="quick-list">
+                  <div class="quick-item"><b>Magnitude:</b> ${esc(q.magnitude ?? "N/A")}</div>
+                  <div class="quick-item"><b>Place:</b> ${esc(q.place || "N/A")}</div>
+                  <div class="quick-item"><b>Depth:</b> ${esc(q.depthKm ?? "N/A")} km</div>
+                  <div class="quick-item"><b>Source:</b> USGS</div>
+                  <div class="quick-item yellow"><b>Use:</b> check nearby ports, routes, commodities and local safety.</div>
+                </div>
+
+                <p class="source-box">${q.url ? `<a target="_blank" rel="noopener" href="${esc(q.url)}">USGS source</a>` : "USGS"}</p>
+              </div>
+            `, "crisis");
+          })
+          .addTo(crisisLayer);
+      }
+
+      setInfo("Crisis", `
+        <div class="info-card">
+          <h3>Crisis</h3>
+
+          <div class="index-grid real-indexes">
+            ${scoreTile("Earthquakes", earthquakes.length, "USGS records", "USGS")}
+            ${scoreTile("Disasters", disasters.length, "GDACS records", "GDACS")}
           </div>
-        `, "sources");
-      });
+
+          <p class="plain">Crisis dots are added to the map. Click a dot for detail.</p>
+        </div>
+      `, "crisis");
+    } catch (error) {
+      setInfo("Crisis failed", `
+        <div class="info-card">
+          <h3>Crisis failed</h3>
+          <p class="plain">Crisis endpoint did not respond.</p>
+        </div>
+      `, "crisis");
+    }
   }
 
-  function renderSearch(result) {
-    const places = result?.places || [];
-
-    setInfo("Search", `
+  function showGlobalRiskIntro() {
+    setInfo("Global Risk", `
       <div class="info-card">
-        <h3>Search results</h3>
+        <h3>Global Risk</h3>
+        <p class="plain">Click any land area. The card will show the exact resolved place, available crime source, safety, war, politics, crisis, weather and Wikipedia image.</p>
+
         <div class="quick-list">
-          ${
-            places.length
-              ? places.map((p) => `
-                <button class="result-row" data-lat="${esc(p.lat)}" data-lng="${esc(p.lng)}">
-                  <b>${esc(p.name || p.displayName || "Place")}</b>
-                  <span>${esc(p.displayName || "")}</span>
-                </button>
-              `).join("")
-              : `<div class="warn">${t("noData")}</div>`
-          }
+          <div class="quick-item"><b>Town detail:</b> uses reverse geocoding and local place data where available.</div>
+          <div class="quick-item"><b>Crime:</b> town-level only where an official local crime feed exists.</div>
+          <div class="quick-item"><b>Missing data:</b> shown as N/A instead of made up.</div>
         </div>
       </div>
-    `, "search");
-
-    document.querySelectorAll(".result-row").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (window.MoneyMap?.openContext) window.MoneyMap.openContext(btn.dataset.lat, btn.dataset.lng, 9);
-      });
-    });
+    `, "risk");
   }
 
-  function renderLocalPlace(p) {
-    const title = p.name || p.title || "Place";
-    const wikiId = `wiki-${String(p.id || title).replace(/[^a-z0-9]/gi, "-")}`;
+  function newEvent(event) {
+    if (!event) return;
 
-    setInfo(title, `
-      <div class="info-card">
-        <h3>${esc(title)}</h3>
-        <div class="quick-list">
-          <div class="quick-item"><b>Type:</b> ${esc(p.tags?.place || p.tags?.amenity || p.kind || "local place")}</div>
-          <div class="quick-item"><b>Latitude:</b> ${esc(p.lat || "N/A")}</div>
-          <div class="quick-item"><b>Longitude:</b> ${esc(p.lng || "N/A")}</div>
-          <div class="quick-item"><b>Source:</b> ${esc(p.source || "OpenStreetMap")}</div>
-          ${p.tags?.population ? `<div class="quick-item"><b>Population:</b> ${esc(p.tags.population)}</div>` : ""}
-        </div>
-      </div>
-      <div id="${esc(wikiId)}"><div class="warn">Loading Wikipedia image...</div></div>
-    `, "place");
+    renderEvents(window.APP_STATE?.events || []);
 
-    loadWikiInto(wikiId, title, p.tags?.wikidata);
-  }
+    const toast = $("#toast");
+    if (!toast) return;
 
-  function loadWikiInto(id, title, wikidata) {
-    const el = document.getElementById(id);
-    if (!el) return;
+    const title = window.Renderers && typeof window.Renderers.plainEventTitle === "function"
+      ? window.Renderers.plainEventTitle(event)
+      : event.title || "Live alert";
 
-    const qs = new URLSearchParams();
-    if (title) qs.set("name", title);
-    if (wikidata) qs.set("wikidata", wikidata);
+    toast.innerHTML = `
+      <button class="toast-close" type="button">×</button>
+      <div class="a-title">LIVE ALERT</div>
+      <div class="a-meta">${esc(title)}</div>
+      <button id="liveAlertGo" type="button">OPEN ON MAP</button>
+    `;
 
-    fetch(`/api/wiki/place?${qs.toString()}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d || !d.found) {
-          el.innerHTML = `<div class="warn">No Wikipedia image found. No fake picture shown.</div>`;
-          return;
+    toast.classList.add("show");
+
+    const close = toast.querySelector(".toast-close");
+    if (close) {
+      close.onclick = () => toast.classList.remove("show");
+    }
+
+    const open = toast.querySelector("#liveAlertGo");
+    if (open) {
+      open.onclick = () => {
+        if (event.lat && event.lng && map) {
+          map.setView([event.lat, event.lng], Math.max(map.getZoom(), 7));
         }
 
-        el.innerHTML = `
-          <div class="wiki-card">
-            ${d.thumbnail ? `<img class="wiki-img" src="${esc(d.thumbnail)}" alt="${esc(d.title)}">` : ""}
-            <div>
-              <h3>${esc(d.title)}</h3>
-              <p>${esc(String(d.extract || "").slice(0, 320) || "N/A")}</p>
-              <p class="source-box"><a target="_blank" rel="noopener" href="${esc(d.url || "#")}">Wikipedia source</a></p>
-            </div>
-          </div>
-        `;
-      })
-      .catch(() => {
-        el.innerHTML = `<div class="warn">Wikipedia unavailable.</div>`;
-      });
+        if (window.Renderers && typeof window.Renderers.renderEvent === "function") {
+          window.Renderers.renderEvent(event);
+        }
+      };
+    }
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 18000);
   }
 
-  function renderNode(n) {
-    setInfo(n.name || "Node", `
-      <div class="info-card">
-        <h3>${esc(n.name || "Node")}</h3>
-        <div class="quick-list">
-          <div class="quick-item"><b>Type:</b> ${esc(kindLabel[normalKind(n.kind)] || n.kind || "node")}</div>
-          <div class="quick-item"><b>Watch:</b> ${esc((n.watch || []).join(", ") || "N/A")}</div>
-          <div class="quick-item"><b>Source:</b> ${esc(n.source || "mapped point")}</div>
-        </div>
-      </div>
-    `, "node");
+  function renderLegend() {
+    const legend = $("#legend");
+    if (!legend) return;
+
+    const rows = [
+      ["war", dotColours.war],
+      ["terror", dotColours.terror],
+      ["crisis", dotColours.crisis],
+      ["politics", dotColours.politics],
+      ["shipping", dotColours.shipping],
+      ["energy", dotColours.energy],
+      ["finance", dotColours.finance],
+      ["city", dotColours.city]
+    ];
+
+    legend.innerHTML = rows.map(([name, colour]) => `
+      <span><i style="background:${colour}"></i>${esc(name)}</span>
+    `).join("");
   }
 
-  return {
-    renderMarkets,
-    openPanel,
-    renderSearch,
-    plainEventTitle,
-    renderNode,
-    renderLocalPlace,
-    renderEvent,
-    renderRoute
-  };
+  function setInfo(title, html, type) {
+    if (window.Panels && typeof window.Panels.setInfo === "function") {
+      window.Panels.setInfo(title, html, type);
+      return;
+    }
+
+    const panel = $("#infoPanel");
+    const titleEl = $("#infoTitle");
+    const body = $("#infoBody");
+
+    if (panel) panel.classList.add("open", "active");
+    if (titleEl) titleEl.textContent = title || "Info";
+    if (body) body.innerHTML = html || "";
+  }
+
+  function goHome() {
+    if (!map) return;
+
+    const info = $("#infoPanel");
+    const drawer = $("#drawerPanel");
+
+    if (info) info.classList.remove("open", "active");
+    if (drawer) drawer.classList.remove("open", "active");
+
+    selectedLayer.clearLayers();
+    map.setView([20, 12], 2.85);
+  }
+
+  function injectCss() {
+    if ($("#sme-map-fix-css")) return;
+
+    const style = document.createElement("style");
+    style.id = "sme-map-fix-css";
+
+    style.textContent = `
+      #map {
+        background: #082232 !important;
+      }
+
+      .leaflet-tile-pane {
+        filter: saturate(1.25) hue-rotate(165deg) brightness(1.02) contrast(1.05) !important;
+      }
+
+      .country-risk-fill {
+        mix-blend-mode: screen;
+        pointer-events: auto;
+      }
+
+      .sme-dot {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+      }
+
+      .sme-dot-war {
+        background: #ff174f !important;
+      }
+
+      .sme-dot-terror {
+        background: #ff8c00 !important;
+      }
+
+      .sme-dot-crisis {
+        background: #ffffff !important;
+        border-color: #ff174f !important;
+      }
+
+      .sme-dot-politics {
+        background: #b24cff !important;
+      }
+
+      .sme-dot-ai {
+        background: #00fff0 !important;
+      }
+
+      .left-map-tools {
+        position: absolute;
+        left: 12px;
+        top: 268px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .left-map-tools button {
+        background: rgba(0, 24, 40, 0.95);
+        border: 1px solid #00d8ff;
+        color: #e8fbff;
+        padding: 8px 10px;
+        font-weight: 900;
+        cursor: pointer;
+        font-size: 11px;
+        min-width: 76px;
+      }
+
+      .left-map-tools button:hover {
+        background: #00d8ff;
+        color: #00111f;
+      }
+
+      .loader-bar {
+        height: 8px;
+        background: rgba(0,216,255,0.15);
+        border: 1px solid rgba(0,216,255,0.4);
+        overflow: hidden;
+        margin: 10px 0;
+      }
+
+      .loader-bar span {
+        display: block;
+        width: 38%;
+        height: 100%;
+        background: #00eaff;
+        animation: loadSlide 1s infinite linear;
+      }
+
+      @keyframes loadSlide {
+        0% {
+          transform: translateX(-100%);
+        }
+
+        100% {
+          transform: translateX(280%);
+        }
+      }
+
+      .wiki-img {
+        width: 100%;
+        max-height: 210px;
+        object-fit: cover;
+        border: 1px solid #00d8ff;
+        margin: 8px 0;
+      }
+
+      .boot-error {
+        color: #ff3860;
+        padding: 20px;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+
+      .toast-close {
+        position: absolute;
+        top: 6px;
+        right: 7px;
+        width: 24px;
+        height: 24px;
+        border: 1px solid #00d8ff;
+        background: #001827;
+        color: #fff;
+        cursor: pointer;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  MoneyMap.init = init;
+  MoneyMap.setData = setData;
+  MoneyMap.renderEvents = renderEvents;
+  MoneyMap.renderCities = renderCities;
+  MoneyMap.openContext = openContext;
+  MoneyMap.goHome = goHome;
+  MoneyMap.newEvent = newEvent;
+  MoneyMap.loadCrisis = loadCrisis;
+  MoneyMap.showGlobalRiskIntro = showGlobalRiskIntro;
+
+  window.MoneyMap = MoneyMap;
 })();
