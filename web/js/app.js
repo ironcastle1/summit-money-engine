@@ -1,0 +1,61 @@
+(async function(){
+const $=id=>document.getElementById(id);
+MoneyMap.init();
+$('searchBtn').classList.add('scan-action');
+MoneyMap.legend();
+$('panel').style.display='none';
+$('panelClose').onclick=()=>$('panel').style.display='none';
+
+const TEXT={
+ en:{searchPlaceholder:'Search street, area, town or city',radius:'Radius',allSignals:'All signals',securityOnly:'Security only',crisisOnly:'Crisis only',movementOnly:'Movement only',moneyOnly:'Money only',scan:'SCAN',liveBrief:'LIVE BRIEF',crisis:'CRISIS',sources:'SOURCES',overlays:'OVERLAYS',refresh:'REFRESH',dotsOn:'DOTS ON',dotsOff:'DOTS OFF',key:'KEY',collapse:'MINIMISE',expand:'KEY',safe:'SAFE',caution:'CAUTION',avoid:'AVOID',unknown:'UNKNOWN',loading:'Loading',placeRisk:'Place Risk',areaScan:'Area Scan',liveAlert:'LIVE ALERT',openOnMap:'OPEN ON MAP',war:'war',terror:'terror',earthquake:'earthquake',crisisWord:'crisis',politics:'politics',movement:'movement',money:'money',hospital:'hospital',clinic:'clinic',pharmacy:'pharmacy',police:'police',embassy:'embassy',airport:'airport',fuel:'fuel',border:'border',port:'port',rail:'rail',road:'main road'},
+ ar:{searchPlaceholder:'ابحث عن شارع أو منطقة أو مدينة',radius:'النطاق',allSignals:'كل الإشارات',securityOnly:'الأمن فقط',crisisOnly:'الأزمات فقط',movementOnly:'الحركة فقط',moneyOnly:'المال فقط',scan:'مسح',liveBrief:'موجز حي',crisis:'أزمة',sources:'مصادر',overlays:'طبقات',refresh:'تحديث',dotsOn:'النقاط تعمل',dotsOff:'النقاط مطفأة',key:'المفتاح',collapse:'تصغير',expand:'المفتاح',safe:'آمن',caution:'حذر',avoid:'تجنب',unknown:'غير معروف',loading:'جار التحميل',placeRisk:'خطر المكان',areaScan:'مسح المنطقة',liveAlert:'تنبيه حي',openOnMap:'افتح على الخريطة',war:'حرب',terror:'إرهاب',earthquake:'زلزال',crisisWord:'أزمة',politics:'سياسة',movement:'حركة',money:'مال',hospital:'مستشفى',clinic:'عيادة',pharmacy:'صيدلية',police:'شرطة',embassy:'سفارة',airport:'مطار',fuel:'وقود',border:'حدود',port:'ميناء',rail:'قطار',road:'طريق رئيسي'},
+ uk:{searchPlaceholder:'Пошук вулиці, району або міста',radius:'Радіус',allSignals:'Усі сигнали',securityOnly:'Тільки безпека',crisisOnly:'Тільки криза',movementOnly:'Тільки рух',moneyOnly:'Тільки гроші',scan:'СКАН',liveBrief:'ЖИВИЙ ЗВІТ',crisis:'КРИЗА',sources:'ДЖЕРЕЛА',overlays:'ШАРИ',refresh:'ОНОВИТИ',dotsOn:'ТОЧКИ УВІМК',dotsOff:'ТОЧКИ ВИМК',key:'КЛЮЧ',collapse:'ЗГОРНУТИ',expand:'КЛЮЧ',safe:'БЕЗПЕЧНО',caution:'ОБЕРЕЖНО',avoid:'УНИКАТИ',unknown:'НЕВІДОМО',loading:'Завантаження',placeRisk:'Ризик місця',areaScan:'Скан району',liveAlert:'ЖИВЕ ПОПЕРЕДЖЕННЯ',openOnMap:'ВІДКРИТИ НА МАПІ',war:'війна',terror:'терор',earthquake:'землетрус',crisisWord:'криза',politics:'політика',movement:'рух',money:'гроші',hospital:'лікарня',clinic:'клініка',pharmacy:'аптека',police:'поліція',embassy:'посольство',airport:'аеропорт',fuel:'паливо',border:'кордон',port:'порт',rail:'залізниця',road:'головна дорога'},
+ es:{searchPlaceholder:'Buscar calle, zona, pueblo o ciudad',radius:'Radio',allSignals:'Todas las señales',securityOnly:'Solo seguridad',crisisOnly:'Solo crisis',movementOnly:'Solo movimiento',moneyOnly:'Solo dinero',scan:'ESCANEAR',liveBrief:'RESUMEN EN VIVO',crisis:'CRISIS',sources:'FUENTES',overlays:'CAPAS',refresh:'ACTUALIZAR',dotsOn:'PUNTOS ON',dotsOff:'PUNTOS OFF',key:'CLAVE',collapse:'MINIMIZAR',expand:'CLAVE',safe:'SEGURO',caution:'PRECAUCIÓN',avoid:'EVITAR',unknown:'DESCONOCIDO',loading:'Cargando',placeRisk:'Riesgo del lugar',areaScan:'Escaneo de área',liveAlert:'ALERTA EN VIVO',openOnMap:'ABRIR EN MAPA',war:'guerra',terror:'terror',earthquake:'terremoto',crisisWord:'crisis',politics:'política',movement:'movimiento',money:'dinero',hospital:'hospital',clinic:'clínica',pharmacy:'farmacia',police:'policía',embassy:'embajada',airport:'aeropuerto',fuel:'combustible',border:'frontera',port:'puerto',rail:'tren',road:'carretera principal'},
+ ru:{searchPlaceholder:'Поиск улицы, района или города',radius:'Радиус',allSignals:'Все сигналы',securityOnly:'Только безопасность',crisisOnly:'Только кризис',movementOnly:'Только движение',moneyOnly:'Только деньги',scan:'СКАН',liveBrief:'СВОДКА',crisis:'КРИЗИС',sources:'ИСТОЧНИКИ',overlays:'СЛОИ',refresh:'ОБНОВИТЬ',dotsOn:'ТОЧКИ ВКЛ',dotsOff:'ТОЧКИ ВЫКЛ',key:'КЛЮЧ',collapse:'СВЕРНУТЬ',expand:'КЛЮЧ',safe:'БЕЗОПАСНО',caution:'ОСТОРОЖНО',avoid:'ИЗБЕГАТЬ',unknown:'НЕИЗВЕСТНО',loading:'Загрузка',placeRisk:'Риск места',areaScan:'Скан района',liveAlert:'ЖИВОЕ ПРЕДУПРЕЖДЕНИЕ',openOnMap:'ОТКРЫТЬ НА КАРТЕ',war:'война',terror:'террор',earthquake:'землетрясение',crisisWord:'кризис',politics:'политика',movement:'движение',money:'деньги',hospital:'больница',clinic:'клиника',pharmacy:'аптека',police:'полиция',embassy:'посольство',airport:'аэропорт',fuel:'топливо',border:'граница',port:'порт',rail:'ж/д',road:'главная дорога'},
+ fa:{searchPlaceholder:'جستجوی خیابان، منطقه یا شهر',radius:'شعاع',allSignals:'همه سیگنال‌ها',securityOnly:'فقط امنیت',crisisOnly:'فقط بحران',movementOnly:'فقط رفت‌وآمد',moneyOnly:'فقط پول',scan:'اسکن',liveBrief:'گزارش زنده',crisis:'بحران',sources:'منابع',overlays:'لایه‌ها',refresh:'تازه‌سازی',dotsOn:'نقاط روشن',dotsOff:'نقاط خاموش',key:'راهنما',collapse:'کوچک',expand:'راهنما',safe:'ایمن',caution:'احتیاط',avoid:'اجتناب',unknown:'نامعلوم',loading:'در حال بارگیری',placeRisk:'ریسک مکان',areaScan:'اسکن منطقه',liveAlert:'هشدار زنده',openOnMap:'باز کردن روی نقشه',war:'جنگ',terror:'ترور',earthquake:'زلزله',crisisWord:'بحران',politics:'سیاست',movement:'رفت‌وآمد',money:'پول',hospital:'بیمارستان',clinic:'کلینیک',pharmacy:'داروخانه',police:'پلیس',embassy:'سفارت',airport:'فرودگاه',fuel:'سوخت',border:'مرز',port:'بندر',rail:'راه‌آهن',road:'جاده اصلی'},
+ tr:{searchPlaceholder:'Sokak, bölge, kasaba veya şehir ara',radius:'Yarıçap',allSignals:'Tüm sinyaller',securityOnly:'Sadece güvenlik',crisisOnly:'Sadece kriz',movementOnly:'Sadece hareket',moneyOnly:'Sadece para',scan:'TARA',liveBrief:'CANLI ÖZET',crisis:'KRİZ',sources:'KAYNAKLAR',overlays:'KATMANLAR',refresh:'YENİLE',dotsOn:'NOKTALAR AÇIK',dotsOff:'NOKTALAR KAPALI',key:'ANAHTAR',collapse:'KÜÇÜLT',expand:'ANAHTAR',safe:'GÜVENLİ',caution:'DİKKAT',avoid:'KAÇIN',unknown:'BİLİNMİYOR',loading:'Yükleniyor',placeRisk:'Yer riski',areaScan:'Alan taraması',liveAlert:'CANLI UYARI',openOnMap:'HARİTADA AÇ',war:'savaş',terror:'terör',earthquake:'deprem',crisisWord:'kriz',politics:'siyaset',movement:'hareket',money:'para',hospital:'hastane',clinic:'klinik',pharmacy:'eczane',police:'polis',embassy:'elçilik',airport:'havaalanı',fuel:'yakıt',border:'sınır',port:'liman',rail:'tren',road:'ana yol'}
+};
+for (const value of Object.values(TEXT)) {
+  value.yes = value.yes || 'YES';
+  value.no = value.no || 'NO';
+  value.access = value.access || 'ACCESS';
+  value.noAccess = value.noAccess || 'NO ACCESS';
+  value.danger = value.danger || 'DANGER';
+  value.clear = value.clear || 'CLEAR';
+  value.unsafe = value.unsafe || 'UNSAFE';
+  value.comms = value.comms || 'comms';
+  value.water = value.water || 'water';
+  value.shelter = value.shelter || 'shelter';
+  value.food = value.food || 'food';
+  value.power = value.power || 'power';
+}
+
+let currentLang='en';
+let lastEventIds=new Set();
+let audioReady=false;
+function t(){return TEXT[currentLang]||TEXT.en;}
+function activateSound(){audioReady=true;}
+window.addEventListener('click',activateSound,{once:true});window.addEventListener('keydown',activateSound,{once:true});
+function beep(){if(!audioReady)return;try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.frequency.value=880;g.gain.value=.09;o.connect(g);g.connect(ctx.destination);o.start();setTimeout(()=>{o.stop();ctx.close();},170);}catch{}}
+function applyLang(){currentLang=$('languageSelect').value||'en';const tt=t();document.documentElement.lang=currentLang;document.documentElement.dir='ltr';document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(tt[k])el.textContent=tt[k];});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const k=el.dataset.i18nPlaceholder;if(tt[k])el.placeholder=tt[k];});MoneyMap.setLanguage(tt);Renderers.setLanguage(tt);MoneyMap.legend();}
+$('languageSelect').addEventListener('change',applyLang);applyLang();
+async function load(){const [s,m]=await Promise.all([API.state(),API.mapData()]);window.APP_STATE=s;window.MAP_DATA=m;MoneyMap.setData(m,s);lastEventIds=new Set((s.events||[]).map(e=>e.id));
+  setTimeout(()=>{const first=(s.events||[]).find(e=>['war','terror','crisis','movement'].includes(e.kind)&&e.displayOnMap!==false); if(first) MoneyMap.liveAlert(first);}, 2500);}
+try{await load();}catch(e){Renderers.panel('Load failed',`<div class="card"><h3>Backend failed</h3><p>${e.message}</p></div>`)}
+
+document.querySelectorAll('#tabs button[data-tab]').forEach(btn=>btn.onclick=async()=>{const tab=btn.dataset.tab;const s=window.APP_STATE||await API.state();if(tab==='live')Renderers.liveBrief(s.liveBrief);else if(tab==='sources')Renderers.sources(await API.sources());else if(tab==='crisis')Renderers.crisis(s);});
+function scanInput(){return{query:String($('searchBox').value||'').trim(),radiusMiles:Number($('radiusMiles').value||5),filter:String($('scanFilter').value||'all')}}
+async function runAreaScan(input){const query=String(input.query||'').trim();if(!query)return;const radiusMiles=Number(input.radiusMiles||5);const filter=String(input.filter||'all');Renderers.panel(t().areaScan,`<div class="card"><h3>${t().loading}: ${query}</h3><div class="loader"><span></span></div><p class="plain">Checking radius security, nearby infrastructure, events, weather and local data where available. Slow public sources are timed out so the card should not hang.</p></div>`);try{const result=await API.areaScan({query,radiusMiles,filter});if(result.ok&&result.target&&MoneyMap.drawAreaScan)MoneyMap.drawAreaScan(result);Renderers.areaScanResult(result);}catch(e){Renderers.panel('Area Scan failed',`<div class="card"><h3>Scan failed</h3><p class="plain">${e.message}</p></div>`);}}
+$('searchBtn').onclick=async()=>runAreaScan(scanInput());
+$('searchBox').addEventListener('keydown',async e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();await runAreaScan(scanInput());}});
+document.addEventListener('keydown',async e=>{
+  if(e.key!=='Enter')return;
+  const active=document.activeElement;
+  if(active && (active.id==='searchBox' || active.id==='radiusMiles' || active.id==='scanFilter' || active.closest && active.closest('#tabs'))){
+    e.preventDefault();e.stopPropagation();
+    await runAreaScan(scanInput());
+  }
+}, true);
+const ev=new EventSource('/api/stream');
+ev.onmessage=msg=>{try{const p=JSON.parse(msg.data);if(p.state){const incoming=p.state.events||[];const fresh=incoming.filter(e=>e.id&&!lastEventIds.has(e.id)).filter(e=>['war','terror','movement','crisis','politics'].includes(e.kind)).slice(0,1);window.APP_STATE=p.state;incoming.forEach(e=>{if(e.id)lastEventIds.add(e.id)});API.mapData().then(m=>{window.MAP_DATA=m;MoneyMap.setData(m,p.state);});if(fresh.length){MoneyMap.liveAlert(fresh[0]);beep();}}}catch{}};
+})();
