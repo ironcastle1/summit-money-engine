@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: summit-info-compiler-v10
-    env: node
-    buildCommand: npm install --package-lock=false --no-audit --no-fund
-    startCommand: npm start
-    plan: free
