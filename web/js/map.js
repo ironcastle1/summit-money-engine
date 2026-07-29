@@ -1,0 +1,118 @@
+(function(){
+  let map,countryLayer,conflictLayer,eventLayer,cityLayer,areaScanLayer,selectedLayer,topoLayer,baseLayer,infraViewLayer;
+  let localInfraTimer=null,lastInfraKey='';
+  let countryGeo=null,mapData={},state={},dotsOn=true,legendCollapsed=false,lang={};
+  let highlightedType=null;
+  const overlays={war:true,crisis:false,watch:false,politics:false,topo:false};
+  const colors={war:'#ff174f',terror:'#ff8c00',crisis:'#ffffff',politics:'#b24cff',movement:'#00d8ff',money:'#ffd94a',city:'#7aa7ff',security:'#ff326a',earthquake:'#ffffff'};
+  const featureSymbols={movement:'↔',money:'£',politics:'⚑',hospital:'🏥',clinic:'⚕',pharmacy:'✚',police_station:'★',fire_station:'◆',embassy_consulate:'⚐',airport_airfield:'✈',fuel_station:'⛽',border_crossing:'⇄',port_harbour:'⚓',rail_station:'▣',main_road:'═',communications:'📡',water_point:'💧',shelter:'⌂',food_supply:'▤',power_infrastructure:'⚡'};
+  const $=id=>document.getElementById(id);
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+  function init(){
+    // Restored to the last known-good map configuration: CARTO dark tiles.
+    // The previous v4.9-v4.11 OSM/failsafe tile swap is what left the app with only a blue background.
+    map=L.map('map',{
+      preferCanvas:true,
+      minZoom:2,
+      maxZoom:17,
+      zoomControl:true,
+      worldCopyJump:false,
+      maxBounds:[[-82,-180],[82,180]],
+      maxBoundsViscosity:0.85
+    }).setView([20,12],2.85);
+    window.map=map;
+
+    baseLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+      subdomains:'abcd',
+      attribution:'&copy; OpenStreetMap &copy; CARTO',
+      noWrap:true,
+      bounds:[[-82,-180],[82,180]],
+      keepBuffer:4,
+      updateWhenIdle:false,
+      crossOrigin:true,
+      maxNativeZoom:19
+    }).addTo(map);
+
+    baseLayer.on('tileerror',()=>{
+      console.warn('CARTO tile failed - retrying without crossOrigin');
+      try{ if(baseLayer && map.hasLayer(baseLayer)) map.removeLayer(baseLayer); }catch{}
+      baseLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+        subdomains:'abcd',
+        attribution:'&copy; OpenStreetMap &copy; CARTO',
+        noWrap:true,
+        bounds:[[-82,-180],[82,180]],
+        keepBuffer:4,
+        updateWhenIdle:false,
+        maxNativeZoom:19
+      }).addTo(map);
+    });
+
+    topoLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+      subdomains:'abc',
+      opacity:0.96,
+      noWrap:true,
+      bounds:[[-82,-180],[82,180]],
+      attribution:'OpenTopoMap',
+      keepBuffer:3
+    });
+    countryLayer=L.layerGroup().addTo(map);conflictLayer=L.layerGroup().addTo(map);eventLayer=L.layerGroup().addTo(map);cityLayer=L.layerGroup().addTo(map);infraViewLayer=L.layerGroup().addTo(map);areaScanLayer=L.layerGroup().addTo(map);selectedLayer=L.layerGroup().addTo(map);
+    map.on('click',e=>openPlace(e.latlng.lat,e.latlng.lng));
+    map.on('zoomend moveend',()=>{renderCities();fetchVisibleInfrastructure();});
+    bindControls();loadBoundaries();
+    setTimeout(()=>{map.invalidateSize();map.setView(map.getCenter(),map.getZoom(),{animate:false});},250);
+    setTimeout(()=>{map.invalidateSize();if(baseLayer&&!map.hasLayer(baseLayer)&&!overlays.topo)baseLayer.addTo(map);},1200);
+  }
+  function bindControls(){
+    $('homeBtn').onclick=()=>goHome();$('overlayBtn').onclick=overlayPanel;$('dotBtn').onclick=()=>{dotsOn=!dotsOn;$('dotBtn').textContent=dotsOn?(lang.dotsOn||'DOTS ON'):(lang.dotsOff||'DOTS OFF');renderEvents();renderCities();if(!dotsOn)areaScanLayer.clearLayers();};
+    $('refreshBtn').onclick=async()=>{const [s,m]=await Promise.all([API.refresh(),API.mapData()]);const st=s.state||s;setData(m,st);};
+    const tools=document.querySelector('.left-map-tools');
+    if(tools && !document.getElementById('topoBtn')){const b=document.createElement('button');b.id='topoBtn';b.textContent='TOPO';b.title='Toggle topographic overlay';tools.insertBefore(b, $('refreshBtn'));b.onclick=()=>{overlays.topo=!overlays.topo;if(overlays.topo){if(baseLayer)map.removeLayer(baseLayer);topoLayer.addTo(map);document.body.classList.add('topo-on');b.classList.add('active')}else{if(map.hasLayer(topoLayer))map.removeLayer(topoLayer);if(baseLayer&&!map.hasLayer(baseLayer))baseLayer.addTo(map);document.body.classList.remove('topo-on');b.classList.remove('active')}setTimeout(()=>map.invalidateSize(),100)};}
+    if(tools && !document.getElementById('politicsOverlayBtn')){const p=document.createElement('button');p.id='politicsOverlayBtn';p.textContent='POLITICS';p.title='Toggle global politics overlay';tools.insertBefore(p, $('refreshBtn'));p.onclick=()=>{overlays.politics=!overlays.politics;p.classList.toggle('active',overlays.politics);renderCountries();};}
+  }
+  function setLanguage(t){lang=t||{};if($('dotBtn'))$('dotBtn').textContent=dotsOn?(lang.dotsOn||'DOTS ON'):(lang.dotsOff||'DOTS OFF');legend();}
+  async function loadBoundaries(){try{countryGeo=await API.json('/api/boundaries/admin0');renderCountries();}catch(e){console.warn(e)}}
+  function setData(md,st){mapData=md||{};state=st||{};renderCountries();renderConflictZones();renderEvents();renderCities();renderTicker();legend();}
+  function cName(f){const p=f.properties||{};return p.ADMIN||p.NAME_EN||p.name||p.NAME||'';}
+  function cRisk(name){const n=String(name||'').toLowerCase();return (state.countryRisk||mapData.countryRisk||[]).find(r=>{const c=String(r.country||'').toLowerCase();return c&&(n===c||n.includes(c)||c.includes(n));});}
+  function renderCountries(){if(!countryGeo||!countryLayer)return;countryLayer.clearLayers();L.geoJSON(countryGeo,{style:f=>{const name=cName(f),r=cRisk(name);let fill='#00a66a',op=.010,line=.08,w=.5;if(overlays.war&&r&&r.overlayWar){fill='#760016';op=.50;line=.95;w=1.2}else if(overlays.crisis&&r&&r.crisis>0){fill='#ff8c00';op=.18;line=.45;w=.8}else if(overlays.politics&&r&&r.politics>0){fill='#7b2cff';op=.24;line=.58;w=.9}else if(overlays.watch&&r&&r.watch){fill='#ffd94a';op=.13;line=.35;w=.7}return{color:fill,weight:w,opacity:line,fillColor:fill,fillOpacity:op,className:'country-fill'}},onEachFeature:(f,l)=>l.on('click',e=>{L.DomEvent.stopPropagation(e);const r=cRisk(cName(f));if(overlays.crisis&&r&&r.crisis>0)Renderers.crisisOverlayCard(r);else openPlace(e.latlng.lat,e.latlng.lng);})}).addTo(countryLayer)}
+  function renderConflictZones(){if(!conflictLayer)return;conflictLayer.clearLayers();if(!overlays.war)return;(mapData.conflictZones||[]).forEach(z=>{let layer;if(z.polygon&&Array.isArray(z.polygon)){layer=L.polygon(z.polygon,{color:'#ff174f',fillColor:'#760016',fillOpacity:.52,weight:2,className:'conflict-zone'});}else if(Number.isFinite(+z.lat)&&Number.isFinite(+z.lng)){layer=L.circle([+z.lat,+z.lng],{radius:(+z.radiusKm||50)*1000,color:'#ff174f',fillColor:'#760016',fillOpacity:.32,weight:2,className:'conflict-zone'});}if(!layer)return;layer.on('click',ev=>{L.DomEvent.stopPropagation(ev);Renderers.conflictCard(z);});layer.addTo(conflictLayer);});}
+  function kind(input){const k=String(input||'security').toLowerCase();if(k==='earthquake'||k==='quake')return'earthquake';if(['weather','disaster'].includes(k))return'crisis';return k;}
+  function icon(k0,subtype){const k=subtype==='earthquake'?'earthquake':kind(k0);if(k==='earthquake')return L.divIcon({className:'',html:`<div class="dot earthquake">⌁</div>`,iconSize:[16,16],iconAnchor:[8,8]});if(featureSymbols[k])return L.divIcon({className:'',html:`<div class="map-symbol map-symbol-${esc(k)}" data-symbol="${esc(k)}" style="background:${colors[k]||colors.security};box-shadow:0 0 7px ${colors[k]||colors.security}">${esc(featureSymbols[k])}</div>`,iconSize:[17,17],iconAnchor:[8,8]});const col=colors[k]||colors.security;return L.divIcon({className:'',html:`<div class="dot dot-${esc(k)}" data-symbol="${esc(k)}" style="background:${col};box-shadow:0 0 6px ${col}"></div>`,iconSize:[8,8],iconAnchor:[4,4]});}
+  function renderEvents(){eventLayer.clearLayers();if(!dotsOn)return;(state.events||[]).filter(e=>e.displayOnMap!==false).forEach(e=>{if(!Number.isFinite(+e.lat)||!Number.isFinite(+e.lng))return;if(e.subtype==='earthquake'&&Number(e.magnitude||0)<5)return;const marker=L.marker([+e.lat,+e.lng],{icon:icon(e.kind,e.subtype)}).on('click',ev=>{L.DomEvent.stopPropagation(ev);Renderers.eventCard(e)}).addTo(eventLayer);marker._smeType=kind(e.subtype==='earthquake'?'earthquake':e.kind);});applyHighlight();}
+  function renderCities(){cityLayer.clearLayers();if(!dotsOn||map.getZoom()<7)return;const b=map.getBounds();(mapData.cityNodes||[]).filter(c=>b.pad(.25).contains([c.lat,c.lng])).slice(0,240).forEach(c=>{const marker=L.marker([c.lat,c.lng],{icon:icon('city')}).on('click',ev=>{L.DomEvent.stopPropagation(ev);openPlace(c.lat,c.lng)}).addTo(cityLayer);marker._smeType='city';});applyHighlight();}
+  async function openPlace(lat,lng){selectedLayer.clearLayers();L.circleMarker([lat,lng],{radius:6,color:'#00eaff',weight:2,fillOpacity:.25}).addTo(selectedLayer);Renderers.panel(lang.loading||'Loading',`<div class="card"><h3>${lang.loading||'Loading'}...</h3><div class="loader"><span></span></div><p class="plain">Loading place, image and security context. Heavy source checks time out quickly so the card does not hang.</p></div>`);try{const data=await API.place(lat,lng);Renderers.placeCard(data)}catch(e){Renderers.panel('Place failed',`<div class="card"><h3>Place data failed</h3><p>${esc(e.message)}</p></div>`)}}
+  function overlayPanel(){Renderers.panel('Map overlays',`<div class="panel-subhead">War starts on. Crisis and watch start off.</div><div class="card"><div class="list"><label class="item"><input id="ovWar" type="checkbox" ${overlays.war?'checked':''}> War / active conflict colour</label><label class="item"><input id="ovCrisis" type="checkbox" ${overlays.crisis?'checked':''}> Serious crisis country colour</label><label class="item"><input id="ovPolitics" type="checkbox" ${overlays.politics?'checked':''}> Global politics / unrest colour</label><label class="item"><input id="ovWatch" type="checkbox" ${overlays.watch?'checked':''}> Watchlist country colour</label><div class="item yellow"><b>Rule:</b> dark red is active conflict context. Polygons are estimates, not exact frontlines.</div></div></div>`);$('ovWar').onchange=e=>{overlays.war=e.target.checked;renderCountries();renderConflictZones();};$('ovCrisis').onchange=e=>{overlays.crisis=e.target.checked;renderCountries();};$('ovPolitics').onchange=e=>{overlays.politics=e.target.checked;renderCountries();};$('ovWatch').onchange=e=>{overlays.watch=e.target.checked;renderCountries();};}
+
+  function fetchVisibleInfrastructure(){
+    clearTimeout(localInfraTimer);
+    localInfraTimer=setTimeout(async()=>{
+      if(!map||!infraViewLayer)return;
+      if(!dotsOn||map.getZoom()<12){infraViewLayer.clearLayers();return;}
+      const c=map.getCenter();
+      const km=map.getZoom()>=15?1.8:map.getZoom()>=14?2.7:4.2;
+      const key=`${c.lat.toFixed(3)}:${c.lng.toFixed(3)}:${km}:${map.getZoom()}`;
+      if(key===lastInfraKey)return;
+      lastInfraKey=key;
+      infraViewLayer.clearLayers();
+      try{
+        const data=await API.json(`/api/infrastructure/radius?lat=${encodeURIComponent(c.lat)}&lng=${encodeURIComponent(c.lng)}&km=${encodeURIComponent(km)}`);
+        (data.items||[]).slice(0,120).forEach(item=>{
+          if(!Number.isFinite(+item.lat)||!Number.isFinite(+item.lng))return;
+          const marker=L.marker([+item.lat,+item.lng],{icon:infraIcon(item.type)})
+            .on('click',ev=>{L.DomEvent.stopPropagation(ev);Renderers.panel(item.name||'Infrastructure',`<div class="card"><h3>${esc(item.name||item.type)}</h3><div class="list"><div class="item"><b>Type:</b> ${esc((item.type||'').replace(/_/g,' '))}</div><div class="item"><b>Distance from map centre:</b> ${Number(item.distanceMiles||0).toFixed(2)} miles</div><div class="item"><b>Source:</b> OpenStreetMap/Overpass</div></div></div>`)}).addTo(infraViewLayer);
+          marker._smeType=item.type;
+        });
+        applyHighlight();
+      }catch(e){}
+    },450);
+  }
+
+  function drawAreaScan(scan){areaScanLayer.clearLayers();if(!scan||!scan.target)return;const lat=+scan.target.lat,lng=+scan.target.lng,km=+scan.radiusKm||8.04672;map.setView([lat,lng],Math.max(12,Math.min(14,map.getZoom()+2)));L.circle([lat,lng],{radius:km*1000,color:'#00eaff',fillColor:'#00eaff',fillOpacity:.12,weight:3,className:'area-scan-circle'}).addTo(areaScanLayer);L.marker([lat,lng],{icon:icon('city')}).addTo(areaScanLayer);(scan.infrastructure&&scan.infrastructure.items||[]).slice(0,180).forEach(item=>{if(!Number.isFinite(+item.lat)||!Number.isFinite(+item.lng))return;const marker=L.marker([+item.lat,+item.lng],{icon:infraIcon(item.type)}).on('click',ev=>{L.DomEvent.stopPropagation(ev);Renderers.panel(item.name||'Infrastructure',`<div class="card"><h3>${esc(item.name||item.type)}</h3><div class="list"><div class="item"><b>Type:</b> ${esc((item.type||'').replace(/_/g,' '))}</div><div class="item"><b>Distance:</b> ${Number(item.distanceMiles||0).toFixed(2)} miles</div><div class="item"><b>Source:</b> OpenStreetMap/Overpass</div></div></div>`)}).addTo(areaScanLayer);marker._smeType=item.type;});(scan.insideEvents||[]).slice(0,100).forEach(e=>{if(!Number.isFinite(+e.lat)||!Number.isFinite(+e.lng))return;const marker=L.marker([+e.lat,+e.lng],{icon:icon(e.kind,e.subtype)}).on('click',ev=>{L.DomEvent.stopPropagation(ev);Renderers.eventCard(e)}).addTo(areaScanLayer);marker._smeType=kind(e.subtype==='earthquake'?'earthquake':e.kind);});applyHighlight();}
+  function infraIcon(type){const t=String(type||'').toLowerCase();return L.divIcon({className:'',html:`<div class="feature-marker feature-${esc(t)}" data-symbol="${esc(t)}">${featureSymbols[t]||'•'}</div>`,iconSize:[22,22],iconAnchor:[11,11]});}
+  function renderTicker(){const el=$('ticker');if(!el)return;const rows=(state.markets||[]).filter(m=>m.changePct!==null&&m.changePct!==undefined&&Number.isFinite(Number(m.changePct))&&Number.isFinite(Number(m.price))).slice(0,8);el.innerHTML=rows.map(m=>{const ch=Number(m.changePct);const cls=ch>0?'up':ch<0?'down':'flat';const arrow=ch>0?'▲':ch<0?'▼':'•';return `<span class="tick ${cls}">${esc(m.id||m.name)} ${arrow} ${ch.toFixed(2)}%</span>`;}).join('')||'No live market data';}
+  function legend(){const el=$('legend');if(!el)return;if(legendCollapsed){el.innerHTML=`<button id="legendToggle" class="legend-toggle">${esc(lang.expand||'KEY')}</button>`;$('legendToggle').onclick=()=>{legendCollapsed=false;legend();};return;}const rows=[[lang.terror||'terror','dot','terror',colors.terror],[lang.earthquake||'earthquake','earth','earthquake','⌁'],[lang.crisisWord||'crisis','dot','crisis',colors.crisis],[lang.politics||'politics','symbol','politics','⚑'],[lang.movement||'movement','symbol','movement','↔'],[lang.money||'money','symbol','money','£'],[lang.hospital||'hospital','symbol','hospital','🏥'],[lang.clinic||'clinic','symbol','clinic','⚕'],[lang.pharmacy||'pharmacy','symbol','pharmacy','✚'],[lang.police||'police','symbol','police_station','★'],[lang.airport||'airport','symbol','airport_airfield','✈'],[lang.fuel||'fuel','symbol','fuel_station','⛽'],[lang.border||'border','symbol','border_crossing','⇄'],[lang.port||'port','symbol','port_harbour','⚓'],[lang.rail||'rail','symbol','rail_station','▣'],[lang.road||'main road','symbol','main_road','═'],[lang.comms||'comms','symbol','communications','📡'],[lang.water||'water','symbol','water_point','💧'],[lang.shelter||'shelter','symbol','shelter','⌂'],[lang.food||'food','symbol','food_supply','▤'],[lang.power||'power','symbol','power_infrastructure','⚡'],[lang.city||'city','dot','city',colors.city]];el.innerHTML=`<button id="legendToggle" class="legend-toggle">${esc(lang.collapse||'MINIMISE')}</button>`+rows.map(([name,type,key,val])=>`<button class="legend-entry" data-key="${esc(key)}" title="Highlight ${esc(name)}">${type==='area'?`<i style="background:${val};border:1px solid #ff174f"></i>`:type==='earth'?`<b class="legend-symbol">${val}</b>`:type==='symbol'?`<b class="legend-symbol">${val}</b>`:`<i style="background:${val}"></i>`}<span>${esc(name)}</span></button>`).join('');$('legendToggle').onclick=()=>{legendCollapsed=true;legend();};document.querySelectorAll('.legend-entry').forEach(btn=>btn.onclick=()=>{highlightedType=highlightedType===btn.dataset.key?null:btn.dataset.key;applyHighlight();document.querySelectorAll('.legend-entry').forEach(b=>b.classList.toggle('active',highlightedType&&b.dataset.key===highlightedType));});}
+  function applyHighlight(){const layers=[eventLayer,cityLayer,areaScanLayer];layers.forEach(layer=>layer&&layer.eachLayer(m=>{if(!m._icon)return;const match=!highlightedType||m._smeType===highlightedType; m._icon.classList.toggle('sme-dim',!match);m._icon.classList.toggle('sme-highlight',!!highlightedType&&match);}));}
+  function liveAlert(event){const toast=$('toast');if(!toast||!event)return;toast.innerHTML=`<button class="toast-close" type="button">×</button><div class="a-title">${esc(lang.liveAlert||'LIVE ALERT')}</div><div class="a-meta">${esc(event.title||event.summary||'New security signal')}</div><button id="toastOpen" type="button">${esc(lang.openOnMap||'OPEN ON MAP')}</button>`;toast.classList.add('show');toast.querySelector('.toast-close').onclick=()=>toast.classList.remove('show');toast.querySelector('#toastOpen').onclick=()=>{if(event.lat&&event.lng)map.setView([event.lat,event.lng],Math.max(map.getZoom(),8));Renderers.eventCard(event);};setTimeout(()=>toast.classList.remove('show'),22000);}
+  function goHome(){selectedLayer.clearLayers();areaScanLayer.clearLayers();if(infraViewLayer)infraViewLayer.clearLayers();map.setView([20,12],2.85);}
+  window.MoneyMap={init,setData,legend,drawAreaScan,setLanguage,liveAlert,renderTicker};
+})();
