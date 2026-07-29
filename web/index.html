@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Summit Info Compiler</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="status-dot"></div>
+    <div class="brand-mini">SUMMIT INFO COMPILER</div>
+    <div id="ticker" class="ticker">loading markets...</div>
+    <select id="language" class="language" aria-label="Language">
+      <option value="en">English</option>
+      <option value="es">Spanish</option>
+      <option value="tr">Turkish</option>
+      <option value="ru">Russian</option>
+      <option value="uk">Ukrainian</option>
+      <option value="fa">Farsi</option>
+      <option value="ar">Arabic</option>
+    </select>
+  </header>
+
+  <section class="searchbar">
+    <input id="mainSearch" placeholder="Search place, market, event, niche or route">
+    <label>Radius <input id="radiusMiles" type="number" min="1" max="50" value="5"></label>
+    <select id="signalFilter">
+      <option value="">All signals</option>
+      <option value="market-moving">Market moving</option>
+      <option value="online-opportunity">Online opportunity</option>
+      <option value="movement">Travel / movement</option>
+      <option value="security">Security</option>
+      <option value="policy">Policy</option>
+    </select>
+    <button id="scanBtn" class="primary">SCAN</button>
+    <button data-panel="brief">DAILY BRIEF</button>
+    <button data-panel="opportunities">OPPORTUNITIES</button>
+    <button data-panel="trends">TREND STREAMS</button>
+    <button data-panel="playbooks">PLAYBOOKS</button>
+    <button data-panel="markets">MARKET IMPACT</button>
+    <button data-panel="route">ROUTE CHECK</button>
+    <button data-panel="map">MAP</button>
+    <button data-panel="sources">SOURCES</button>
+  </section>
+
+  <main class="layout">
+    <section class="left-panel" id="leftPanel">
+      <div class="panel-title">
+        <h1 id="panelTitle">Daily Brief</h1>
+        <button id="closePanel" type="button">×</button>
+      </div>
+      <div id="panelBody" class="panel-body"></div>
+    </section>
+    <section class="map-wrap">
+      <div id="map"></div>
+      <div class="map-tools">
+        <button id="homeBtn" title="Home">⌂</button>
+        <button id="dotsBtn">DOTS</button>
+        <button id="topoBtn">TOPO</button>
+        <button id="refreshBtn">REFRESH</button>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside class="right-panel">
+      <h2>Why this exists</h2>
+      <p>Open with coffee. Find useful signals before they become mainstream. Turn information into briefs, lead lists, content, services, route checks or market research.</p>
+      <div class="metric"><span>Subscription target</span><b>£20/month</b></div>
+      <div class="metric"><span>Main task</span><b>Find one usable signal per day</b></div>
+      <div class="metric"><span>Rule</span><b>No source, no claim</b></div>
+      <div id="savedBox" class="saved-box"></div>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
