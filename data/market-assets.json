@@ -1,0 +1,590 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "btc-usd",
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "assetClass": "crypto",
+      "baseCurrency": "BTC",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "layer-1",
+        "store-of-value"
+      ],
+      "priority": 1,
+      "sources": {
+        "binance": {
+          "symbol": "BTCUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "bitcoin",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "eth-usd",
+      "symbol": "ETH",
+      "name": "Ethereum",
+      "assetClass": "crypto",
+      "baseCurrency": "ETH",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "layer-1",
+        "smart-contracts"
+      ],
+      "priority": 2,
+      "sources": {
+        "binance": {
+          "symbol": "ETHUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "ethereum",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "sol-usd",
+      "symbol": "SOL",
+      "name": "Solana",
+      "assetClass": "crypto",
+      "baseCurrency": "SOL",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "layer-1"
+      ],
+      "priority": 3,
+      "sources": {
+        "binance": {
+          "symbol": "SOLUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "solana",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "bnb-usd",
+      "symbol": "BNB",
+      "name": "BNB",
+      "assetClass": "crypto",
+      "baseCurrency": "BNB",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "exchange"
+      ],
+      "priority": 4,
+      "sources": {
+        "binance": {
+          "symbol": "BNBUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "binancecoin",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "xrp-usd",
+      "symbol": "XRP",
+      "name": "XRP",
+      "assetClass": "crypto",
+      "baseCurrency": "XRP",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "payments"
+      ],
+      "priority": 5,
+      "sources": {
+        "binance": {
+          "symbol": "XRPUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "ripple",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "ada-usd",
+      "symbol": "ADA",
+      "name": "Cardano",
+      "assetClass": "crypto",
+      "baseCurrency": "ADA",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "layer-1"
+      ],
+      "priority": 6,
+      "sources": {
+        "binance": {
+          "symbol": "ADAUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "cardano",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "doge-usd",
+      "symbol": "DOGE",
+      "name": "Dogecoin",
+      "assetClass": "crypto",
+      "baseCurrency": "DOGE",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "meme"
+      ],
+      "priority": 7,
+      "sources": {
+        "binance": {
+          "symbol": "DOGEUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "dogecoin",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "avax-usd",
+      "symbol": "AVAX",
+      "name": "Avalanche",
+      "assetClass": "crypto",
+      "baseCurrency": "AVAX",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "layer-1"
+      ],
+      "priority": 8,
+      "sources": {
+        "binance": {
+          "symbol": "AVAXUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "avalanche-2",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "link-usd",
+      "symbol": "LINK",
+      "name": "Chainlink",
+      "assetClass": "crypto",
+      "baseCurrency": "LINK",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "oracle"
+      ],
+      "priority": 9,
+      "sources": {
+        "binance": {
+          "symbol": "LINKUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "chainlink",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "dot-usd",
+      "symbol": "DOT",
+      "name": "Polkadot",
+      "assetClass": "crypto",
+      "baseCurrency": "DOT",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "interoperability"
+      ],
+      "priority": 10,
+      "sources": {
+        "binance": {
+          "symbol": "DOTUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "polkadot",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "ltc-usd",
+      "symbol": "LTC",
+      "name": "Litecoin",
+      "assetClass": "crypto",
+      "baseCurrency": "LTC",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "payments"
+      ],
+      "priority": 11,
+      "sources": {
+        "binance": {
+          "symbol": "LTCUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "litecoin",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "uni-usd",
+      "symbol": "UNI",
+      "name": "Uniswap",
+      "assetClass": "crypto",
+      "baseCurrency": "UNI",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "crypto",
+        "defi"
+      ],
+      "priority": 12,
+      "sources": {
+        "binance": {
+          "symbol": "UNIUSDT",
+          "quoteCurrency": "USD"
+        },
+        "coingecko": {
+          "symbol": "uniswap",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "aapl",
+      "symbol": "AAPL",
+      "name": "Apple",
+      "assetClass": "equity",
+      "baseCurrency": "AAPL",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "technology",
+        "mega-cap"
+      ],
+      "priority": 30,
+      "sources": {
+        "alphavantage": {
+          "symbol": "AAPL",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "msft",
+      "symbol": "MSFT",
+      "name": "Microsoft",
+      "assetClass": "equity",
+      "baseCurrency": "MSFT",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "technology",
+        "mega-cap"
+      ],
+      "priority": 31,
+      "sources": {
+        "alphavantage": {
+          "symbol": "MSFT",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "nvda",
+      "symbol": "NVDA",
+      "name": "NVIDIA",
+      "assetClass": "equity",
+      "baseCurrency": "NVDA",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "semiconductors",
+        "ai"
+      ],
+      "priority": 32,
+      "sources": {
+        "alphavantage": {
+          "symbol": "NVDA",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "amzn",
+      "symbol": "AMZN",
+      "name": "Amazon",
+      "assetClass": "equity",
+      "baseCurrency": "AMZN",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "technology",
+        "retail"
+      ],
+      "priority": 33,
+      "sources": {
+        "alphavantage": {
+          "symbol": "AMZN",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "meta",
+      "symbol": "META",
+      "name": "Meta Platforms",
+      "assetClass": "equity",
+      "baseCurrency": "META",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "technology",
+        "advertising"
+      ],
+      "priority": 34,
+      "sources": {
+        "alphavantage": {
+          "symbol": "META",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "tsla",
+      "symbol": "TSLA",
+      "name": "Tesla",
+      "assetClass": "equity",
+      "baseCurrency": "TSLA",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "equity",
+        "automotive",
+        "technology"
+      ],
+      "priority": 35,
+      "sources": {
+        "alphavantage": {
+          "symbol": "TSLA",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "spy",
+      "symbol": "SPY",
+      "name": "SPDR S&P 500 ETF",
+      "assetClass": "etf",
+      "baseCurrency": "SPY",
+      "quoteCurrency": "USD",
+      "exchange": "NYSE ARCA",
+      "region": "us",
+      "tags": [
+        "etf",
+        "index",
+        "us"
+      ],
+      "priority": 36,
+      "sources": {
+        "alphavantage": {
+          "symbol": "SPY",
+          "quoteCurrency": "USD",
+          "exchange": "NYSE ARCA"
+        }
+      }
+    },
+    {
+      "id": "qqq",
+      "symbol": "QQQ",
+      "name": "Invesco QQQ Trust",
+      "assetClass": "etf",
+      "baseCurrency": "QQQ",
+      "quoteCurrency": "USD",
+      "exchange": "NASDAQ",
+      "region": "us",
+      "tags": [
+        "etf",
+        "technology",
+        "us"
+      ],
+      "priority": 37,
+      "sources": {
+        "alphavantage": {
+          "symbol": "QQQ",
+          "quoteCurrency": "USD",
+          "exchange": "NASDAQ"
+        }
+      }
+    },
+    {
+      "id": "tsco-lon",
+      "symbol": "TSCO",
+      "name": "Tesco",
+      "assetClass": "equity",
+      "baseCurrency": "TSCO",
+      "quoteCurrency": "GBP",
+      "exchange": "LSE",
+      "region": "uk",
+      "tags": [
+        "equity",
+        "retail",
+        "uk"
+      ],
+      "priority": 40,
+      "sources": {
+        "alphavantage": {
+          "symbol": "TSCO.LON",
+          "quoteCurrency": "GBP",
+          "exchange": "LSE"
+        }
+      }
+    },
+    {
+      "id": "shel-lon",
+      "symbol": "SHEL",
+      "name": "Shell",
+      "assetClass": "equity",
+      "baseCurrency": "SHEL",
+      "quoteCurrency": "GBP",
+      "exchange": "LSE",
+      "region": "uk",
+      "tags": [
+        "equity",
+        "energy",
+        "uk"
+      ],
+      "priority": 41,
+      "sources": {
+        "alphavantage": {
+          "symbol": "SHEL.LON",
+          "quoteCurrency": "GBP",
+          "exchange": "LSE"
+        }
+      }
+    },
+    {
+      "id": "azn-lon",
+      "symbol": "AZN",
+      "name": "AstraZeneca",
+      "assetClass": "equity",
+      "baseCurrency": "AZN",
+      "quoteCurrency": "GBP",
+      "exchange": "LSE",
+      "region": "uk",
+      "tags": [
+        "equity",
+        "healthcare",
+        "uk"
+      ],
+      "priority": 42,
+      "sources": {
+        "alphavantage": {
+          "symbol": "AZN.LON",
+          "quoteCurrency": "GBP",
+          "exchange": "LSE"
+        }
+      }
+    },
+    {
+      "id": "gbpusd",
+      "symbol": "GBPUSD",
+      "name": "British Pound / US Dollar",
+      "assetClass": "forex",
+      "baseCurrency": "GBP",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "forex",
+        "gbp",
+        "usd"
+      ],
+      "priority": 50,
+      "sources": {
+        "alphavantage": {
+          "symbol": "GBPUSD",
+          "quoteCurrency": "USD"
+        }
+      }
+    },
+    {
+      "id": "eurusd",
+      "symbol": "EURUSD",
+      "name": "Euro / US Dollar",
+      "assetClass": "forex",
+      "baseCurrency": "EUR",
+      "quoteCurrency": "USD",
+      "region": "global",
+      "tags": [
+        "forex",
+        "eur",
+        "usd"
+      ],
+      "priority": 51,
+      "sources": {
+        "alphavantage": {
+          "symbol": "EURUSD",
+          "quoteCurrency": "USD"
+        }
+      }
+    }
+  ]
+}
