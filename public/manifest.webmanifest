@@ -1,0 +1,48 @@
+{
+  "name": "Summit Money Map",
+  "short_name": "Summit",
+  "description": "High-end map-first event, market, news, shipping and place intelligence.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#02060a",
+  "theme_color": "#06111c",
+  "categories": [
+    "finance",
+    "business",
+    "news",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "/icons/summit-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Global Map",
+      "short_name": "Map",
+      "url": "/?view=map"
+    },
+    {
+      "name": "Markets",
+      "short_name": "Markets",
+      "url": "/?view=markets"
+    },
+    {
+      "name": "Opportunities",
+      "short_name": "Signals",
+      "url": "/?view=opportunities"
+    },
+    {
+      "name": "System Status",
+      "short_name": "Status",
+      "url": "/?view=ops"
+    }
+  ]
+}
