@@ -1,4 +1,0 @@
-export function metric(value, digits = 0, suffix = '') { return Number.isFinite(Number(value)) ? `${Number(value).toLocaleString('en-GB', { maximumFractionDigits: digits, minimumFractionDigits: digits })}${suffix}` : 'N/A'; }
-export function riskBand(value) { if (!Number.isFinite(Number(value))) return 'na'; if (value >= 80) return 'severe'; if (value >= 60) return 'high'; if (value >= 40) return 'elevated'; if (value >= 20) return 'guarded'; return 'low'; }
-export function sourceRatio(sources = {}) { const rows = Object.values(sources); return `${rows.filter(item => ['ONLINE', 'DEGRADED'].includes(item.state)).length}/${rows.length}`; }
-export function dateValue(value) { if (!value) return 'N/A'; const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : 'N/A'; }
