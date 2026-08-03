@@ -1,0 +1,1760 @@
+{
+  "version": 1,
+  "source": "Curated operational port catalogue; live activity is fetched separately",
+  "ports": [
+    {
+      "id": "rotterdam",
+      "unlocode": "NLRTM",
+      "name": "Rotterdam",
+      "country": "Netherlands",
+      "countryCode": "NL",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 51.95,
+        "lon": 4.13
+      },
+      "importance": 100,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "oil",
+        "lng",
+        "chemicals"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "med-suez",
+        "baltic-north-sea"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "singapore",
+      "unlocode": "SGSIN",
+      "name": "Singapore",
+      "country": "Singapore",
+      "countryCode": "SG",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": 1.26,
+        "lon": 103.84
+      },
+      "importance": 100,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "oil",
+        "lng",
+        "chemicals"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "gulf-asia",
+        "trans-pacific",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "shanghai",
+      "unlocode": "CNSHA",
+      "name": "Shanghai",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 31.23,
+        "lon": 121.47
+      },
+      "importance": 100,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "manufactured-goods",
+        "chemicals"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific",
+        "gulf-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "ningbo",
+      "unlocode": "CNNGB",
+      "name": "Ningbo-Zhoushan",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 29.87,
+        "lon": 121.55
+      },
+      "importance": 98,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "iron-ore",
+        "oil"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific",
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "shenzhen",
+      "unlocode": "CNSZX",
+      "name": "Shenzhen",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 22.54,
+        "lon": 114.05
+      },
+      "importance": 97,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "electronics",
+        "manufactured-goods"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific",
+        "gulf-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "busan",
+      "unlocode": "KRPUS",
+      "name": "Busan",
+      "country": "South Korea",
+      "countryCode": "KR",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 35.1,
+        "lon": 129.04
+      },
+      "importance": 96,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "electronics"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "hong-kong",
+      "unlocode": "HKHKG",
+      "name": "Hong Kong",
+      "country": "Hong Kong",
+      "countryCode": "HK",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 22.3,
+        "lon": 114.17
+      },
+      "importance": 94,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "electronics"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "qingdao",
+      "unlocode": "CNQDG",
+      "name": "Qingdao",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 36.07,
+        "lon": 120.38
+      },
+      "importance": 94,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "iron-ore",
+        "oil"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tianjin",
+      "unlocode": "CNTXG",
+      "name": "Tianjin",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 39.01,
+        "lon": 117.75
+      },
+      "importance": 93,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "iron-ore",
+        "coal"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "guangzhou",
+      "unlocode": "CNGZG",
+      "name": "Guangzhou",
+      "country": "China",
+      "countryCode": "CN",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 23.1,
+        "lon": 113.44
+      },
+      "importance": 93,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "manufactured-goods"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "jebel-ali",
+      "unlocode": "AEJEA",
+      "name": "Jebel Ali",
+      "country": "United Arab Emirates",
+      "countryCode": "AE",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 25.01,
+        "lon": 55.06
+      },
+      "importance": 99,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "oil",
+        "lng"
+      ],
+      "routeIds": [
+        "med-suez",
+        "gulf-asia",
+        "india-gulf",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "salalah",
+      "unlocode": "OMSLL",
+      "name": "Salalah",
+      "country": "Oman",
+      "countryCode": "OM",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 16.94,
+        "lon": 54.01
+      },
+      "importance": 88,
+      "type": "transshipment",
+      "commodities": [
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "gulf-asia",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "sohar",
+      "unlocode": "OMSOH",
+      "name": "Sohar",
+      "country": "Oman",
+      "countryCode": "OM",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 24.5,
+        "lon": 56.62
+      },
+      "importance": 86,
+      "type": "industrial",
+      "commodities": [
+        "oil",
+        "metals",
+        "chemicals"
+      ],
+      "routeIds": [
+        "gulf-asia",
+        "india-gulf"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "ras-tanura",
+      "unlocode": "SARTA",
+      "name": "Ras Tanura",
+      "country": "Saudi Arabia",
+      "countryCode": "SA",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 26.64,
+        "lon": 50.17
+      },
+      "importance": 98,
+      "type": "energy",
+      "commodities": [
+        "oil",
+        "refined-products"
+      ],
+      "routeIds": [
+        "gulf-asia",
+        "india-gulf",
+        "med-suez"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "ras-laffan",
+      "unlocode": "QARLF",
+      "name": "Ras Laffan",
+      "country": "Qatar",
+      "countryCode": "QA",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 25.91,
+        "lon": 51.55
+      },
+      "importance": 98,
+      "type": "energy",
+      "commodities": [
+        "lng",
+        "condensate"
+      ],
+      "routeIds": [
+        "gulf-asia",
+        "gulf-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "fujairah",
+      "unlocode": "AEFJR",
+      "name": "Fujairah",
+      "country": "United Arab Emirates",
+      "countryCode": "AE",
+      "region": "Middle East",
+      "coordinates": {
+        "lat": 25.13,
+        "lon": 56.36
+      },
+      "importance": 95,
+      "type": "energy",
+      "commodities": [
+        "oil",
+        "bunkers"
+      ],
+      "routeIds": [
+        "gulf-asia",
+        "india-gulf"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "port-said",
+      "unlocode": "EGPSD",
+      "name": "Port Said",
+      "country": "Egypt",
+      "countryCode": "EG",
+      "region": "North Africa",
+      "coordinates": {
+        "lat": 31.26,
+        "lon": 32.3
+      },
+      "importance": 97,
+      "type": "canal",
+      "commodities": [
+        "containers",
+        "oil",
+        "lng"
+      ],
+      "routeIds": [
+        "med-suez",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "suez",
+      "unlocode": "EGSUZ",
+      "name": "Suez",
+      "country": "Egypt",
+      "countryCode": "EG",
+      "region": "North Africa",
+      "coordinates": {
+        "lat": 29.97,
+        "lon": 32.55
+      },
+      "importance": 97,
+      "type": "canal",
+      "commodities": [
+        "containers",
+        "oil",
+        "lng"
+      ],
+      "routeIds": [
+        "med-suez",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tanger-med",
+      "unlocode": "MAPTM",
+      "name": "Tanger Med",
+      "country": "Morocco",
+      "countryCode": "MA",
+      "region": "North Africa",
+      "coordinates": {
+        "lat": 35.89,
+        "lon": -5.5
+      },
+      "importance": 94,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "vehicles"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "med-suez",
+        "west-africa-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "algeciras",
+      "unlocode": "ESALG",
+      "name": "Algeciras",
+      "country": "Spain",
+      "countryCode": "ES",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 36.13,
+        "lon": -5.44
+      },
+      "importance": 94,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "bunkers"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "med-suez",
+        "west-africa-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "valencia",
+      "unlocode": "ESVLC",
+      "name": "Valencia",
+      "country": "Spain",
+      "countryCode": "ES",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 39.44,
+        "lon": -0.31
+      },
+      "importance": 91,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "food",
+        "vehicles"
+      ],
+      "routeIds": [
+        "med-suez"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "piraeus",
+      "unlocode": "GRPIR",
+      "name": "Piraeus",
+      "country": "Greece",
+      "countryCode": "GR",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 37.94,
+        "lon": 23.64
+      },
+      "importance": 91,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "ferries"
+      ],
+      "routeIds": [
+        "med-suez",
+        "black-sea-med"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "istanbul",
+      "unlocode": "TRIST",
+      "name": "Istanbul",
+      "country": "T\u00fcrkiye",
+      "countryCode": "TR",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 41.01,
+        "lon": 28.98
+      },
+      "importance": 95,
+      "type": "strait",
+      "commodities": [
+        "containers",
+        "grain",
+        "oil"
+      ],
+      "routeIds": [
+        "black-sea-med",
+        "med-suez"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "constanta",
+      "unlocode": "ROCND",
+      "name": "Constan\u021ba",
+      "country": "Romania",
+      "countryCode": "RO",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 44.17,
+        "lon": 28.66
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "grain",
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "black-sea-med"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "odessa",
+      "unlocode": "UAODS",
+      "name": "Odesa",
+      "country": "Ukraine",
+      "countryCode": "UA",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 46.49,
+        "lon": 30.74
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "grain",
+        "oil",
+        "containers"
+      ],
+      "routeIds": [
+        "black-sea-med"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "novorossiysk",
+      "unlocode": "RUNVS",
+      "name": "Novorossiysk",
+      "country": "Russia",
+      "countryCode": "RU",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 44.72,
+        "lon": 37.77
+      },
+      "importance": 91,
+      "type": "energy",
+      "commodities": [
+        "oil",
+        "grain",
+        "coal"
+      ],
+      "routeIds": [
+        "black-sea-med"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "hamburg",
+      "unlocode": "DEHAM",
+      "name": "Hamburg",
+      "country": "Germany",
+      "countryCode": "DE",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 53.54,
+        "lon": 9.98
+      },
+      "importance": 95,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "chemicals"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "baltic-north-sea"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "antwerp",
+      "unlocode": "BEANR",
+      "name": "Antwerp-Bruges",
+      "country": "Belgium",
+      "countryCode": "BE",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 51.27,
+        "lon": 4.4
+      },
+      "importance": 96,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "chemicals",
+        "vehicles"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "med-suez"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "felixstowe",
+      "unlocode": "GBFXT",
+      "name": "Felixstowe",
+      "country": "United Kingdom",
+      "countryCode": "GB",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 51.95,
+        "lon": 1.31
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers"
+      ],
+      "routeIds": [
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "london-gateway",
+      "unlocode": "GBLGP",
+      "name": "London Gateway",
+      "country": "United Kingdom",
+      "countryCode": "GB",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 51.5,
+        "lon": 0.49
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers"
+      ],
+      "routeIds": [
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "southampton",
+      "unlocode": "GBSOU",
+      "name": "Southampton",
+      "country": "United Kingdom",
+      "countryCode": "GB",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 50.9,
+        "lon": -1.4
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles"
+      ],
+      "routeIds": [
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "le-havre",
+      "unlocode": "FRLEH",
+      "name": "Le Havre",
+      "country": "France",
+      "countryCode": "FR",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 49.49,
+        "lon": 0.11
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "bremerhaven",
+      "unlocode": "DEBRV",
+      "name": "Bremerhaven",
+      "country": "Germany",
+      "countryCode": "DE",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 53.55,
+        "lon": 8.58
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "baltic-north-sea"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "gothenburg",
+      "unlocode": "SEGOT",
+      "name": "Gothenburg",
+      "country": "Sweden",
+      "countryCode": "SE",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 57.7,
+        "lon": 11.94
+      },
+      "importance": 86,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "forest-products"
+      ],
+      "routeIds": [
+        "baltic-north-sea"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "gdansk",
+      "unlocode": "PLGDN",
+      "name": "Gda\u0144sk",
+      "country": "Poland",
+      "countryCode": "PL",
+      "region": "Europe",
+      "coordinates": {
+        "lat": 54.36,
+        "lon": 18.65
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "oil",
+        "coal"
+      ],
+      "routeIds": [
+        "baltic-north-sea"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "los-angeles",
+      "unlocode": "USLAX",
+      "name": "Los Angeles",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 33.74,
+        "lon": -118.27
+      },
+      "importance": 98,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "panama-atlantic"
+      ],
+      "noaaStation": "9410660"
+    },
+    {
+      "id": "long-beach",
+      "unlocode": "USLGB",
+      "name": "Long Beach",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 33.75,
+        "lon": -118.22
+      },
+      "importance": 98,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "panama-atlantic"
+      ],
+      "noaaStation": "9410660"
+    },
+    {
+      "id": "new-york",
+      "unlocode": "USNYC",
+      "name": "New York/New Jersey",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 40.67,
+        "lon": -74.04
+      },
+      "importance": 97,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "chemicals"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "panama-atlantic"
+      ],
+      "noaaStation": "8518750"
+    },
+    {
+      "id": "savannah",
+      "unlocode": "USSAV",
+      "name": "Savannah",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 32.08,
+        "lon": -81.09
+      },
+      "importance": 91,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "forest-products"
+      ],
+      "routeIds": [
+        "north-atlantic",
+        "panama-atlantic"
+      ],
+      "noaaStation": "8670870"
+    },
+    {
+      "id": "houston",
+      "unlocode": "USHOU",
+      "name": "Houston",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 29.73,
+        "lon": -95.27
+      },
+      "importance": 96,
+      "type": "energy",
+      "commodities": [
+        "oil",
+        "lng",
+        "chemicals",
+        "containers"
+      ],
+      "routeIds": [
+        "gulf-europe",
+        "panama-atlantic"
+      ],
+      "noaaStation": "8770475"
+    },
+    {
+      "id": "new-orleans",
+      "unlocode": "USMSY",
+      "name": "New Orleans",
+      "country": "United States",
+      "countryCode": "US",
+      "region": "North America",
+      "coordinates": {
+        "lat": 29.95,
+        "lon": -90.07
+      },
+      "importance": 91,
+      "type": "gateway",
+      "commodities": [
+        "grain",
+        "oil",
+        "chemicals"
+      ],
+      "routeIds": [
+        "gulf-europe",
+        "panama-atlantic"
+      ],
+      "noaaStation": "8761927"
+    },
+    {
+      "id": "vancouver",
+      "unlocode": "CAVAN",
+      "name": "Vancouver",
+      "country": "Canada",
+      "countryCode": "CA",
+      "region": "North America",
+      "coordinates": {
+        "lat": 49.29,
+        "lon": -123.11
+      },
+      "importance": 94,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "grain",
+        "coal",
+        "forest-products"
+      ],
+      "routeIds": [
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "prince-rupert",
+      "unlocode": "CAPRR",
+      "name": "Prince Rupert",
+      "country": "Canada",
+      "countryCode": "CA",
+      "region": "North America",
+      "coordinates": {
+        "lat": 54.31,
+        "lon": -130.32
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "grain",
+        "coal"
+      ],
+      "routeIds": [
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "manzanillo-mx",
+      "unlocode": "MXZLO",
+      "name": "Manzanillo",
+      "country": "Mexico",
+      "countryCode": "MX",
+      "region": "North America",
+      "coordinates": {
+        "lat": 19.05,
+        "lon": -104.32
+      },
+      "importance": 87,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "metals"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "panama-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "colon",
+      "unlocode": "PAONX",
+      "name": "Col\u00f3n",
+      "country": "Panama",
+      "countryCode": "PA",
+      "region": "Central America",
+      "coordinates": {
+        "lat": 9.35,
+        "lon": -79.9
+      },
+      "importance": 94,
+      "type": "canal",
+      "commodities": [
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "panama-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "balboa",
+      "unlocode": "PABLB",
+      "name": "Balboa",
+      "country": "Panama",
+      "countryCode": "PA",
+      "region": "Central America",
+      "coordinates": {
+        "lat": 8.95,
+        "lon": -79.57
+      },
+      "importance": 94,
+      "type": "canal",
+      "commodities": [
+        "containers",
+        "oil"
+      ],
+      "routeIds": [
+        "panama-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "santos",
+      "unlocode": "BRSSZ",
+      "name": "Santos",
+      "country": "Brazil",
+      "countryCode": "BR",
+      "region": "South America",
+      "coordinates": {
+        "lat": -23.96,
+        "lon": -46.31
+      },
+      "importance": 96,
+      "type": "gateway",
+      "commodities": [
+        "soy",
+        "sugar",
+        "coffee",
+        "containers"
+      ],
+      "routeIds": [
+        "brazil-china",
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tubarao",
+      "unlocode": "BRPVT",
+      "name": "Tubarao",
+      "country": "Brazil",
+      "countryCode": "BR",
+      "region": "South America",
+      "coordinates": {
+        "lat": -20.28,
+        "lon": -40.23
+      },
+      "importance": 91,
+      "type": "bulk",
+      "commodities": [
+        "iron-ore"
+      ],
+      "routeIds": [
+        "brazil-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "buenos-aires",
+      "unlocode": "ARBUE",
+      "name": "Buenos Aires",
+      "country": "Argentina",
+      "countryCode": "AR",
+      "region": "South America",
+      "coordinates": {
+        "lat": -34.59,
+        "lon": -58.37
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "grain",
+        "containers",
+        "meat"
+      ],
+      "routeIds": [
+        "north-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "callao",
+      "unlocode": "PECLL",
+      "name": "Callao",
+      "country": "Peru",
+      "countryCode": "PE",
+      "region": "South America",
+      "coordinates": {
+        "lat": -12.05,
+        "lon": -77.15
+      },
+      "importance": 87,
+      "type": "gateway",
+      "commodities": [
+        "copper",
+        "containers",
+        "fishmeal"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "panama-atlantic"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "durban",
+      "unlocode": "ZADUR",
+      "name": "Durban",
+      "country": "South Africa",
+      "countryCode": "ZA",
+      "region": "Africa",
+      "coordinates": {
+        "lat": -29.87,
+        "lon": 31.05
+      },
+      "importance": 92,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "coal"
+      ],
+      "routeIds": [
+        "cape-diversion",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "richards-bay",
+      "unlocode": "ZARCB",
+      "name": "Richards Bay",
+      "country": "South Africa",
+      "countryCode": "ZA",
+      "region": "Africa",
+      "coordinates": {
+        "lat": -28.8,
+        "lon": 32.08
+      },
+      "importance": 90,
+      "type": "bulk",
+      "commodities": [
+        "coal",
+        "minerals"
+      ],
+      "routeIds": [
+        "cape-diversion",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "cape-town",
+      "unlocode": "ZACPT",
+      "name": "Cape Town",
+      "country": "South Africa",
+      "countryCode": "ZA",
+      "region": "Africa",
+      "coordinates": {
+        "lat": -33.92,
+        "lon": 18.44
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "fruit",
+        "bunkers"
+      ],
+      "routeIds": [
+        "cape-diversion",
+        "west-africa-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "mombasa",
+      "unlocode": "KEMBA",
+      "name": "Mombasa",
+      "country": "Kenya",
+      "countryCode": "KE",
+      "region": "Africa",
+      "coordinates": {
+        "lat": -4.05,
+        "lon": 39.67
+      },
+      "importance": 89,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "tea",
+        "fuel"
+      ],
+      "routeIds": [
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "dar-es-salaam",
+      "unlocode": "TZDAR",
+      "name": "Dar es Salaam",
+      "country": "Tanzania",
+      "countryCode": "TZ",
+      "region": "Africa",
+      "coordinates": {
+        "lat": -6.82,
+        "lon": 39.29
+      },
+      "importance": 87,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "copper",
+        "fuel"
+      ],
+      "routeIds": [
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "djibouti",
+      "unlocode": "DJJIB",
+      "name": "Djibouti",
+      "country": "Djibouti",
+      "countryCode": "DJ",
+      "region": "Africa",
+      "coordinates": {
+        "lat": 11.59,
+        "lon": 43.15
+      },
+      "importance": 93,
+      "type": "hub",
+      "commodities": [
+        "containers",
+        "fuel",
+        "bulk"
+      ],
+      "routeIds": [
+        "med-suez",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "lagos",
+      "unlocode": "NGLOS",
+      "name": "Lagos/Apapa",
+      "country": "Nigeria",
+      "countryCode": "NG",
+      "region": "Africa",
+      "coordinates": {
+        "lat": 6.45,
+        "lon": 3.37
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "oil",
+        "food"
+      ],
+      "routeIds": [
+        "west-africa-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "bonny",
+      "unlocode": "NGBON",
+      "name": "Bonny",
+      "country": "Nigeria",
+      "countryCode": "NG",
+      "region": "Africa",
+      "coordinates": {
+        "lat": 4.45,
+        "lon": 7.17
+      },
+      "importance": 91,
+      "type": "energy",
+      "commodities": [
+        "oil",
+        "lng"
+      ],
+      "routeIds": [
+        "west-africa-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "port-hedland",
+      "unlocode": "AUPHE",
+      "name": "Port Hedland",
+      "country": "Australia",
+      "countryCode": "AU",
+      "region": "Oceania",
+      "coordinates": {
+        "lat": -20.31,
+        "lon": 118.58
+      },
+      "importance": 96,
+      "type": "bulk",
+      "commodities": [
+        "iron-ore"
+      ],
+      "routeIds": [
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "dampier",
+      "unlocode": "AUDAM",
+      "name": "Dampier",
+      "country": "Australia",
+      "countryCode": "AU",
+      "region": "Oceania",
+      "coordinates": {
+        "lat": -20.66,
+        "lon": 116.71
+      },
+      "importance": 94,
+      "type": "energy",
+      "commodities": [
+        "lng",
+        "iron-ore"
+      ],
+      "routeIds": [
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "melbourne",
+      "unlocode": "AUMEL",
+      "name": "Melbourne",
+      "country": "Australia",
+      "countryCode": "AU",
+      "region": "Oceania",
+      "coordinates": {
+        "lat": -37.84,
+        "lon": 144.91
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "food",
+        "vehicles"
+      ],
+      "routeIds": [
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "sydney",
+      "unlocode": "AUSYD",
+      "name": "Sydney",
+      "country": "Australia",
+      "countryCode": "AU",
+      "region": "Oceania",
+      "coordinates": {
+        "lat": -33.86,
+        "lon": 151.21
+      },
+      "importance": 86,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "fuel"
+      ],
+      "routeIds": [
+        "trans-pacific",
+        "australia-china"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tokyo",
+      "unlocode": "JPTYO",
+      "name": "Tokyo",
+      "country": "Japan",
+      "countryCode": "JP",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 35.62,
+        "lon": 139.79
+      },
+      "importance": 91,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "electronics"
+      ],
+      "routeIds": [
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "yokohama",
+      "unlocode": "JPYOK",
+      "name": "Yokohama",
+      "country": "Japan",
+      "countryCode": "JP",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 35.45,
+        "lon": 139.65
+      },
+      "importance": 92,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles"
+      ],
+      "routeIds": [
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "nagoya",
+      "unlocode": "JPNGO",
+      "name": "Nagoya",
+      "country": "Japan",
+      "countryCode": "JP",
+      "region": "East Asia",
+      "coordinates": {
+        "lat": 35.02,
+        "lon": 136.84
+      },
+      "importance": 92,
+      "type": "industrial",
+      "commodities": [
+        "vehicles",
+        "machinery",
+        "containers"
+      ],
+      "routeIds": [
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "chennai",
+      "unlocode": "INMAA",
+      "name": "Chennai",
+      "country": "India",
+      "countryCode": "IN",
+      "region": "South Asia",
+      "coordinates": {
+        "lat": 13.09,
+        "lon": 80.3
+      },
+      "importance": 88,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "textiles"
+      ],
+      "routeIds": [
+        "india-gulf",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "mundra",
+      "unlocode": "INMUN",
+      "name": "Mundra",
+      "country": "India",
+      "countryCode": "IN",
+      "region": "South Asia",
+      "coordinates": {
+        "lat": 22.75,
+        "lon": 69.7
+      },
+      "importance": 93,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "coal",
+        "oil"
+      ],
+      "routeIds": [
+        "india-gulf",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "jawaharlal-nehru",
+      "unlocode": "INNSA",
+      "name": "Jawaharlal Nehru",
+      "country": "India",
+      "countryCode": "IN",
+      "region": "South Asia",
+      "coordinates": {
+        "lat": 18.95,
+        "lon": 72.95
+      },
+      "importance": 94,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "chemicals"
+      ],
+      "routeIds": [
+        "india-gulf",
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "chittagong",
+      "unlocode": "BDCGP",
+      "name": "Chattogram",
+      "country": "Bangladesh",
+      "countryCode": "BD",
+      "region": "South Asia",
+      "coordinates": {
+        "lat": 22.33,
+        "lon": 91.8
+      },
+      "importance": 86,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "garments",
+        "fuel"
+      ],
+      "routeIds": [
+        "asia-europe"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "colombo",
+      "unlocode": "LKCMB",
+      "name": "Colombo",
+      "country": "Sri Lanka",
+      "countryCode": "LK",
+      "region": "South Asia",
+      "coordinates": {
+        "lat": 6.95,
+        "lon": 79.84
+      },
+      "importance": 94,
+      "type": "transshipment",
+      "commodities": [
+        "containers",
+        "fuel"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "gulf-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tanjung-pelepas",
+      "unlocode": "MYTPP",
+      "name": "Tanjung Pelepas",
+      "country": "Malaysia",
+      "countryCode": "MY",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": 1.36,
+        "lon": 103.55
+      },
+      "importance": 95,
+      "type": "hub",
+      "commodities": [
+        "containers"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "gulf-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "port-klang",
+      "unlocode": "MYPKG",
+      "name": "Port Klang",
+      "country": "Malaysia",
+      "countryCode": "MY",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": 3.0,
+        "lon": 101.39
+      },
+      "importance": 94,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "palm-oil",
+        "chemicals"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "gulf-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "tanjung-priok",
+      "unlocode": "IDTPP",
+      "name": "Tanjung Priok",
+      "country": "Indonesia",
+      "countryCode": "ID",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": -6.1,
+        "lon": 106.88
+      },
+      "importance": 90,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "coal",
+        "palm-oil"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "east-africa-asia"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "ho-chi-minh",
+      "unlocode": "VNSGN",
+      "name": "Ho Chi Minh City",
+      "country": "Vietnam",
+      "countryCode": "VN",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": 10.76,
+        "lon": 106.72
+      },
+      "importance": 89,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "electronics",
+        "textiles"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    },
+    {
+      "id": "laem-chabang",
+      "unlocode": "THLCH",
+      "name": "Laem Chabang",
+      "country": "Thailand",
+      "countryCode": "TH",
+      "region": "Southeast Asia",
+      "coordinates": {
+        "lat": 13.08,
+        "lon": 100.88
+      },
+      "importance": 89,
+      "type": "gateway",
+      "commodities": [
+        "containers",
+        "vehicles",
+        "electronics"
+      ],
+      "routeIds": [
+        "asia-europe",
+        "trans-pacific"
+      ],
+      "noaaStation": null
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+app = "merlin"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  HOST = "0.0.0.0"
+  PORT = "4173"
+  LOG_LEVEL = "info"
+  ACCOUNT_DATA_FILE = "/data/accounts.json"
+
+[http_service]
+  internal_port = 4173
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/ops/ready"
+
+[mounts]
+  source = "merlin_data"
+  destination = "/data"
