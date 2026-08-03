@@ -1,0 +1,10 @@
+MERLIN V18.0.0 — COMPLETE REPOSITORY
+
+1. Delete the old repository contents.
+2. Extract each numbered GitHub-upload ZIP.
+3. Drag the contents of Batch 01 into the repository root and commit.
+4. Repeat in numerical order for every remaining batch.
+5. In Render select Manual Deploy -> Clear build cache & deploy.
+6. Keep SESSION_SECRET and PUBLIC_ORIGIN configured.
+
+Every batch contains fewer than 100 repository files. The batches are mutually exclusive and reconstruct the complete master repository.
