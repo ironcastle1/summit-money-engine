@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#06111c">
+  <title>Merlin / Offline</title>
+  <style>
+    :root{color-scheme:dark;--accent:#43c2ff;--line:rgba(133,181,216,.18);--muted:#7891a5}
+    *{box-sizing:border-box}html{background:#02060a;color:#eef8ff;font:14px ui-monospace,SFMono-Regular,Consolas,monospace}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 0,rgba(67,194,255,.1),transparent 36%),linear-gradient(rgba(91,154,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(91,154,196,.025) 1px,transparent 1px),#02060a;background-size:auto,42px 42px,42px 42px}
+    body:after{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 20%,rgba(0,0,0,.48))}
+    .card{position:relative;z-index:1;width:min(520px,calc(100vw - 28px));overflow:hidden;border:1px solid rgba(129,197,234,.28);border-radius:14px;background:linear-gradient(145deg,rgba(10,25,40,.97),rgba(3,11,19,.98));box-shadow:0 42px 130px rgba(0,0,0,.68),0 0 55px rgba(67,194,255,.06)}
+    header{height:82px;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--line);background:linear-gradient(110deg,rgba(67,194,255,.07),transparent 58%)}
+    .mark{width:52px;height:52px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);border-radius:5px;background:#000}.mark img{width:45px;height:45px;object-fit:contain}
+    header div:last-child{display:grid;gap:5px}header small{color:var(--accent);font-size:8px;letter-spacing:.2em}header strong{font-size:13px;letter-spacing:.1em}
+    main{padding:24px 22px 22px}.state{font-size:28px;font-weight:900;letter-spacing:.03em}.state:before{content:'';display:inline-block;width:8px;height:8px;margin:0 10px 4px 0;border-radius:50%;background:#f6bf58;box-shadow:0 0 14px rgba(246,191,88,.65)}
+    p{max-width:390px;color:var(--muted);font:12px/1.7 system-ui,sans-serif}.numbers{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:24px 0}.numbers div{padding:13px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.012)}.numbers span{display:block;color:#647e92;font-size:7px;letter-spacing:.12em}.numbers b{display:block;margin-top:7px;font-size:19px}
+    button{min-width:120px;height:38px;border:1px solid rgba(67,194,255,.38);border-radius:7px;background:linear-gradient(180deg,rgba(67,194,255,.16),rgba(67,194,255,.045));color:#8bdcff;font:800 9px ui-monospace,monospace;letter-spacing:.1em;cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.25)}button:hover{border-color:#63d0ff;background:rgba(67,194,255,.14)}
+  </style>
+</head>
+<body>
+  <section class="card">
+    <header><div class="mark"><img src="/assets/merlin-mark-white.png" alt=""></div><div><small>MERLIN</small><strong>CONNECTION STATE</strong></div></header>
+    <main><div class="state">OFFLINE</div><p>The application shell is available. Live feeds and fresh calculations require a network connection.</p><section class="numbers"><div><span>NETWORK</span><b>0</b></div><div><span>LIVE FEEDS</span><b>0</b></div><div><span>CACHED SHELL</span><b>1</b></div></section><button onclick="location.reload()">RETRY</button></main>
+  </section>
+</body>
+</html>
