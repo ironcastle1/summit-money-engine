@@ -1,0 +1,11 @@
+MERLIN V17.2.0 — GITHUB BROWSER UPLOAD
+
+1. Delete the old repository contents.
+2. Extract each numbered ZIP supplied with this release.
+3. Drag the CONTENTS of each extracted ZIP into the repository root.
+4. Commit each batch before uploading the next batch.
+5. Upload batches in numerical order.
+6. In Render, use Clear build cache & deploy.
+7. Keep SESSION_SECRET and the existing PUBLIC_ORIGIN environment settings.
+
+The numbered batches are mutually exclusive: no repository path appears in more than one batch.
