@@ -1,0 +1,3 @@
+import { interpolateValue } from './template-engine.js';
+export function createReportAction(decisionSupport) { return async (action, context) => { if (!decisionSupport?.report)
+    throw new Error('Decision-support report service unavailable'); const configuration = interpolateValue(action.configuration, context); const report = await decisionSupport.report({ owner: context.owner, type: configuration.type || 'EXECUTIVE', title: configuration.title || `Automated report: ${context.workflowId}`, hours: Number(configuration.hours || 72), minimumPriority: Number(configuration.minimumPriority || 45) }); return Object.freeze({ type: 'REPORT', id: report.id, report }); }; }

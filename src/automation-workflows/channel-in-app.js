@@ -1,0 +1,1 @@
+export function createInAppChannel(store) { return async (notification) => { const record = await store.create(notification.owner, { ...notification, channel: 'IN_APP', state: 'DELIVERED' }); return Object.freeze({ channel: 'IN_APP', state: 'DELIVERED', id: record.id }); }; }

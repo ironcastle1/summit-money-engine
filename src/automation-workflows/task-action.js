@@ -1,0 +1,4 @@
+import { interpolateValue } from './template-engine.js';
+export function createTaskAction(decisionSupport) { return async (action, context) => { if (!decisionSupport?.activity?.putTask)
+    throw new Error('Decision-support task store unavailable'); const configuration = interpolateValue(action.configuration, context); const task = await decisionSupport.activity.putTask(context.owner, { title: configuration.title || `Automation task: ${context.workflowId}`, description: configuration.description || '', priority: Number(configuration.priority || context.signal?.attention?.score || 60), assignedTo: configuration.assignedTo || 'unassigned', caseId: configuration.caseId || '', dueAt: configuration.dueAt || null, tags: ['automation', ...(configuration.tags || [])] }); if (task.caseId)
+    await decisionSupport.cases?.attach?.(context.owner, task.caseId, 'task', task.id); return Object.freeze({ type: 'TASK', id: task.id, task }); }; }

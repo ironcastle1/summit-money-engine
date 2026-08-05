@@ -1,0 +1,2 @@
+import { clamp } from './utilities.js';
+export function engagementScore(input = {}) { const recency = clamp(100 - Number(input.daysSinceActive || 0) * 8); const frequency = clamp(Number(input.activeDays30 || 0) / 20 * 100); const collaboration = clamp(Number(input.collaborativeActions || 0) / 20 * 100); const score = Math.round(recency * 0.45 + frequency * 0.35 + collaboration * 0.2); return Object.freeze({ score, recency: Math.round(recency), frequency: Math.round(frequency), collaboration: Math.round(collaboration) }); }
