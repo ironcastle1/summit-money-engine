@@ -1,0 +1,15 @@
+import { access, readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+const root = path.resolve(new URL('..', import.meta.url).pathname);
+const required = ['src/decision-support/index.js','src/services/decision-support-platform-service.js','src/api/register-decision-support-routes.js','public/decision-support/bootstrap.js','public/css/decision-support-v20.css','tests/part12/platform.test.js'];
+for (const file of required) await access(path.join(root, file));
+const modules = (await readdir(path.join(root, 'src/decision-support'))).filter(file => file.endsWith('.js'));
+const browser = (await readdir(path.join(root, 'public/decision-support'))).filter(file => file.endsWith('.js'));
+if (modules.length < 45) throw new Error(`Expected at least 45 decision-support modules, found ${modules.length}`);
+if (browser.length < 12) throw new Error(`Expected at least 12 browser modules, found ${browser.length}`);
+const app = await readFile(path.join(root, 'src/app/create-application.js'), 'utf8');
+const html = await readFile(path.join(root, 'public/index.html'), 'utf8');
+if (!app.includes('registerDecisionSupportRoutes')) throw new Error('Decision-support routes are not registered');
+if (!html.includes('data-view="briefings"')) throw new Error('Briefings workspace navigation is missing');
+if (html.includes('data-view="shipping"')) throw new Error('Shipping must remain map-only');
+console.log(JSON.stringify({ ok: true, modules: modules.length, browserModules: browser.length, workspace: 'BRIEFINGS', shipping: 'MAP_ONLY' }, null, 2));

@@ -1,0 +1,27 @@
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ShippingCatalogService } from '../src/services/shipping-catalog-service.js';
+import { buildRouteGraph } from '../src/logistics/graph-builder.js';
+import { vesselProfiles } from '../src/logistics/vessel-profile.js';
+import { cargoProfiles } from '../src/logistics/cargo-profile.js';
+import { routePolicies } from '../src/logistics/route-policy.js';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+async function files(directory, extension = '.js') { return (await readdir(directory, { withFileTypes: true })).filter(entry => entry.isFile() && entry.name.endsWith(extension)).map(entry => path.join(directory, entry.name)); }
+const serverModules = await files(path.join(root, 'src', 'logistics'));
+const clientModules = await files(path.join(root, 'public', 'logistics'));
+if (serverModules.length < 45) throw new Error(`Expected at least 45 logistics modules, found ${serverModules.length}`);
+if (clientModules.length < 10) throw new Error(`Expected at least 10 logistics client modules, found ${clientModules.length}`);
+if (vesselProfiles().length < 12 || cargoProfiles().length < 11 || routePolicies().length < 5) throw new Error('Operational profile catalogue is incomplete');
+const catalog = await ShippingCatalogService.create({ portsPath: path.join(root, 'data', 'ports.json'), chokepointsPath: path.join(root, 'data', 'chokepoints.json'), commoditiesPath: path.join(root, 'data', 'shipping-commodities.json'), routesPath: path.join(root, 'data', 'routes.json') });
+const graph = buildRouteGraph(catalog).snapshot();
+if (graph.nodeCount < 90 || graph.edgeCount < 150) throw new Error(`Routing graph is too small: ${graph.nodeCount} nodes, ${graph.edgeCount} edges`);
+if (new Set(graph.edges.map(edge => edge.id)).size !== graph.edges.length) throw new Error('Routing graph contains duplicate edge identifiers');
+const routes = await readFile(path.join(root, 'src', 'api', 'register-logistics-routes.js'), 'utf8');
+for (const endpoint of ['/api/logistics/network', '/api/logistics/plan', '/api/logistics/scenario', '/api/logistics/bottlenecks', '/api/logistics/watchlist', '/api/logistics/export']) if (!routes.includes(endpoint)) throw new Error(`Missing endpoint ${endpoint}`);
+const merlin = await readFile(path.join(root, 'public', 'merlin.js'), 'utf8');
+const index = await readFile(path.join(root, 'public', 'index.html'), 'utf8');
+if (!merlin.includes('installLogisticsSystem')) throw new Error('Map logistics client is not installed');
+if (!index.includes('/css/logistics-v20.css')) throw new Error('Logistics stylesheet is not linked');
+if (/data-view="shipping"/.test(index)) throw new Error('Standalone Shipping navigation returned');
+console.log(JSON.stringify({ ok: true, serverModules: serverModules.length, clientModules: clientModules.length, graphNodes: graph.nodeCount, graphEdges: graph.edgeCount, vesselProfiles: vesselProfiles().length, cargoProfiles: cargoProfiles().length, policies: routePolicies().length }, null, 2));
