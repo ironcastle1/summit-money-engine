@@ -1,0 +1,7 @@
+import { escapeHtml, number, percent } from './format.js';
+export function renderScenarioPanel(root, catalog, result, handlers = {}) {
+  if (!root) return;
+  const classes = catalog?.assetClasses || [];
+  root.innerHTML = `<section class="mi-scenario"><h3>MARKET SCENARIO</h3><form data-scenario-form><label>Target class<select name="target">${classes.map(value => `<option value="${escapeHtml(value.toLowerCase())}">${escapeHtml(value)}</option>`).join('')}</select></label><label>Shock %<input name="changePercent" type="number" value="-10" min="-100" max="1000" step="0.5"></label><label>Probability %<input name="probability" type="number" value="100" min="0" max="100"></label><button type="submit">RUN SCENARIO</button></form>${result ? `<div class="mi-scenario-result"><strong>${number(result.pnl, 2)}</strong><span>${percent(result.pnlPercent)} portfolio impact</span>${result.impacts.slice(0, 10).map(item => `<div><b>${escapeHtml(item.symbol)}</b><span>${percent(item.pnlPercent)}</span><strong>${number(item.pnl, 2)}</strong></div>`).join('')}</div>` : '<p class="mi-empty">Enter a portfolio in the controller to run a scenario.</p>'}</section>`;
+  root.querySelector('[data-scenario-form]')?.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget)); handlers.run?.({ target: data.target, changePercent: Number(data.changePercent), probability: Number(data.probability) }); });
+}

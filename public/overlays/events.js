@@ -1,0 +1,1 @@
+export class OverlayEvents { constructor(){this.listeners=new Map();} on(type,listener){const list=this.listeners.get(type)||new Set();list.add(listener);this.listeners.set(type,list);return()=>list.delete(listener);} emit(type,payload){for(const listener of this.listeners.get(type)||[]) listener(payload);} clear(){this.listeners.clear();} }
