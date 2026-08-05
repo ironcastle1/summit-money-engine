@@ -1,0 +1,227 @@
+.hazard-toggle {
+  min-width:76px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em
+}
+.hazard-panel {
+  position:absolute;
+  z-index:55;
+  top:72px;
+  right:16px;
+  width:min(720px,calc(100vw - 32px));
+  max-height:calc(100vh - 140px);
+  overflow:hidden;
+  background:var(--panel,#0f1b24);
+  border:1px solid var(--line,#29404f);
+  box-shadow:0 18px 60px #0008;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto
+}
+.hazard-panel.hidden {
+  display:none
+}
+.hazard-panel>header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  border-bottom:1px solid var(--line,#29404f)
+}
+.hazard-panel>header div {
+  display:grid;
+  gap:2px
+}
+.hazard-panel>header small {
+  opacity:.65
+}
+.hazard-panel>header button {
+  font-size:22px;
+  background:transparent;
+  border:0;
+  color:inherit
+}
+.hazard-panel>nav {
+  display:flex;
+  border-bottom:1px solid var(--line,#29404f)
+}
+.hazard-panel>nav button {
+  flex:1;
+  padding:10px;
+  background:transparent;
+  border:0;
+  color:inherit;
+  font-size:11px;
+  font-weight:800
+}
+.hazard-panel>nav button.active {
+  background:#ffffff10;
+  color:var(--accent,#60d4ff)
+}
+.hazard-panel>section {
+  min-height:0;
+  overflow:auto;
+  padding:12px
+}
+.hazard-toolbar {
+  display:flex;
+  gap:8px;
+  margin-bottom:10px
+}
+.hazard-toolbar select,.hazard-toolbar button,.hazard-scenario-form input,.hazard-scenario-form select,.hazard-scenario-form button,[data-watch-form] input,[data-watch-form] button {
+  background:#08131b;
+  color:inherit;
+  border:1px solid var(--line,#29404f);
+  padding:8px
+}
+.hazard-live-grid {
+  display:grid;
+  grid-template-columns:minmax(250px,42%) 1fr;
+  gap:12px;
+  min-height:360px
+}
+.hazard-row {
+  width:100%;
+  display:grid;
+  grid-template-columns:46px 1fr;
+  gap:10px;
+  text-align:left;
+  padding:9px;
+  border:0;
+  border-bottom:1px solid #ffffff10;
+  background:transparent;
+  color:inherit
+}
+.hazard-row:hover {
+  background:#ffffff08
+}
+.hazard-row span:last-child {
+  display:grid;
+  gap:3px
+}
+.hazard-row small {
+  opacity:.62
+}
+.hazard-score {
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#ffb02022;
+  border:1px solid #ffb02066;
+  font-weight:900
+}
+.hazard-detail-card {
+  padding:14px;
+  background:#ffffff06;
+  border:1px solid #ffffff12
+}
+.hazard-detail-card header {
+  display:flex;
+  justify-content:space-between
+}
+.hazard-detail-card dl {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px
+}
+.hazard-detail-card dl div {
+  padding:8px;
+  background:#0003
+}
+.hazard-detail-card dt {
+  font-size:9px;
+  opacity:.6
+}
+.hazard-detail-card dd {
+  margin:3px 0 0
+}
+.hazard-reasons {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px
+}
+.hazard-reasons span {
+  font-size:9px;
+  padding:4px 6px;
+  border:1px solid #ffffff20
+}
+.hazard-scenario-form {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px
+}
+.hazard-scenario-form label {
+  display:grid;
+  gap:5px;
+  font-size:9px
+}
+.hazard-scenario-form button {
+  grid-column:1/-1
+}
+.hazard-kpis {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px
+}
+.hazard-kpis span {
+  display:grid;
+  padding:10px;
+  background:#0003
+}
+.hazard-kpis b {
+  font-size:18px
+}
+.hazard-kpis small {
+  opacity:.65
+}
+.hazard-scenario-result ul {
+  display:grid;
+  gap:6px;
+  padding:0;
+  list-style:none
+}
+.hazard-scenario-result li {
+  display:flex;
+  justify-content:space-between;
+  padding:8px;
+  background:#ffffff06
+}
+[data-watch-form] {
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;
+  gap:6px;
+  margin-bottom:10px
+}
+.hazard-watch {
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  border-bottom:1px solid #ffffff10
+}
+.hazard-empty {
+  padding:22px;
+  text-align:center;
+  opacity:.6
+}
+@media(max-width:760px) {
+  .hazard-panel {
+    top:56px;
+    right:8px;
+    width:calc(100vw - 16px);
+    max-height:calc(100vh - 90px)
+  }
+  .hazard-live-grid {
+    grid-template-columns:1fr
+  }
+  .hazard-kpis {
+    grid-template-columns:repeat(2,1fr)
+  }
+  [data-watch-form] {
+    grid-template-columns:1fr 1fr
+  }
+  .hazard-scenario-form {
+    grid-template-columns:1fr
+  }
+}

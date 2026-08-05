@@ -1,0 +1,2 @@
+import { age, escapeHtml, number } from './format.js';
+export function renderTimeline(root, timeline = []) { root.innerHTML = `<div class="decision-timeline">${timeline.map(item => `<article><i></i><div><span>${escapeHtml(item.type)} · ${age(item.time)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.domain || '')}${item.score ? ` · ${number(item.score, 1)}` : ''}</small></div></article>`).join('') || '<div class="decision-empty">NO TIMELINE ITEMS</div>'}</div>`; }

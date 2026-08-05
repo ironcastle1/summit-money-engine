@@ -1,0 +1,154 @@
+/* Merlin Part 9 — restrained motion and interaction feedback */
+@keyframes network-scan {
+  0% { transform: translateX(-110%); }
+  70%, 100% { transform: translateX(260%); }
+}
+
+@keyframes ambient-drift-one {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(9vw,7vh,0) scale(1.08); }
+}
+
+@keyframes ambient-drift-two {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(-10vw,-5vh,0) scale(.92); }
+}
+
+@keyframes ambient-drift-three {
+  0%, 100% { transform: translate3d(0,0,0) scale(.95); }
+  50% { transform: translate3d(4vw,-9vh,0) scale(1.07); }
+}
+
+@keyframes view-enter {
+  from { opacity: 0; transform: translateY(5px); filter: saturate(.7); }
+  to { opacity: 1; transform: translateY(0); filter: saturate(1); }
+}
+
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes metric-pop {
+  0% { transform: translateY(2px); opacity: .5; }
+  35% { color: var(--accent-strong); text-shadow: 0 0 22px rgba(67,194,255,.28); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes row-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes source-breathe {
+  0%, 100% { box-shadow: 0 0 5px rgba(69,217,162,.34); }
+  50% { box-shadow: 0 0 12px rgba(69,217,162,.78); }
+}
+
+@keyframes alert-screen-pulse {
+  0% { box-shadow: inset 0 0 0 rgba(255,102,114,0); }
+  35% { box-shadow: inset 0 0 80px rgba(255,102,114,.09); }
+  100% { box-shadow: inset 0 0 0 rgba(255,102,114,0); }
+}
+
+@keyframes palette-enter {
+  from { opacity: 0; transform: translateY(-10px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes drawer-highlight {
+  0% { box-shadow: -28px 0 90px rgba(0,0,0,.55), inset 1px 0 0 rgba(67,194,255,.7); }
+  100% { box-shadow: -28px 0 90px rgba(0,0,0,.55), inset 1px 0 0 rgba(67,194,255,.08); }
+}
+
+html[data-motion="full"] .ambient-canvas i:nth-child(1) { animation: ambient-drift-one 18s ease-in-out infinite; }
+html[data-motion="full"] .ambient-canvas i:nth-child(2) { animation: ambient-drift-two 23s ease-in-out infinite; }
+html[data-motion="full"] .ambient-canvas i:nth-child(3) { animation: ambient-drift-three 27s ease-in-out infinite; }
+
+html[data-motion="full"] .app-view.active:not(.hidden) { animation: view-enter 230ms cubic-bezier(.2,.8,.2,1) both; }
+html[data-motion="full"] .analysis-panel { animation: panel-enter 280ms cubic-bezier(.2,.8,.2,1) both; }
+html[data-motion="full"] .metric-flash { animation: metric-pop 340ms cubic-bezier(.2,.8,.2,1); }
+html[data-motion="full"] .command-dialog { animation: palette-enter 180ms cubic-bezier(.2,.8,.2,1) both; }
+html[data-motion="full"] .experience-panel.open,
+html[data-motion="full"] .diagnostics-drawer.open,
+html[data-motion="full"] .workspace-drawer.open { animation: drawer-highlight 600ms ease-out; }
+
+html[data-motion="full"] .source-chip.online i,
+html[data-motion="full"] .state-online::before { animation: source-breathe 2.6s ease-in-out infinite; }
+
+html[data-motion="full"] body.alert-pulse { animation: alert-screen-pulse 900ms ease-out; }
+
+html[data-motion="full"] .event-row,
+html[data-motion="full"] .news-story-row,
+html[data-motion="full"] .shipping-row,
+html[data-motion="full"] .intelligence-row,
+html[data-motion="full"] .opportunity-row,
+html[data-motion="full"] .market-row,
+html[data-motion="full"] .prediction-row {
+  animation: row-enter 180ms ease-out both;
+}
+
+html[data-motion="full"] .event-row:nth-child(2),
+html[data-motion="full"] .news-story-row:nth-child(2),
+html[data-motion="full"] .shipping-row:nth-child(2),
+html[data-motion="full"] .intelligence-row:nth-child(2),
+html[data-motion="full"] .opportunity-row:nth-child(2),
+html[data-motion="full"] .market-row:nth-child(2) { animation-delay: 12ms; }
+html[data-motion="full"] .event-row:nth-child(3),
+html[data-motion="full"] .news-story-row:nth-child(3),
+html[data-motion="full"] .shipping-row:nth-child(3),
+html[data-motion="full"] .intelligence-row:nth-child(3),
+html[data-motion="full"] .opportunity-row:nth-child(3),
+html[data-motion="full"] .market-row:nth-child(3) { animation-delay: 24ms; }
+html[data-motion="full"] .event-row:nth-child(4),
+html[data-motion="full"] .news-story-row:nth-child(4),
+html[data-motion="full"] .shipping-row:nth-child(4),
+html[data-motion="full"] .intelligence-row:nth-child(4),
+html[data-motion="full"] .opportunity-row:nth-child(4),
+html[data-motion="full"] .market-row:nth-child(4) { animation-delay: 36ms; }
+html[data-motion="full"] .event-row:nth-child(5),
+html[data-motion="full"] .news-story-row:nth-child(5),
+html[data-motion="full"] .shipping-row:nth-child(5),
+html[data-motion="full"] .intelligence-row:nth-child(5),
+html[data-motion="full"] .opportunity-row:nth-child(5),
+html[data-motion="full"] .market-row:nth-child(5) { animation-delay: 48ms; }
+html[data-motion="full"] .event-row:nth-child(n+6),
+html[data-motion="full"] .news-story-row:nth-child(n+6),
+html[data-motion="full"] .shipping-row:nth-child(n+6),
+html[data-motion="full"] .intelligence-row:nth-child(n+6),
+html[data-motion="full"] .opportunity-row:nth-child(n+6),
+html[data-motion="full"] .market-row:nth-child(n+6) { animation-delay: 60ms; }
+
+.nav-item::before,
+.metric::after,
+.event-row::before { transition: transform 180ms cubic-bezier(.2,.8,.2,1); }
+.experience-panel,
+.experience-backdrop,
+.experience-toast { transition: transform 180ms cubic-bezier(.2,.8,.2,1), opacity 180ms ease, visibility 180ms ease; }
+.command-row,
+.event-row,
+.news-story-row,
+.shipping-row,
+.intelligence-row,
+.opportunity-row,
+.market-row { transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 100ms ease; }
+
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-motion="system"] *,
+  html[data-motion="system"] *::before,
+  html[data-motion="system"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
