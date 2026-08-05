@@ -1,0 +1,2 @@
+import { average, percentile } from './utilities.js';
+export function latencyAnalysis(samples = []) { const values = samples.map(item => Number(item.value ?? item.durationMs)).filter(Number.isFinite); return Object.freeze({ count: values.length, mean: average(values, null), p50: percentile(values, 50), p95: percentile(values, 95), p99: percentile(values, 99), maximum: values.length ? Math.max(...values) : null }); }

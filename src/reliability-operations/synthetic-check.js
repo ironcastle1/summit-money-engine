@@ -1,0 +1,4 @@
+import { operationsId } from './ids.js';
+import { clean, finite } from './utilities.js';
+import { iso } from './time.js';
+export function syntheticCheck(input = {}) { const passed = input.passed === true || String(input.state).toUpperCase() === 'PASS'; return Object.freeze({ id: clean(input.id, 140) || operationsId('synthetic', input.name || input.serviceId), serviceId: clean(input.serviceId, 120), name: clean(input.name, 180) || 'Synthetic journey', region: clean(input.region, 80) || 'local', steps: (input.steps || []).map(step => Object.freeze({ name: clean(step.name, 120), passed: step.passed !== false, durationMs: finite(step.durationMs) })), passed, state: passed ? 'PASS' : clean(input.state, 20).toUpperCase() || 'FAIL', durationMs: finite(input.durationMs), error: clean(input.error, 1000), checkedAt: input.checkedAt || iso() }); }
