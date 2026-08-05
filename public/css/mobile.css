@@ -1,0 +1,18 @@
+@media (max-width:1100px){
+  .topbar{grid-template-columns:auto 1fr auto}.brand-copy{display:none}.primary-nav{overflow-x:auto;scrollbar-width:thin;overscroll-behavior-inline:contain}.primary-nav .nav-item{flex:0 0 auto;padding-inline:10px}.topbar-status>span{display:none}
+  .workspace{grid-template-columns:minmax(0,1fr) 360px}.market-toolbar,.news-toolbar,.shipping-toolbar,.intelligence-toolbar,.opportunity-toolbar,.replay-toolbar{overflow-x:auto;display:flex;align-items:end}.market-toolbar>*,.news-toolbar>*,.shipping-toolbar>*,.intelligence-toolbar>*,.opportunity-toolbar>*,.replay-toolbar>*{flex:0 0 auto}
+}
+@media (max-width:760px){
+  body{overflow:auto}.app-shell{min-width:0}.topbar{position:sticky;top:0;z-index:100;height:auto;min-height:48px}.brand{padding-inline:8px}.brand-mark{width:28px;height:28px}.topbar-status{gap:4px}.topbar-status time{display:none}.icon-button{width:30px;height:30px}
+  .workspace{display:block;min-height:calc(100vh - 48px)}.map-column{height:62vh;min-height:420px}.analysis-panel{height:auto;max-height:none;overflow:visible}.map-toolbar{max-width:calc(100vw - 12px);overflow-x:auto;display:flex}.map-toolbar>*{flex:0 0 auto}.search-control{width:calc(100vw - 24px)}
+  .metric-board{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{min-height:70px}.event-table-header,.event-row{grid-template-columns:minmax(120px,1fr) 44px 48px 40px}
+  .news-layout,.shipping-layout,.intelligence-layout,.opportunity-layout,.replay-layout,.account-two-column{grid-template-columns:1fr}.news-story-panel,.shipping-list-panel,.intelligence-list-panel,.opportunity-list-panel{min-height:420px}.news-detail,.shipping-detail,.intelligence-detail,.opportunity-detail{position:static;max-height:none}
+  .market-summary,.news-metrics,.shipping-metrics,.intelligence-metrics,.opportunity-summary,.account-identity,.admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.market-layout{display:block}.market-side-panel{margin-top:6px}.candle-chart{min-height:320px}
+  .account-workspace{padding:6px}.account-auth-grid{grid-template-columns:1fr}.account-toolbar{grid-template-columns:1fr auto}.account-toolbar>div:nth-child(2){display:none}.billing-plans{grid-template-columns:1fr}.admin-user-heading,.admin-users .admin-user-row{min-width:960px}.admin-users{overflow:auto}
+  .workspace-drawer,.diagnostics-drawer{width:min(100vw,460px)}
+}
+@media (max-width:480px){
+  .primary-nav .nav-item{font-size:9px}.map-column{height:58vh;min-height:360px}.metric-board{gap:4px}.metric{padding:8px}.metric strong{font-size:17px}.analysis-panel{padding:6px}.location-header h1{font-size:17px}.source-strip{max-width:calc(100vw - 12px);overflow:auto}.market-summary,.news-metrics,.shipping-metrics,.intelligence-metrics,.opportunity-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.topbar-status #workspace-toggle{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media (prefers-contrast:more){:root{--border:#47708d}.metric,.floating-panel,.analysis-panel,.ops-section{border-width:2px}.nav-item.active{outline:2px solid currentColor}}

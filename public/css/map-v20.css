@@ -1,0 +1,361 @@
+/* Merlin V20 geospatial platform overrides. */
+:root {
+  --map-accent: var(--blue, #63c8f0);
+  --map-panel: var(--panel, #1f3440);
+  --map-text: var(--text, #f2f7f8);
+  --map-shadow: 0 14px 38px rgba(4, 17, 24, 0.32);
+}
+
+.merlin-v20-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  background: #d9e1e4;
+  touch-action: none;
+  user-select: none;
+  isolation: isolate;
+}
+
+.merlin-v20-map:focus-visible {
+  outline: 3px solid var(--map-accent);
+  outline-offset: -3px;
+}
+
+.merlin-v20-map:active {
+  cursor: grabbing;
+}
+
+.merlin-v20-local-base,
+.merlin-v20-tiles,
+.merlin-v20-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.merlin-v20-local-base {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #e6ebec;
+  pointer-events: none;
+}
+
+.merlin-v20-tiles {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.merlin-v20-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  opacity: 0;
+  transition: opacity 140ms linear;
+}
+
+.merlin-v20-tile.loaded {
+  opacity: 1;
+}
+
+.merlin-v20-overlay {
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.merlin-v20-overlay [data-map-entity] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.merlin-v20-overlay [data-map-entity]:focus {
+  outline: none;
+  filter: drop-shadow(0 0 5px var(--map-accent));
+}
+
+.merlin-v20-marker {
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 2px 3px rgba(7, 24, 33, 0.45));
+  transition: r 120ms ease, filter 120ms ease;
+}
+
+.merlin-v20-marker:hover,
+.merlin-v20-marker:focus {
+  r: 9px;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9));
+}
+
+.merlin-v20-cluster {
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 3px 5px rgba(7, 24, 33, 0.4));
+}
+
+.merlin-v20-cluster-count {
+  fill: #fff;
+  font: 800 11px var(--ui, sans-serif);
+  pointer-events: none;
+}
+
+.merlin-v20-route {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 2px rgba(4, 18, 26, 0.42));
+}
+
+.merlin-v20-label {
+  fill: #172b34;
+  paint-order: stroke;
+  stroke: rgba(250, 252, 252, 0.96);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  font-family: var(--ui, sans-serif);
+  pointer-events: auto;
+}
+
+.merlin-v20-label-english {
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.merlin-v20-label-local {
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.merlin-v20-tooltip {
+  position: absolute;
+  z-index: 25;
+  max-width: min(300px, calc(100% - 20px));
+  max-height: min(180px, calc(100% - 20px));
+  overflow: auto;
+  padding: 9px 11px;
+  border: 1px solid rgba(77, 112, 127, 0.48);
+  border-radius: 6px;
+  background: rgba(250, 252, 251, 0.97);
+  color: #142a34;
+  box-shadow: var(--map-shadow);
+  font: 750 12px/1.35 var(--ui, sans-serif);
+  pointer-events: none;
+}
+
+.merlin-v20-tooltip.hidden {
+  display: none;
+}
+
+.merlin-v20-status {
+  position: absolute;
+  z-index: 8;
+  right: 10px;
+  bottom: 9px;
+  max-width: calc(100% - 20px);
+  padding: 5px 8px;
+  border: 1px solid rgba(42, 78, 93, 0.26);
+  border-radius: 4px;
+  background: rgba(250, 252, 251, 0.9);
+  color: #284550;
+  font: 750 9px var(--mono, monospace);
+  pointer-events: none;
+}
+
+/* Compact search. Only the magnifying glass occupies the map until opened. */
+.map-search {
+  width: 50px !important;
+  height: 50px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: visible;
+  transition: width 180ms ease;
+}
+
+.map-search.open {
+  width: min(560px, calc(100% - 90px)) !important;
+}
+
+.map-search-toggle {
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--blue, #63c8f0);
+  font: 800 25px/1 var(--ui, sans-serif);
+  cursor: pointer;
+}
+
+.map-search-toggle:hover,
+.map-search-toggle:focus-visible {
+  background: rgba(99, 200, 240, 0.13);
+  outline: none;
+}
+
+.map-search-panel {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 130ms ease, transform 160ms ease, visibility 0s linear 160ms;
+}
+
+.map-search.open .map-search-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition-delay: 0s;
+}
+
+.map-search-panel input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  padding: 0 4px;
+}
+
+.map-search-panel kbd {
+  margin-right: 10px;
+}
+
+.map-search .search-results {
+  left: -50px;
+  right: 0;
+  top: 56px;
+  max-height: min(430px, calc(100vh - 170px));
+  overscroll-behavior: contain;
+}
+
+/* Prevent clipped content in all map drawers and selected-item panels. */
+.map-drawer,
+.map-detail {
+  max-height: calc(100% - 24px);
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.map-drawer .drawer-content,
+.map-detail > :not(header),
+.drawer-section,
+.feed-list,
+.detail-actions {
+  min-height: 0;
+}
+
+.map-drawer .drawer-content {
+  height: calc(100% - 49px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.map-detail {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.drawer-content::-webkit-scrollbar,
+.map-detail::-webkit-scrollbar,
+.search-results::-webkit-scrollbar,
+.merlin-v20-tooltip::-webkit-scrollbar {
+  width: 10px;
+}
+
+.drawer-content::-webkit-scrollbar-thumb,
+.map-detail::-webkit-scrollbar-thumb,
+.search-results::-webkit-scrollbar-thumb,
+.merlin-v20-tooltip::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: rgba(99, 200, 240, 0.55);
+  background-clip: padding-box;
+}
+
+/* Theme bridge affects the complete shell and map chrome. */
+html[data-theme="graphite"] .map-glass,
+html[data-theme="graphite"] .map-drawer,
+html[data-theme="graphite"] .map-detail {
+  background: rgba(34, 40, 44, 0.96);
+}
+
+html[data-theme="sand"] .map-glass,
+html[data-theme="sand"] .map-drawer,
+html[data-theme="sand"] .map-detail {
+  background: rgba(59, 51, 39, 0.96);
+}
+
+html[data-theme="forest"] .map-glass,
+html[data-theme="forest"] .map-drawer,
+html[data-theme="forest"] .map-detail {
+  background: rgba(32, 56, 45, 0.96);
+}
+
+html[data-theme="crimson"] .map-glass,
+html[data-theme="crimson"] .map-drawer,
+html[data-theme="crimson"] .map-detail {
+  background: rgba(68, 37, 44, 0.96);
+}
+
+html[data-theme="light"] .map-glass,
+html[data-theme="light"] .map-drawer,
+html[data-theme="light"] .map-detail {
+  border-color: rgba(45, 91, 109, 0.3);
+  background: rgba(248, 250, 249, 0.97);
+  color: #142a34;
+}
+
+@media (max-width: 760px) {
+  .map-search,
+  .map-search.open {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .map-search.open {
+    width: calc(100% - 16px) !important;
+  }
+
+  .map-search-toggle {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .map-search .search-results {
+    left: -44px;
+    top: 50px;
+    max-height: 50vh;
+  }
+
+  .merlin-v20-status {
+    display: none;
+  }
+
+  .map-drawer {
+    max-height: 52%;
+  }
+
+  .map-detail {
+    max-height: 66%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-search,
+  .map-search-panel,
+  .merlin-v20-tile,
+  .merlin-v20-marker {
+    transition: none !important;
+  }
+}
