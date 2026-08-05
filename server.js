@@ -12,6 +12,38 @@ function isDirectExecution() {
   return Boolean(entry) && import.meta.url === pathToFileURL(entry).href;
 }
 
+
+function isPlaceholderOrigin(value) {
+  const origin = String(value || '').trim().replace(/\/$/, '');
+  return !origin || /^https?:\/\/(?:www\.)?example\.com(?::\d+)?$/i.test(origin);
+}
+
+export function resolveRuntimeEnvironment(inputEnv = {}) {
+  const env = { ...inputEnv };
+  if (!isPlaceholderOrigin(env.PUBLIC_ORIGIN)) return env;
+
+  const renderUrl = String(env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
+  const renderHostname = String(env.RENDER_EXTERNAL_HOSTNAME || '')
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/$/, '');
+  const renderServiceName = String(env.RENDER_SERVICE_NAME || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  if (/^https:\/\/[^/]+$/i.test(renderUrl)) {
+    env.PUBLIC_ORIGIN = renderUrl;
+  } else if (renderHostname) {
+    env.PUBLIC_ORIGIN = `https://${renderHostname}`;
+  } else if (String(env.RENDER || '').toLowerCase() === 'true' && renderServiceName) {
+    env.PUBLIC_ORIGIN = `https://${renderServiceName}.onrender.com`;
+  }
+
+  return env;
+}
+
 function closeHttpServer(server) {
   if (!server.listening) return Promise.resolve();
   server.close();
@@ -19,7 +51,7 @@ function closeHttpServer(server) {
 }
 
 export async function startMerlinServer(options = {}) {
-  const env = options.env || process.env;
+  const env = resolveRuntimeEnvironment(options.env || process.env);
   const config = options.config || loadConfig(env);
   const logger = options.logger || createLogger({ level: config.logLevel, service: 'merlin' });
   const startupDiagnostics = buildStartupDiagnostics(config);
