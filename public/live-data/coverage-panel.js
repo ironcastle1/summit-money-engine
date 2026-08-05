@@ -1,0 +1,2 @@
+import {escLive,liveNumber} from './format.js';
+export function coveragePanelHtml(snapshot={}){return`<section class="live-panel"><header><div><span>DOMAIN COVERAGE</span><h2>PUBLIC-FIRST MATRIX</h2></div></header><div class="live-domain-grid">${(snapshot.coverage?.domains||[]).map(item=>`<article><span>${escLive(item.domain)}</span><strong>${liveNumber(item.score)}%</strong><small>${item.online} live · ${item.cached} cached · ${item.total} total</small><i><em style="width:${Math.max(0,Math.min(100,item.score))}%"></em></i></article>`).join('')}</div></section>`;}
