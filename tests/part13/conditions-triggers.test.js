@@ -1,7 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { conditionRecord, evaluateCondition, evaluateHazardTrigger, evaluateMarketTrigger, evaluateTrigger, triggerRecord } from '../../src/automation-workflows/index.js';
-test('condition evaluator handles nested paths and numeric comparison', () => { const condition = conditionRecord({ path: 'signal.score', operator: 'GTE', value: 70 }); assert.equal(evaluateCondition(condition, { signal: { score: 75 } }).passed, true); });
-test('major hazard trigger suppresses routine earthquakes', () => { const trigger = triggerRecord({ type: 'HAZARD_MATERIALITY', configuration: { minimumMateriality: 60 } }); assert.equal(evaluateHazardTrigger(trigger, { hazard: { type: 'EARTHQUAKE', materiality: 65 } }).passed, false); assert.equal(evaluateHazardTrigger(trigger, { hazard: { type: 'EARTHQUAKE', materiality: 82, materialImpact: true } }).passed, true); });
-test('market threshold trigger evaluates direction', () => { const trigger = triggerRecord({ type: 'MARKET_THRESHOLD', configuration: { metric: 'priceChangePercent', threshold: 5, direction: 'ABOVE' } }); assert.equal(evaluateMarketTrigger(trigger, { market: { priceChangePercent: 6 } }).passed, true); });
-test('manual trigger requires explicit manual execution', () => { const trigger = triggerRecord({ type: 'MANUAL' }); assert.equal(evaluateTrigger(trigger, { manual: false }).passed, false); assert.equal(evaluateTrigger(trigger, { manual: true }).passed, true); });

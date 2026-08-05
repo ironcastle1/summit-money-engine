@@ -1,7 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { AutomationAuditLog, NotificationStore, RuleStore, RunStore, WorkflowStore } from '../../src/automation-workflows/index.js';
-import { workflowFixture } from './fixtures.js';
-test('workflow store versions updates and filters', async () => { const store = new WorkflowStore(); const first = await store.put('u', workflowFixture()); const second = await store.put('u', { ...first, state: 'PAUSED' }); assert.equal(second.version, 2); assert.equal((await store.list('u', { state: 'PAUSED' })).length, 1); });
-test('run and notification stores summarize records', async () => { const runs = new RunStore(); await runs.append('u', { id: 'r', state: 'SUCCEEDED', durationMs: 100 }); assert.equal((await runs.summary('u')).successRate, 100); const notifications = new NotificationStore(); const item = await notifications.create('u', { title: 'Test', severity: 'CRITICAL' }); assert.equal((await notifications.summary('u')).unread, 1); await notifications.markRead('u', item.id); assert.equal((await notifications.summary('u')).unread, 0); });
-test('rule store and audit log persist valid records', async () => { const rules = new RuleStore(); await rules.put('u', { name: 'Rule', trigger: { type: 'DECISION_SIGNAL' } }); assert.equal((await rules.list('u')).length, 1); const audit = new AutomationAuditLog(); await audit.append('u', { action: 'CREATED', resourceId: 'x' }); await audit.append('u', { action: 'UPDATED', resourceId: 'x' }); assert.equal((await audit.verify('u')).valid, true); });

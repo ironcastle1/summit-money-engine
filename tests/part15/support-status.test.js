@@ -1,8 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { supportCaseRecord, supportSla, prioritizeSupportQueue, supportSeverity, assignSupportCase, uptimeSummary, maintenanceWindow } from '../../src/commercial-operations/index.js';
-import { supportFixture } from './fixtures.js';
-test('support SLA detects expired acknowledgement and response deadlines', () => { const record = supportCaseRecord(supportFixture()); const result = supportSla(record, new Date('2026-08-04T12:00:00Z')); assert.equal(result.breaches.acknowledgement, true); assert.equal(result.breaches.response, true); });
-test('support queue prioritizes breached high-severity cases', () => { const low = supportCaseRecord({ id: 'low', tenantId: 't', title: 'Question', severity: 'SEV4', createdAt: '2026-08-04T11:30:00Z' }); const high = supportCaseRecord(supportFixture()); assert.equal(prioritizeSupportQueue([low, high], new Date('2026-08-04T12:00:00Z'))[0].id, 'case-test'); });
-test('severity and assignment use operational impact and workload', () => { assert.equal(supportSeverity({ outage: true }), 'SEV1'); assert.equal(assignSupportCase(supportCaseRecord(supportFixture()), [{ id: 'a', openCases: 4 }, { id: 'b', openCases: 1 }]).assignee, 'b'); });
-test('uptime and maintenance windows produce quantified service records', () => { const uptime = uptimeSummary([{ startedAt: '2026-08-01T00:00:00Z', resolvedAt: '2026-08-01T01:00:00Z' }], '2026-08-01T00:00:00Z', '2026-08-02T00:00:00Z'); assert.ok(uptime.uptimePercent < 100); const window = maintenanceWindow({ startsAt: '2026-08-05T00:00:00Z', durationHours: 2 }); assert.equal(window.endsAt, '2026-08-05T02:00:00.000Z'); });

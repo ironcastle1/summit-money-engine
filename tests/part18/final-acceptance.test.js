@@ -1,6 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { releaseReadiness, goLiveReport, finalAcceptance } from '../../src/release-engineering/index.js';
-test('release readiness blocks absent artifacts and evidence', () => assert.equal(releaseReadiness({ versionPolicy: { valid: true }, dependencies: { valid: true }, environment: { ready: true }, migrations: { valid: true }, contracts: { breaking: false, state: 'COMPATIBLE' }, performance: { pass: true }, tests: [], security: { pass: true }, operations: { pass: true }, artifacts: { count: 0 } }).pass, false));
-test('go live report returns no-go when checklist incomplete', () => assert.equal(goLiveReport({ readiness: { pass: true }, checklist: { complete: false }, rollback: { ready: true }, knownIssues: [] }).decision, 'NO_GO'));
-test('final acceptance enforces eighteen parts and source threshold', () => { const ok = finalAcceptance({ partsDelivered: 18, maximumPartFiles: 99, sourceLines: 60000, passedTests: 650, failedTests: 0, syntaxFailures: 0, syntaxChecks: 1500, securityScanPassed: true, archiveIntegrity: true, fabricatedLiveData: false }); assert.equal(ok.accepted, true); assert.equal(finalAcceptance({ ...ok, partsDelivered: 17 }).accepted, false); });

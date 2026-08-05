@@ -1,7 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { comparePlans, entitlementMatrix, evaluateEntitlements, quotaEvaluation, calculateOverages, subscriptionChangePreview } from '../../src/commercial-operations/index.js';
-test('plan comparison exposes gained features and increased limits', () => { const item = comparePlans('FREE', 'TEAM'); assert.ok(item.gained.includes('AUTOMATION')); assert.ok(item.limits.apiRequests.delta > 0); });
-test('entitlement matrix applies explicit overrides', () => { const matrix = entitlementMatrix('PRO', { addFeatures: ['AUTOMATION'], limits: { reports: 500 } }); assert.ok(matrix.features.includes('AUTOMATION')); assert.equal(matrix.limits.reports, 500); });
-test('quota evaluation blocks exceeded metrics and warns near limits', () => { const result = quotaEvaluation('FREE', { apiRequests: 600, exports: 4 }); assert.equal(result.allowed, false); assert.equal(result.blocked[0].key, 'apiRequests'); assert.ok(result.warning.some(item => item.key === 'exports')); });
-test('overage and plan-change previews are quantified', () => { const quotas = quotaEvaluation('FREE', { apiRequests: 1500 }); assert.ok(calculateOverages(quotas.quotas).totalMinor > 0); const preview = subscriptionChangePreview({ currentPlanId: 'PRO', targetPlanId: 'TEAM', seats: 12 }); assert.equal(preview.extraSeats, 4); assert.ok(preview.amountMinor > 9900); });

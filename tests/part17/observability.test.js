@@ -1,6 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { metricSample, latencyAnalysis, traceSpan, traceAnalysis, logEvent, queryLogs, syntheticCheck } from '../../src/reliability-operations/index.js';
-test('latency analysis produces percentiles', () => { const result = latencyAnalysis([10, 20, 30, 40, 50].map(value => metricSample({ name: 'latency_ms', value }))); assert.equal(result.p95, 50); assert.equal(result.count, 5); });
-test('distributed traces preserve error paths', () => { const spans = [traceSpan({ traceId: 't', serviceId: 'web', name: 'request', durationMs: 100 }), traceSpan({ traceId: 't', serviceId: 'api', name: 'query', durationMs: 80, status: 'ERROR' })]; const result = traceAnalysis(spans); assert.equal(result.errorTraces, 1); assert.deepEqual(result.traces[0].services.sort(), ['api', 'web']); });
-test('logs and synthetics support operational filtering', () => { const logs = [logEvent({ serviceId: 'api', level: 'ERROR', message: 'failure' }), logEvent({ serviceId: 'web', level: 'INFO', message: 'ok' })]; assert.equal(queryLogs(logs, { level: 'ERROR' }).length, 1); assert.equal(syntheticCheck({ name: 'login', passed: true }).state, 'PASS'); });

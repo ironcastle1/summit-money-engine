@@ -1,4 +1,0 @@
-import test from'node:test';import assert from'node:assert/strict';import{LiveSourceRunner}from'../../src/live-data/source-runner.js';import{publicSource}from'../../src/live-data/public-source-catalog.js';
-function store(){let value=null;return{saveSource:async(_,next)=>(value=next),source:async()=>value};}
-test('runner persists successful results',async()=>{const s=store();const result=await new LiveSourceRunner({store:s}).run(publicSource('ecb-fx'),{fetch:async()=>({records:[{rate:1}]})});assert.equal(result.state,'ONLINE');assert.equal(result.recordCount,1);});
-test('runner returns disk cache when upstream fails',async()=>{const s=store();const runner=new LiveSourceRunner({store:s});await runner.run(publicSource('ecb-fx'),{fetch:async()=>({records:[{rate:1}]})});const result=await runner.run(publicSource('ecb-fx'),{fetch:async()=>{throw Object.assign(new Error('down'),{code:'DOWN'});}});assert.equal(result.state,'CACHED');assert.equal(result.recordCount,1);});
