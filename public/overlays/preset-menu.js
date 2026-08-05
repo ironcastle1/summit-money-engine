@@ -1,2 +1,0 @@
-import { el } from './dom.js';
-export function presetMenu(presets,onApply){const select=el('select',{'aria-label':'Overlay preset'});select.append(el('option',{value:'',text:'CUSTOM OVERLAYS'}),...presets.map(preset=>el('option',{value:preset.id,text:preset.title.toUpperCase()})));select.addEventListener('change',()=>{if(select.value)onApply(select.value);});return el('label',{class:'overlay-preset-menu'},[el('span',{text:'PRESET'}),select]);}

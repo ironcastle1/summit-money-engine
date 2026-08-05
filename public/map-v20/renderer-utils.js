@@ -1,2 +1,0 @@
-function ringPath(ring,viewport){return ring.map((coordinate,index)=>{const point=viewport.project({lon:Number(coordinate[0]),lat:Number(coordinate[1])});return`${index?'L':'M'}${point.x.toFixed(2)},${point.y.toFixed(2)}`;}).join(' ')+' Z';}
-export function projectGeometry(geometry,viewport){if(!geometry)return[];if(geometry.type==='Polygon')return geometry.coordinates.map(ring=>ringPath(ring,viewport));if(geometry.type==='MultiPolygon')return geometry.coordinates.flatMap(polygon=>polygon.map(ring=>ringPath(ring,viewport)));return[];}

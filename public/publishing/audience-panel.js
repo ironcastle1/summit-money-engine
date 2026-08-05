@@ -1,4 +1,0 @@
-import { escapePublishing } from './format.js';
-export function renderAudiencePanel(root, snapshot = {}) {
-  root.innerHTML = `<section class="publishing-panel"><header><h2>AUDIENCES AND SUBSCRIBERS</h2><button data-action="new-subscriber">ADD SUBSCRIBER</button></header><div class="audience-grid"><div><h3>AUDIENCES</h3>${(snapshot.audiences || []).map(item => `<article><b>${escapePublishing(item.name)}</b><span>${(item.subscriberIds || []).length} direct · ${escapePublishing(item.classificationCeiling)}</span></article>`).join('') || '<p class="publishing-empty">No audiences.</p>'}</div><div><h3>SUBSCRIBERS</h3>${(snapshot.subscribers || []).slice(0, 100).map(item => `<article><b>${escapePublishing(item.name)}</b><span>${escapePublishing(item.organisation || item.email || 'IN APP')} · ${escapePublishing(item.clearance)}</span></article>`).join('') || '<p class="publishing-empty">No subscribers.</p>'}</div></div></section>`;
-}
