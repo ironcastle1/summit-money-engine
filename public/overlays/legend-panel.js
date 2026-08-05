@@ -1,0 +1,2 @@
+import { el } from './dom.js';
+export class OverlayLegendPanel { constructor(root){this.root=root;} render(entries=[]){this.root.replaceChildren(el('header',{},[el('strong',{text:'LEGEND'}),el('span',{text:`${entries.length}`})]),...entries.map(entry=>el('div',{class:'overlay-legend-row'},[el('i',{style:`--overlay-colour:${entry.colour||'#7aa8bd'}`}),el('span',{text:entry.label||'Other'}),entry.count!==undefined?el('b',{text:String(entry.count)}):el('span')])));this.root.classList.toggle('hidden',entries.length===0);} clear(){this.render([]);} }

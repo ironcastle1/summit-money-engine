@@ -1,0 +1,4 @@
+import { escapePublishing } from './format.js';
+export function renderTemplatePanel(root, snapshot = {}) {
+  root.innerHTML = `<section class="publishing-panel"><header><h2>TEMPLATES AND BRAND KITS</h2></header><div class="template-grid"><div>${(snapshot.templates || []).map(item => `<article><span>${escapePublishing(item.category)}</span><b>${escapePublishing(item.name)}</b><small>${(item.formats || []).join(' · ')}</small></article>`).join('') || '<p class="publishing-empty">No templates.</p>'}</div><div>${(snapshot.brandKits || []).map(item => `<article><span style="background:${escapePublishing(item.colours?.accent || '#999')}" class="brand-swatch"></span><b>${escapePublishing(item.name)}</b><small>${escapePublishing(item.organisation)}</small></article>`).join('') || '<p class="publishing-empty">No brand kits.</p>'}</div></div></section>`;
+}

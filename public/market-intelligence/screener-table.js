@@ -1,0 +1,7 @@
+import { escapeHtml, percent, price } from './format.js';
+export function renderScreenerTable(root, assets, onSelect, onWatch) {
+  if (!root) return;
+  root.innerHTML = `<div class="mi-table-wrap"><table class="mi-table"><thead><tr><th>ASSET</th><th>PRICE</th><th>MOVE</th><th>TREND</th><th>MOMENTUM</th><th>OPPORTUNITY</th><th>RISK</th><th>EVIDENCE</th><th></th></tr></thead><tbody>${(assets || []).map(item => `<tr data-asset-id="${escapeHtml(item.asset?.id)}"><td><strong>${escapeHtml(item.asset?.symbol)}</strong><small>${escapeHtml(item.asset?.name)}</small></td><td>${price(item.quote?.price)}</td><td class="${Number(item.quote?.changePercent) >= 0 ? 'positive' : 'negative'}">${percent(item.quote?.changePercent)}</td><td>${Math.round(item.trend?.score || 0)}</td><td>${Math.round(item.momentum?.score || 0)}</td><td><b class="mi-tier ${String(item.opportunity?.tier || '').toLowerCase()}">${Math.round(item.opportunity?.score || 0)} ${escapeHtml(item.opportunity?.tier)}</b></td><td>${Math.round(item.risk?.score || 0)}</td><td>${escapeHtml(item.evidence?.grade || '—')}</td><td><button type="button" data-watch="${escapeHtml(item.asset?.id)}">WATCH</button></td></tr>`).join('')}</tbody></table></div>`;
+  root.querySelectorAll('tbody tr').forEach(row => row.addEventListener('click', event => { if (!event.target.closest('[data-watch]')) onSelect?.(row.dataset.assetId); }));
+  root.querySelectorAll('[data-watch]').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); onWatch?.(button.dataset.watch); }));
+}
