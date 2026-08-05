@@ -1,3 +1,0 @@
-import { finite } from './utilities.js';
-const rates = Object.freeze({ apiRequests: 0.02, exports: 0.05, reports: 0.25, alerts: 0.01, savedViews: 0 });
-export function calculateOverages(quotas = [], customRates = {}) { const details = quotas.map(item => { const over = Math.max(0, finite(item.used) - finite(item.limit)); const rate = finite(customRates[item.key], rates[item.key] || 0); return Object.freeze({ key: item.key, over, rateMinor: rate, amountMinor: Math.round(over * rate) }); }); return Object.freeze({ details: Object.freeze(details), totalMinor: details.reduce((sum, item) => sum + item.amountMinor, 0) }); }

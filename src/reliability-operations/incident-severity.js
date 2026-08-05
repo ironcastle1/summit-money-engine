@@ -1,2 +1,0 @@
-import { clamp } from './utilities.js';
-export function incidentSeverity(input = {}) { const impact = clamp(input.customerImpact); const scope = clamp(input.scope); const data = clamp(input.dataRisk); const duration = clamp(input.durationRisk); const score = Math.round(impact * .4 + scope * .25 + data * .2 + duration * .15); return Object.freeze({ score, severity: score >= 80 ? 'SEV1' : score >= 60 ? 'SEV2' : score >= 35 ? 'SEV3' : 'SEV4' }); }

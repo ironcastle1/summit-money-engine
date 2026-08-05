@@ -1,1 +1,0 @@
-export class MacroConnector{constructor(options){this.service=options.service;}async fetch(){const snapshot=await this.service.snapshot();return{records:snapshot.records||[],observedAt:snapshot.generatedAt,metadata:{source:snapshot.source}};}}

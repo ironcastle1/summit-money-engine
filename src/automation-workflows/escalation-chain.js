@@ -1,5 +1,0 @@
-import { addMinutes } from './time.js';
-import { clean, frozen } from './utilities.js';
-export function escalationChain(input = {}) { const levels = (input.levels || []).map((level, index) => frozen({ level: index + 1, afterMinutes: Math.max(0, Number(level.afterMinutes) || index * 15), target: clean(level.target || 'operator', 120), channels: Object.freeze([...(level.channels || ['IN_APP'])]), severity: String(level.severity || input.severity || 'URGENT').toUpperCase() })); return frozen({ id: clean(input.id, 160) || 'default-escalation', name: clean(input.name || 'Escalation chain', 160), levels }); }
-export function escalationDue(chainInput, incident = {}, now = Date.now()) { const chain = escalationChain(chainInput); const acknowledged = Boolean(incident.acknowledgedAt); if (acknowledged)
-    return Object.freeze([]); const started = Date.parse(incident.createdAt || new Date(now).toISOString()); return Object.freeze(chain.levels.filter(level => now >= addMinutes(started, level.afterMinutes).getTime()).map(level => frozen({ ...level, dueAt: addMinutes(started, level.afterMinutes).toISOString(), incidentId: incident.id }))); }
