@@ -1,0 +1,2 @@
+export const tenantFixture = () => ({ id: 'tenant-test', name: 'Test Customer', state: 'ACTIVE', segment: 'SMB', planId: 'TEAM', ownerUserId: 'owner', billingEmail: 'billing@example.test', countryCode: 'GB' });
+export const supportFixture = () => ({ id: 'case-test', tenantId: 'tenant-test', title: 'Map unavailable', description: 'Map is not loading for analysts.', state: 'OPEN', severity: 'SEV2', category: 'PLATFORM', createdAt: '2026-08-04T08:00:00Z' });
