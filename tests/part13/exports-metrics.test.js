@@ -1,0 +1,5 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { AutomationExportService, AutomationMetrics } from '../../src/automation-workflows/index.js';
+test('automation export service emits csv and summary', () => { const exporter = new AutomationExportService(); const csv = exporter.workflowsCsv([{ id: 'w', name: 'Workflow', state: 'ACTIVE', version: 1, triggers: [{ type: 'EVENT' }], actions: [{ type: 'CREATE_TASK' }], updatedAt: 'now' }]); assert.match(csv, /triggerTypes/); assert.match(csv, /CREATE_TASK/); assert.match(exporter.summary({ workflows: { total: 1, active: 1 }, runs: { total: 2, successRate: 50 }, notifications: { unread: 1 } }), /Success rate: 50%/); });
+test('automation metrics records counters and timings', () => { const metrics = new AutomationMetrics(); metrics.increment('runs'); metrics.observe('duration', 100); metrics.observe('duration', 200); const snapshot = metrics.snapshot(); assert.equal(snapshot.counters.runs, 1); assert.equal(snapshot.timings.duration.average, 150); });
