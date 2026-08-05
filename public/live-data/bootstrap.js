@@ -1,0 +1,1 @@
+import{LiveDataController}from'./controller.js';export function installLiveDataSystem(options={}){const controller=new LiveDataController(options);return Object.freeze({activate:()=>controller.activate(),refresh:()=>controller.refresh(),controller});}
