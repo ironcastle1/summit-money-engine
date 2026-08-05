@@ -1,0 +1,5 @@
+function attributes(text){return Object.fromEntries([...String(text||'').matchAll(/([:\w-]+)=["']([^"']*)["']/g)].map(match=>[match[1],match[2]]));}
+export class EcbFxConnector{
+  constructor(options){this.http=options.http;this.url=options.url||'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';}
+  async fetch(){const xml=await this.http.text(this.url,{upstream:'ecb-fx',attempts:2,timeoutMs:12000,accept:'application/xml,text/xml'});const date=attributes(xml.match(/<Cube\s+time=["'][^"']+["'][^>]*>/i)?.[0]).time||null;const records=[...xml.matchAll(/<Cube\s+currency=["'][^"']+["']\s+rate=["'][^"']+["']\s*\/?\s*>/gi)].map(match=>{const row=attributes(match[0]);return{base:'EUR',quote:row.currency,rate:Number(row.rate),date,source:'ECB'};}).filter(row=>Number.isFinite(row.rate));if(!records.length)throw Object.assign(new Error('ECB returned no exchange rates'),{code:'ECB_NO_DATA'});return{records,observedAt:date?`${date}T16:00:00Z`:new Date().toISOString(),metadata:{base:'EUR'}};}
+}
