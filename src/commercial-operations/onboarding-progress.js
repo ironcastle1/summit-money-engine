@@ -1,0 +1,3 @@
+import { ONBOARDING_STEPS } from './onboarding-checklist.js';
+import { clamp, unique } from './utilities.js';
+export function onboardingProgress(completed = []) { const done = new Set(unique(completed)); const steps = ONBOARDING_STEPS.map(step => Object.freeze({ ...step, complete: done.has(step.id) })); const score = clamp(steps.filter(step => step.complete).reduce((sum, step) => sum + step.weight, 0)); return Object.freeze({ score, complete: score >= 100, completed: steps.filter(step => step.complete).length, total: steps.length, next: steps.find(step => !step.complete) || null, steps: Object.freeze(steps) }); }

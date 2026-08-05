@@ -1,0 +1,3 @@
+import { entitlementMatrix } from './entitlement-matrix.js';
+import { evaluateEntitlements } from './entitlement-evaluator.js';
+export function quotaEvaluation(planId, usage = {}, overrides = {}) { const matrix = entitlementMatrix(planId, overrides); const evaluation = evaluateEntitlements(matrix, usage); const blocked = evaluation.quotas.filter(item => item.exceeded); const warning = evaluation.quotas.filter(item => !item.exceeded && item.percentage >= 80); return Object.freeze({ ...evaluation, blocked: Object.freeze(blocked), warning: Object.freeze(warning), allowed: blocked.length === 0 }); }

@@ -1,0 +1,3 @@
+import { commercialId } from './ids.js';
+import { clean, frozen, unique } from './utilities.js';
+export function successPlanRecord(input = {}) { const now = new Date().toISOString(); return frozen({ id: clean(input.id, 190) || commercialId('success', input.title), tenantId: clean(input.tenantId, 190), title: clean(input.title || 'Customer success plan', 240), objectives: unique(input.objectives || [], 100), owners: unique(input.owners || [], 50), state: String(input.state || 'ACTIVE').toUpperCase(), renewalAt: input.renewalAt || null, milestones: Object.freeze([...(input.milestones || [])]), risks: Object.freeze([...(input.risks || [])]), createdAt: input.createdAt || now, updatedAt: now }); }

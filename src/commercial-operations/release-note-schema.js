@@ -1,0 +1,3 @@
+import { commercialId } from './ids.js';
+import { clean, frozen, unique } from './utilities.js';
+export function releaseNoteRecord(input = {}) { const now = new Date().toISOString(); return frozen({ id: clean(input.id, 190) || commercialId('release', input.version), version: clean(input.version || 'unreleased', 80), title: clean(input.title || 'Product update', 240), summary: clean(input.summary, 5000), audience: unique(input.audience || ['ALL'], 50), featureKeys: unique(input.featureKeys || [], 100), state: String(input.state || 'DRAFT').toUpperCase(), publishedAt: input.publishedAt || null, createdAt: input.createdAt || now, updatedAt: now }); }

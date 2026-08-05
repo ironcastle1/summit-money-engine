@@ -1,0 +1,3 @@
+export function hasEntitlement(matrix, feature) { return matrix?.features?.includes('ALL') || matrix?.features?.includes(String(feature || '').toUpperCase()); }
+export function remainingQuota(matrix, usage, key) { const limit = Number(matrix?.limits?.[key] || 0); const used = Number(usage?.[key] || 0); return { key, limit, used, remaining: Math.max(0, limit - used), exceeded: used > limit, percentage: limit > 0 ? Math.round(used / limit * 10000) / 100 : 0 }; }
+export function evaluateEntitlements(matrix, usage = {}) { return Object.freeze({ planId: matrix.planId, features: matrix.features, seats: matrix.seats, support: matrix.support, quotas: Object.freeze(Object.keys(matrix.limits || {}).map(key => remainingQuota(matrix, usage, key))) }); }
