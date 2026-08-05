@@ -1,0 +1,11 @@
+MERLIN V20 PART 03 VERIFICATION GATE
+
+1. All Part 03 JavaScript files pass `node --check`.
+2. Dedicated ingestion tests pass.
+3. Existing cache, event-schema and event-adapter tests pass.
+4. Application bootstrap and resilient-fallback integration tests pass.
+5. Event registry snapshots remain compatible with existing APIs.
+6. Data-platform routes are registered by the main application.
+7. Part archive contains fewer than 100 repository files.
+8. ZIP archive integrity and SHA-256 are recorded at packaging time.
+9. No generated bundle, dependency directory or runtime account data is included.
