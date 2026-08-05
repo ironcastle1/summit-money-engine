@@ -1,0 +1,3 @@
+import { clean, unique } from './utilities.js';
+export function environmentContract(input = {}) { const name = clean(input.name || input.environment, 80).toLowerCase(); if (!name)
+    throw new TypeError('Environment name required'); const required = unique(input.requiredVariables, 1000), present = new Set(Object.keys(input.values || {})); const missing = required.filter(key => !present.has(key) || String(input.values[key] ?? '').trim() === ''); return Object.freeze({ name, production: Boolean(input.production), requiredVariables: required, optionalVariables: unique(input.optionalVariables, 1000), missing, ready: missing.length === 0, region: clean(input.region || 'unspecified', 100), nodeVersion: clean(input.nodeVersion || '', 50) }); }

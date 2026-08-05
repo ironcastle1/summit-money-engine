@@ -1,0 +1,4 @@
+export function rollbackPlan(input = {}) { const triggers = input.triggers || ['SEV1 incident', 'Error rate above threshold', 'Migration failure', 'Critical smoke failure']; const steps = ['Stop rollout', 'Preserve evidence and logs', 'Restore previous application artifact']; if (input.reversibleMigrations)
+    steps.push('Reverse database migrations');
+else
+    steps.push('Restore verified pre-release backup'); steps.push('Run rollback smoke suite', 'Confirm data integrity', 'Notify stakeholders', 'Open post-incident review'); return Object.freeze({ candidateId: input.candidateId || null, triggers, steps, maximumDecisionMinutes: Number(input.maximumDecisionMinutes) || 10, artifactId: input.previousArtifactId || null, backupId: input.backupId || null, ready: Boolean(input.previousArtifactId && (input.reversibleMigrations || input.backupId)) }); }

@@ -1,0 +1,2 @@
+import { smokeScenario } from './smoke-scenario.js';
+export function endToEndScenario(input = {}) { const scenario = smokeScenario(input); return Object.freeze({ ...scenario, persona: String(input.persona || 'operator'), preconditions: Array.isArray(input.preconditions) ? input.preconditions : [], cleanup: Array.isArray(input.cleanup) ? input.cleanup : [], dataIsolation: input.dataIsolation !== false }); }
