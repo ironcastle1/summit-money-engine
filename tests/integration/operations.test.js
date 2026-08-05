@@ -96,7 +96,7 @@ test('instant local datasets and vector map assets are production-served', async
     assert.ok(markets.results.some(item => Number.isFinite(Number(item.quote?.price))));
     assert.ok(opportunities.opportunities.length > 0);
     assert.match(bundle, /new MerlinTileMap/);
-    assert.match(bundle, /20\.20\.0/);
+    assert.match(bundle, /20\.20\.1/);
     assert.match(mapEngine, /class MapEngineV20/);
     assert.match(mapEngine, /materialEarthquake/);
 });

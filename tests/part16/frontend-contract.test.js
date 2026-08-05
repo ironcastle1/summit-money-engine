@@ -6,7 +6,7 @@ test('security workspace is linked from the main shell', async () => {
     const [index, merlin] = await Promise.all([read('public/index.html'), read('public/merlin.js')]);
     assert.match(index, /data-view="security"/);
     assert.match(index, /security-v20\.css\?v=20\.16\.0/);
-    assert.match(index, /merlin\.js\?v=20\.20\.0/);
+    assert.match(index, /merlin\.js\?v=20\.20\.1/);
     assert.match(merlin, /installSecuritySystem/);
     assert.match(merlin, /view === 'security'/);
 });

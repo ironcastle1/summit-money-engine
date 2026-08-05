@@ -7,7 +7,7 @@ test('Merlin identity is applied to the application shell and PWA', async () => 
     const manifest = JSON.parse(await read('public/manifest.webmanifest'));
     assert.match(html, /MERLIN/);
     assert.match(html, /merlin-logo-inverted\.png/);
-    assert.match(html, /type="module" src="\/merlin\.js\?v=20\.20\.0"/);
+    assert.match(html, /type="module" src="\/merlin\.js\?v=20\.20\.1"/);
     assert.doesNotMatch(html, /MONEY MAP|GLOBAL INTELLIGENCE/);
     assert.equal(manifest.name, 'Merlin');
     assert.equal(manifest.short_name, 'Merlin');

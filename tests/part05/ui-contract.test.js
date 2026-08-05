@@ -5,7 +5,7 @@ const root = new URL('../../', import.meta.url);
 test('main interface uses compact map search and removes standalone shipping navigation', async () => {
     const html = await readFile(new URL('public/index.html', root), 'utf8');
     assert.match(html, /id="map-search-toggle"/);
-    assert.match(html, /type="module" src="\/merlin\.js\?v=20\.20\.0"/);
+    assert.match(html, /type="module" src="\/merlin\.js\?v=20\.20\.1"/);
     assert.doesNotMatch(html, /data-view="shipping"/);
     assert.match(html, />Major earthquakes</);
     assert.match(html, />English \/ local labels</);

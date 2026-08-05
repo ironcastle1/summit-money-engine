@@ -47,7 +47,7 @@ test('static index and bundled client are served', async () => {
     assert.equal(index.status, 200);
     const html = await index.text();
     assert.match(html, /MERLIN/);
-    assert.match(html, /merlin\.js\?v=20\.20\.0/);
+    assert.match(html, /merlin\.js\?v=20\.20\.1/);
     const app = await fetch(`${baseUrl}/merlin.js`);
     assert.equal(app.status, 200);
     assert.match(app.headers.get('content-type'), /javascript/);

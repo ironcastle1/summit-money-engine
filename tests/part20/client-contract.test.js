@@ -8,7 +8,7 @@ test('customer shell exposes mobile navigation, themes, help and skip navigation
   assert.match(html, /id="mobile-nav-toggle"/);
   assert.match(html, /id="theme-select"/);
   assert.match(html, /id="help-button"/);
-  assert.match(html, /merlin\.js\?v=20\.20\.0/);
+  assert.match(html, /merlin\.js\?v=20\.20\.1/);
 });
 
 test('customer shell has six theme choices and no Shipping navigation item', async () => {
@@ -23,7 +23,7 @@ test('browser entry installs readiness controls and material earthquake filterin
   const source = await readFile('public/merlin.js', 'utf8');
   assert.match(source, /installMarketReadiness/);
   assert.match(source, /function isMaterialEvent/);
-  assert.match(source, /20\.20\.0/);
+  assert.match(source, /20\.20\.1/);
   assert.doesNotMatch(source, /STARTING CAPITAL/);
 });
 

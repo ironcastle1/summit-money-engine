@@ -15,7 +15,7 @@ import { installReliabilitySystem } from './reliability/bootstrap.js';
 import { installReleaseSystem } from './release/bootstrap.js';
 import { installLiveDataSystem } from './live-data/bootstrap.js';
 import { installMarketReadinessSystem } from './readiness/bootstrap.js';
-const VERSION = '20.20.0';
+const VERSION = '20.20.1';
 const api = createApiClient({ timeoutMs: 9000 });
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -796,6 +796,59 @@ function updateMapData() {
     setMapSourceData('merlin-places', placeGeoJson());
     updateHtmlMarkers();
 }
+function withStartupDeadline(label, task, timeoutMs = 12000) {
+    let timer;
+    return Promise.race([
+        Promise.resolve().then(task),
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`${label} startup timed out after ${timeoutMs}ms`)), timeoutMs);
+        })
+    ]).finally(() => clearTimeout(timer));
+}
+function installImmediateSystems() {
+    const installers = [
+        ['decisionSupportSystem', 'decision support', () => installDecisionSupportSystem()],
+        ['automationSystem', 'automation', () => installAutomationSystem()],
+        ['publishingSystem', 'publishing', () => installPublishingSystem()],
+        ['commercialSystem', 'commercial', () => installCommercialSystem()],
+        ['securitySystem', 'security', () => installSecuritySystem()],
+        ['reliabilitySystem', 'reliability', () => installReliabilitySystem()],
+        ['releaseSystem', 'release', () => installReleaseSystem()],
+        ['liveDataSystem', 'live data', () => installLiveDataSystem()],
+        ['marketReadinessSystem', 'market readiness', () => installMarketReadinessSystem({
+            reportMetrics: metrics => fetch('/api/readiness/metrics', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(metrics) }),
+            onClientError: report => console.warn('Merlin client error captured', report)
+        })]
+    ];
+    for (const [key, label, install] of installers) {
+        try {
+            state[key] = install();
+        }
+        catch (error) {
+            console.warn(`Merlin ${label} system failed to initialise`, error);
+            state[key] = null;
+        }
+    }
+}
+async function installDeferredMapSystems() {
+    const installers = [
+        ['overlaySystem', 'overlay system', () => installOverlaySystem({ map: state.map }), 15000],
+        ['logisticsSystem', 'logistics system', () => installLogisticsSystem({ map: state.map }), 22000],
+        ['hazardSystem', 'hazard system', () => installHazardSystem({ map: state.map }), 15000],
+        ['marketIntelligenceSystem', 'market intelligence system', () => installMarketIntelligenceSystem({ map: state.map }), 15000],
+        ['countryRiskSystem', 'country risk system', () => installCountryRiskSystem({ map: state.map }), 18000],
+        ['conflictIntelligenceSystem', 'conflict intelligence system', () => installConflictIntelligenceSystem({ map: state.map }), 18000]
+    ];
+    for (const [key, label, install, timeoutMs] of installers) {
+        try {
+            state[key] = await withStartupDeadline(label, install, timeoutMs);
+        }
+        catch (error) {
+            console.warn(`Merlin ${label} deferred startup failed`, error);
+            state[key] = null;
+        }
+    }
+}
 async function initializeMap() {
     state.mapKind = 'tile';
     state.map = new MerlinTileMap({
@@ -819,28 +872,12 @@ async function initializeMap() {
         }
     });
     state.mapReady = true;
-    state.overlaySystem = await installOverlaySystem({ map: state.map });
-    state.logisticsSystem = await installLogisticsSystem({ map: state.map });
-    state.hazardSystem = await installHazardSystem({ map: state.map });
-    state.marketIntelligenceSystem = await installMarketIntelligenceSystem({ map: state.map });
-    state.countryRiskSystem = await installCountryRiskSystem({ map: state.map });
-    state.conflictIntelligenceSystem = await installConflictIntelligenceSystem({ map: state.map });
-    state.decisionSupportSystem = installDecisionSupportSystem();
-    state.automationSystem = installAutomationSystem();
-    state.publishingSystem = installPublishingSystem();
-    state.commercialSystem = installCommercialSystem();
-    state.securitySystem = installSecuritySystem();
-    state.reliabilitySystem = installReliabilitySystem();
-    state.releaseSystem = installReleaseSystem();
-    state.liveDataSystem = installLiveDataSystem();
-    state.marketReadinessSystem = installMarketReadinessSystem({
-        reportMetrics: metrics => fetch('/api/readiness/metrics', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(metrics) }),
-        onClientError: report => console.warn('Merlin client error captured', report)
-    });
     $('#world-map').classList.add('map-ready');
     $('#map-loading')?.remove();
     updateMapData();
     applyLayerVisibility();
+    installImmediateSystems();
+    void installDeferredMapSystems();
 }
 function mapStyleCandidates(style) {
     return [style];
@@ -1473,10 +1510,11 @@ async function boot() {
     updateLayerButtons();
     updateDrawerTabs();
     renderDrawer();
+    const preloadPromise = loadPreloads();
     await initializeMap();
-    loadPreloads().then(() => {
+    preloadPromise.then(() => {
         setTimeout(() => refreshLive({ quiet: true }), 1200);
-    });
+    }).catch(error => console.warn('Merlin preload refresh failed', error));
     setInterval(() => refreshLive({ quiet: true }), 120000);
 }
 boot().catch(error => {
