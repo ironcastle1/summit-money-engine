@@ -1,0 +1,5 @@
+export function routePlanGeoJson(plan) {
+  return Object.freeze({ type: 'FeatureCollection', features: plan.metrics.segments.map((segment, index) => Object.freeze({ type: 'Feature', id: segment.id, properties: Object.freeze({ id: segment.id, name: segment.name, order: index + 1, mode: segment.mode, distanceKm: segment.distanceKm, durationHours: segment.durationHours, routePlanId: plan.id, rank: plan.rank, recommended: plan.recommended, riskScore: plan.metrics.exposure.risk.score }), geometry: Object.freeze({ type: 'LineString', coordinates: plan.path.edges[index]?.coordinates || [] }) })) });
+}
+export function alternativesGeoJson(routes = []) { return Object.freeze({ type: 'FeatureCollection', features: routes.flatMap(route => routePlanGeoJson(route).features) }); }
+export function bottleneckGeoJson(bottlenecks, graph) { return Object.freeze({ type: 'FeatureCollection', features: bottlenecks.map(item => { const node = graph.node(item.id); return Object.freeze({ type: 'Feature', id: item.id, properties: Object.freeze({ ...item }), geometry: Object.freeze({ type: 'Point', coordinates: [node.coordinates.lon, node.coordinates.lat] }) }); }) }); }
