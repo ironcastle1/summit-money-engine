@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+runtime-data
+.tmp
+coverage
+release-output
+*.zip
+*.log
+.env
+.env.*
+!.env.example
