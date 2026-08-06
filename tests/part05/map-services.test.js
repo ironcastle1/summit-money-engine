@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { MapFeatureService } from '../../src/services/map-feature-service.js';
+import { MapSearchService } from '../../src/services/map-search-service.js';
+import { MapStyleService } from '../../src/services/map-style-service.js';
+import { MapDiagnosticsService } from '../../src/services/map-diagnostics-service.js';
+import { MapPlatformService } from '../../src/services/map-platform-service.js';
+import { LayerCatalog, CORE_MAP_LAYERS } from '../../src/geospatial/layer-catalog.js';
+const intelligenceCatalog = { countries: [{ id: 'gb', iso2: 'GB', iso3: 'GBR', name: 'United Kingdom', nativeName: 'United Kingdom', region: 'Europe', subregion: 'Northern Europe', lat: 54, lon: -2, capital: 'London' }], cities: [{ id: 'london-gb', name: 'London', country: 'United Kingdom', countryCode: 'GB', kind: 'capital', lat: 51.5, lon: -0.1 }] };
+const shippingCatalog = { ports: [{ id: 'london-port', name: 'London Gateway', country: 'United Kingdom', countryCode: 'GB', region: 'Europe', coordinates: { lat: 51.5, lon: 0.48 }, importance: 80, type: 'gateway', commodities: [], unlocode: 'GBLGP' }], chokepoints: [], geojson() { return { ports: { type: 'FeatureCollection', features: [{ type: 'Feature', id: 'london-port', geometry: { type: 'Point', coordinates: [0.48, 51.5] }, properties: { name: 'London Gateway', kind: 'PORT' } }] }, chokepoints: { type: 'FeatureCollection', features: [] }, routes: { type: 'FeatureCollection', features: [] } }; } };
+const eventService = { async globalSnapshot() { return { events: [{ id: 'event-1', title: 'Test event', category: 'conflict', lat: 51.6, lon: -0.2 }], generatedAt: new Date().toISOString(), sources: [] }; } };
+test('map feature and search services expose static catalogue records', async () => {
+    const features = new MapFeatureService({ intelligenceCatalog, shippingCatalog, eventService });
+    assert.equal(features.summary().countries, 1);
+    assert.equal(features.query('cities').features[0].properties.labelEnglish, 'London');
+    assert.equal((await features.events()).collection.features.length, 1);
+    const search = new MapSearchService({ intelligenceCatalog, shippingCatalog });
+    assert.equal(search.search('London')[0].name, 'London');
+    assert.equal(search.search('51.5,-0.1')[0].kind, 'COORDINATE');
+});
+test('map platform bootstrap and fit endpoints use bounded map policy', async () => {
+    const features = new MapFeatureService({ intelligenceCatalog, shippingCatalog, eventService });
+    const search = new MapSearchService({ intelligenceCatalog, shippingCatalog });
+    const styles = new MapStyleService();
+    const layers = new LayerCatalog(CORE_MAP_LAYERS);
+    const diagnostics = new MapDiagnosticsService({ features, search, styles, layers });
+    const platform = new MapPlatformService({ features, search, styles, diagnostics, layers });
+    assert.equal(platform.bootstrap().repeatWorld, false);
+    assert.equal(platform.bootstrap().labels.primary, 'english');
+    assert.ok(platform.fit({ bounds: { west: -10, south: 40, east: 20, north: 60 }, dimensions: { width: 900, height: 600 } }).zoom > 3);
+    assert.equal((await platform.layerData('ports')).collection.features.length, 1);
+});
