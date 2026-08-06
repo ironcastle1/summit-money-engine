@@ -1,0 +1,11 @@
+import { REFERENCE_OVERLAYS } from './reference-layers.js';
+import { TERRAIN_OVERLAYS } from './terrain-layers.js';
+import { CONFLICT_OVERLAYS } from './conflict-layers.js';
+import { POLITICS_OVERLAYS } from './politics-layers.js';
+import { LOGISTICS_OVERLAYS } from './logistics-layers.js';
+import { HAZARDS_OVERLAYS } from './hazards-layers.js';
+import { INFRASTRUCTURE_OVERLAYS } from './infrastructure-layers.js';
+import { HUMANITARIAN_OVERLAYS } from './humanitarian-layers.js';
+import { MARKETS_OVERLAYS } from './markets-layers.js';
+import { VERIFICATION_OVERLAYS } from './verification-layers.js';
+export const DEFAULT_OVERLAYS = Object.freeze([...REFERENCE_OVERLAYS, ...TERRAIN_OVERLAYS, ...CONFLICT_OVERLAYS, ...POLITICS_OVERLAYS, ...LOGISTICS_OVERLAYS, ...HAZARDS_OVERLAYS, ...INFRASTRUCTURE_OVERLAYS, ...HUMANITARIAN_OVERLAYS, ...MARKETS_OVERLAYS, ...VERIFICATION_OVERLAYS]);
