@@ -1,0 +1,1 @@
+export class PredictionConnector{constructor(options){this.service=options.service;}async fetch(){const snapshot=await this.service.list({limit:100});return{records:snapshot.markets||[],observedAt:snapshot.generatedAt,metadata:{source:snapshot.source}};}}

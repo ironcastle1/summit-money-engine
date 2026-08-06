@@ -1,0 +1,4 @@
+export class PortWatchCatalogConnector{
+  constructor(options){this.http=options.http;this.baseUrl=String(options.baseUrl||'https://portwatch.imf.org/api/search/v1').replace(/\/$/,'');}
+  async fetch(){const payload=await this.http.json(`${this.baseUrl}/collections`,{upstream:'imf-portwatch-catalog',attempts:2,timeoutMs:15000});const rows=Array.isArray(payload?.collections)?payload.collections:Array.isArray(payload)?payload:[];const records=rows.map(row=>({id:String(row.id||row.name||row.title||''),title:String(row.title||row.name||row.id||''),description:String(row.description||''),itemType:row.itemType||row.type||null,links:Array.isArray(row.links)?row.links.slice(0,20):[]})).filter(row=>row.id);if(!records.length)throw Object.assign(new Error('IMF PortWatch catalogue returned no collections'),{code:'PORTWATCH_NO_DATA'});return{records,observedAt:new Date().toISOString(),metadata:{catalogOnly:true,collectionCount:records.length}};}
+}
