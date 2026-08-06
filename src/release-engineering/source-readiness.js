@@ -1,0 +1,3 @@
+export function sourceReadiness(groups = {}) { const rows = []; for (const [group, items] of Object.entries(groups || {}))
+    for (const item of items || [])
+        rows.push({ group, id: item.id || item.name, state: String(item.state || item.status || 'UNKNOWN').toUpperCase(), required: Boolean(item.required), fresh: Boolean(item.fresh ?? true) }); const blockers = rows.filter(item => item.required && (!['HEALTHY', 'READY', 'AVAILABLE', 'CONFIGURED'].includes(item.state) || !item.fresh)); return Object.freeze({ rows, ready: blockers.length === 0, blockers, groupCount: new Set(rows.map(item => item.group)).size }); }

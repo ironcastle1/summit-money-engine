@@ -1,0 +1,2 @@
+import { finite, ratio } from './utilities.js';
+export function availabilityWindow(events = [], windowMinutes = 43200) { const cutoff = Date.now() - Number(windowMinutes) * 60000; const rows = events.filter(item => Date.parse(item.recordedAt || item.at || 0) >= cutoff); const good = rows.reduce((s, item) => s + finite(item.good), 0); const total = rows.reduce((s, item) => s + finite(item.total), 0); return Object.freeze({ availability: total ? ratio(good, total) * 100 : null, good, total, windowMinutes, samples: rows.length }); }
