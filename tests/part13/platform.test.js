@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createAutomationPlatformService } from '../../src/services/automation-platform-service.js';
+import { decisionSupportStub, signalFixture, workflowFixture } from './fixtures.js';
+test('platform seeds templates and executes integrated workflow', async () => { const decision = decisionSupportStub(); const platform = createAutomationPlatformService({ decisionSupport: decision, fetchImpl: async () => ({ ok: true, status: 200 }) }); const templates = await platform.seedTemplates('u'); assert.equal(templates.length, 4); const workflow = await platform.saveWorkflow('u', workflowFixture()); const run = await platform.run('u', workflow.id, { manual: false, signal: signalFixture() }); assert.equal(run.state, 'SUCCEEDED'); assert.equal(decision.records.tasks.length, 1); assert.equal((await platform.notifications.list('u')).length, 1); });
+test('platform diagnostics and snapshot report operational state', async () => { const platform = createAutomationPlatformService({ decisionSupport: decisionSupportStub() }); await platform.seedTemplates('u'); const snapshot = await platform.snapshot('u'); assert.equal(snapshot.diagnostics.status, 'READY'); assert.equal(snapshot.workflows.length, 4); });

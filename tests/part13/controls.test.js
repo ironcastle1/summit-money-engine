@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { DedupeWindow, IdempotencyStore, quietHoursDecision, RatePolicy, suppressionDecision } from '../../src/automation-workflows/index.js';
+test('dedupe and idempotency stores enforce repeat controls', () => { const dedupe = new DedupeWindow(); dedupe.mark('x', 1000); assert.equal(dedupe.seen('x', 5, 2000), true); const store = new IdempotencyStore(); store.put('x', { ok: true }, 1000, 100); assert.deepEqual(store.get('x', 200), { ok: true }); assert.equal(store.get('x', 1200), null); });
+test('quiet hours allow critical bypass', () => { assert.equal(quietHoursDecision({ enabled: true, start: '22:00', end: '07:00', timezone: 'UTC', severity: 'IMPORTANT' }, new Date('2026-08-04T23:00:00Z')).quiet, true); assert.equal(quietHoursDecision({ enabled: true, start: '22:00', end: '07:00', timezone: 'UTC', severity: 'CRITICAL', bypassSeverities: ['CRITICAL'] }, new Date('2026-08-04T23:00:00Z')).quiet, false); });
+test('rate policy blocks beyond limit', () => { const rate = new RatePolicy(); assert.equal(rate.consume('x', { limit: 1, windowMs: 1000 }, 100).allowed, true); assert.equal(rate.consume('x', { limit: 1, windowMs: 1000 }, 200).allowed, false); });
+test('suppression policy finds recent equivalent run', () => { const result = suppressionDecision({ minutes: 10, keyPath: 'signal.id' }, { signal: { id: 'a' } }, [{ id: 'r1', createdAt: new Date().toISOString(), suppressionKey: 'a' }]); assert.equal(result.suppressed, true); });
