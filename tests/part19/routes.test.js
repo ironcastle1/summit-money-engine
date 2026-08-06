@@ -1,0 +1,2 @@
+import test from'node:test';import assert from'node:assert/strict';import{Router}from'../../src/http/router.js';import{registerLiveDataRoutes}from'../../src/api/register-live-data-routes.js';
+test('live-data routes register without collision',()=>{const router=new Router();const live={catalog:()=>({}),snapshot:async()=>({}),diagnostics:async()=>({}),sourceData:async()=>null,refresh:async()=>({}),export:async()=>({contentType:'application/json',extension:'json',body:'{}'})};registerLiveDataRoutes(router,{liveData:live});assert.ok(router.list().length>=6);});

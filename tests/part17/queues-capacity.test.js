@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { queueRecord, queueHealth, jobRecord, deadLetterRecord, capacityModel, autoscalingPlan, operationalCost } from '../../src/reliability-operations/index.js';
+test('queue health detects backlogs and poison-message pressure', () => { const queue = queueRecord({ name: 'q', depth: 10000, consumers: 1, ingressPerMinute: 200, egressPerMinute: 20, oldestJobAgeSeconds: 7200, deadLetters: 200 }); assert.equal(queueHealth(queue).state, 'CRITICAL'); });
+test('jobs and dead letters preserve replay evidence', () => { const job = jobRecord({ queueId: 'q', type: 'INGEST' }); const dead = deadLetterRecord({ jobId: job.id, queueId: 'q', reason: 'bad payload' }); assert.equal(dead.state, 'QUARANTINED'); });
+test('capacity and autoscaling calculate headroom', () => { const model = capacityModel({ demandSamples: [50, 80, 90], currentCapacity: 100, growthPercent: 20, targetUtilization: 70 }); assert.ok(model.requiredCapacity > 100); assert.equal(autoscalingPlan({ currentReplicas: 2, utilization: 90, targetUtilization: 60 }).direction, 'SCALE_OUT'); assert.ok(operationalCost({ instances: 2, instanceHourlyCost: .1 }).monthlyTotal > 0); });

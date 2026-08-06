@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { incidentSeverity, operationalIncident, incidentTimelineEntry, postmortemRecord, runbookExecution, onCallSchedule, currentOnCall } from '../../src/reliability-operations/index.js';
+test('incident severity reflects customer and data impact', () => { assert.equal(incidentSeverity({ customerImpact: 100, scope: 100, dataRisk: 100, durationRisk: 100 }).severity, 'SEV1'); });
+test('incident command retains timeline and blameless postmortem actions', () => { const incident = operationalIncident({ title: 'API outage', serviceIds: ['api'], customerImpact: 90, scope: 80 }); const entry = incidentTimelineEntry({ incidentId: incident.id, message: 'Mitigation started' }); const postmortem = postmortemRecord({ incidentId: incident.id, rootCause: 'Bad release', actions: [{ owner: 'platform', description: 'Add gate' }] }); assert.equal(entry.incidentId, incident.id); assert.equal(postmortem.blameless, true); });
+test('runbooks and on-call rotation are executable', () => { assert.equal(runbookExecution({ runbookId: 'api-unavailable' }).steps.length, 5); const schedule = onCallSchedule({ members: ['a', 'b'], startsAt: '2026-01-01T00:00:00.000Z', rotationHours: 24 }); assert.ok(['a', 'b'].includes(currentOnCall(schedule, Date.parse('2026-01-02T01:00:00.000Z')).userId)); });

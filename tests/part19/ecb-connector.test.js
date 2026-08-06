@@ -1,0 +1,2 @@
+import test from'node:test';import assert from'node:assert/strict';import{EcbFxConnector}from'../../src/live-data/connectors/ecb-fx-connector.js';
+test('ECB connector parses daily XML',async()=>{const http={text:async()=>`<Envelope><Cube><Cube time="2026-08-04"><Cube currency="USD" rate="1.15"/><Cube currency="GBP" rate="0.87"/></Cube></Cube></Envelope>`};const out=await new EcbFxConnector({http}).fetch();assert.equal(out.records.length,2);assert.equal(out.records[0].base,'EUR');});

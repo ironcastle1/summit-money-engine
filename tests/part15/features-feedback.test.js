@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { featureFlagRecord, evaluateFeatureFlag, feedbackRecord, satisfactionMetrics } from '../../src/commercial-operations/index.js';
+test('feature rollout respects explicit tenant inclusion', () => { const flag = featureFlagRecord({ key: 'PRIVATE', rollout: 'TENANTS', tenantIds: ['t1'] }); assert.equal(evaluateFeatureFlag(flag, { tenantId: 't1' }).enabled, true); assert.equal(evaluateFeatureFlag(flag, { tenantId: 't2' }).enabled, false); });
+test('percentage rollout is deterministic per tenant', () => { const flag = featureFlagRecord({ key: 'BETA', rollout: 'PERCENTAGE', percentage: 50 }); const first = evaluateFeatureFlag(flag, { tenantId: 't1' }); const second = evaluateFeatureFlag(flag, { tenantId: 't1' }); assert.deepEqual(first, second); });
+test('satisfaction metrics calculate NPS, CSAT and feedback counts', () => { const feedback = [feedbackRecord({ type: 'NPS', score: 10 }), feedbackRecord({ type: 'NPS', score: 2 }), feedbackRecord({ type: 'CSAT', score: 5 }), feedbackRecord({ type: 'IDEA' })]; const result = satisfactionMetrics(feedback); assert.equal(result.nps, 0); assert.equal(result.csat, 5); assert.equal(result.ideas, 1); });
