@@ -1,6 +1,6 @@
 import { clampInteger, optionalString, requiredEnum } from '../core/validation.js';
 
-const VERSION = '20.20.0-merlin';
+const VERSION = '23.0.0-merlin';
 
 function parseRssFeeds(value) {
   const defaults = [
@@ -65,7 +65,7 @@ export function loadConfig(env = {}) {
       timeoutMs: clampInteger(env.MAP_TILE_TIMEOUT_MS, 8_000, 1_000, 30_000),
       maxZoom: clampInteger(env.MAP_TILE_MAX_ZOOM, 19, 8, 20)
     }),
-    userAgent: optionalString(env.DATA_USER_AGENT, 'Merlin/20.0 intelligence-platform'),
+    userAgent: optionalString(env.DATA_USER_AGENT, 'Merlin/23.0 current-events-platform'),
     sourceRefreshMs: clampInteger(env.SOURCE_REFRESH_MS, 120_000, 30_000, 3_600_000),
     sourceStaleMs: clampInteger(env.SOURCE_STALE_MS, 900_000, 60_000, 86_400_000),
     httpTimeoutMs: clampInteger(env.HTTP_TIMEOUT_MS, 12_000, 1_000, 60_000),

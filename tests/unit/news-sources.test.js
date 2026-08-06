@@ -22,10 +22,10 @@ test('GDELT adapter normalizes article-list results and sends bounded parameters
 });
 
 test('RSS adapter parses RSS 2.0, Atom links, descriptions and images', async () => {
-  const rss = '<rss><channel><title>Test Feed</title><item><title>Storm shuts port</title><guid>x1</guid><link>https://example.com/x1</link><description><![CDATA[Port traffic stopped]]></description><pubDate>Wed, 29 Jul 2026 17:00:00 GMT</pubDate><media:thumbnail url="https://example.com/image.jpg"/></item></channel></rss>';
+  const rss = `<rss><channel><title>Test Feed</title><item><title>Storm shuts port</title><guid>x1</guid><link>https://example.com/x1</link><description><![CDATA[Port traffic stopped]]></description><pubDate>${new Date().toUTCString()}</pubDate><media:thumbnail url="https://example.com/image.jpg"/></item></channel></rss>`;
   const http = { text: async () => rss };
   const source = new RssNewsSource({ ...options(http), feeds: [{ id: 'test', name: 'Test', url: 'https://example.com/rss', domain: 'example.com' }] });
-  const result = await source.search({ hours: 168 });
+  const result = await source.search({ hours: 48 });
   assert.equal(result.articles.length, 1);
   assert.equal(result.articles[0].category, 'storm');
   assert.equal(result.articles[0].imageUrl, 'https://example.com/image.jpg');

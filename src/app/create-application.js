@@ -10,7 +10,6 @@ import { createRequestDeadline } from '../http/request-deadline.js';
 import { TtlCache } from '../infra/cache/ttl-cache.js';
 import { createFetchClient } from '../infra/http/fetch-client.js';
 import { SourceRegistry } from '../sources/source-registry.js';
-import { UsgsSource } from '../sources/usgs-source.js';
 import { EonetSource } from '../sources/eonet-source.js';
 import { GdacsSource } from '../sources/gdacs-source.js';
 import { AcledSource } from '../sources/acled-source.js';
@@ -164,7 +163,6 @@ export async function createApplication(options) {
     const sourceOptions = { http, cache, logger: logger.child({ component: 'source' }), refreshMs: config.sourceRefreshMs, staleMs: config.sourceStaleMs, userAgent: config.userAgent };
     const registry = new SourceRegistry({ logger: logger.child({ component: 'source-registry' }) })
         .register(new SnapshotEventSource({ ...sourceOptions, events: fallbackEventPayload.events }))
-        .register(new UsgsSource(sourceOptions))
         .register(new EonetSource(sourceOptions))
         .register(new GdacsSource(sourceOptions))
         .register(new NwsAlertsSource({ ...sourceOptions, configured: config.intelligence.nwsEnabled }))

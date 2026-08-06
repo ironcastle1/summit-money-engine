@@ -1,18 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
-test('market workspace imports and installs the intelligence controller', async () => {
-  const source = await readFile(new URL('../../public/merlin.js', import.meta.url), 'utf8');
-  assert.match(source, /installMarketIntelligenceSystem/);
-  assert.match(source, /marketIntelligenceSystem\.activate/);
+
+test('market workspace loads the simplified live market client', async () => {
+  const [source, html] = await Promise.all([
+    readFile(new URL('../../public/merlin-v23.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../public/index.html', import.meta.url), 'utf8')
+  ]);
+  assert.match(source, /api\/markets\/screener/);
+  assert.match(source, /renderMarkets/);
+  assert.match(html, /data-view="markets"/);
 });
-test('market client exposes heatmap screener detail watchlist and scenario modules', async () => {
+
+test('advanced market modules remain available for future paid features', async () => {
   for (const file of ['heatmap.js', 'screener-table.js', 'detail-panel.js', 'watchlist-panel.js', 'scenario-panel.js', 'market-layer.js']) {
     const info = await stat(new URL(`../../public/market-intelligence/${file}`, import.meta.url));
     assert.equal(info.isFile(), true);
   }
 });
-test('market stylesheet is linked by the application shell', async () => {
+
+test('customer shell uses the unified stylesheet rather than stacking old market CSS', async () => {
   const html = await readFile(new URL('../../public/index.html', import.meta.url), 'utf8');
-  assert.match(html, /market-intelligence-v20\.css/);
+  assert.match(html, /merlin-v23\.css/);
+  assert.doesNotMatch(html, /market-intelligence-v20\.css/);
 });

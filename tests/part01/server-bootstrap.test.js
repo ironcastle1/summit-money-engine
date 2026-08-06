@@ -19,7 +19,7 @@ test('server bootstrap exposes startup diagnostics and stops cleanly', async () 
   const response = await fetch(`http://127.0.0.1:${address.port}/api/ops/startup`);
   const payload = await response.json();
   assert.equal(response.status, 200);
-  assert.equal(payload.version, '20.20.0-merlin');
+  assert.equal(payload.version, '23.0.0-merlin');
   assert.equal(payload.ready, true);
 
   const stopped = await runtime.stop('test');

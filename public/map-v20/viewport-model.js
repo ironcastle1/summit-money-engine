@@ -2,6 +2,7 @@ import { DEFAULT_CENTER } from './constants.js';
 import { clampViewport } from './world-boundary.js';
 import { project, unproject } from './projection.js';
 export class ViewportModel {
+    get zoom() { return this.state.zoom; }
     constructor(options = {}) { this.state = clampViewport({ center: { lat: Number(options.center?.lat ?? DEFAULT_CENTER.lat), lon: Number(options.center?.lon ?? DEFAULT_CENTER.lon) }, zoom: Number(options.zoom ?? 2), size: { width: Math.max(320, Number(options.width || 320)), height: Math.max(240, Number(options.height || 240)) } }); }
     snapshot() { return { center: { ...this.state.center }, zoom: this.state.zoom, minimumZoom: this.state.minimumZoom, size: { ...this.state.size } }; }
     resize(width, height) { this.state = clampViewport({ ...this.state, size: { width: Math.max(320, Math.round(width)), height: Math.max(240, Math.round(height)) } }); return this.snapshot(); }

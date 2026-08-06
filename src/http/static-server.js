@@ -37,7 +37,7 @@ function cacheControl(extension, production, requestPath) {
   if (extension === '.html') return 'no-store, max-age=0, must-revalidate';
   if (!production || requestPath === '/sw.js' || requestPath.endsWith('.webmanifest')) return 'no-cache';
   const fingerprinted = /[.-][a-f0-9]{8,}[.-]/i.test(requestPath);
-  return fingerprinted ? 'public, max-age=31536000, immutable' : 'public, max-age=3600, stale-while-revalidate=86400';
+  return fingerprinted ? 'public, max-age=31536000, immutable' : 'no-cache, max-age=0, must-revalidate';
 }
 
 function weakEtag(info, body) {

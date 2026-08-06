@@ -18,9 +18,12 @@ function filterArticles(articles, options) {
   const sourceTypes = new Set((options.sourceTypes || []).map(value => String(value).toUpperCase()));
   const countries = new Set((options.countries || []).map(value => String(value).toUpperCase()));
   const tickers = new Set((options.tickers || []).map(value => String(value).toUpperCase()));
-  const cutoff = Date.now() - (options.hours || 24) * 3_600_000;
+  const effectiveHours = Math.min(48, Math.max(1, Number(options.hours || 24)));
+  const cutoff = Date.now() - effectiveHours * 3_600_000;
   return articles.filter(article => {
     if (toTimestamp(article.publishedAt) < cutoff) return false;
+    if (String(article.category || '').toLowerCase() === 'earthquake') return false;
+    if (/\b(earthquake|aftershock|seismic|quake|magnitude\s*[0-9])\b/i.test(`${article.title || ''} ${article.summary || ''}`)) return false;
     if (categories.size && !categories.has(article.category)) return false;
     if (sourceTypes.size && !sourceTypes.has(article.sourceType)) return false;
     if (countries.size && !article.countries.some(country => countries.has(country.toUpperCase()))) return false;
@@ -44,7 +47,7 @@ export class NewsIntelligenceService {
   async search(options = {}) {
     const sourceSnapshot = await this.registry.search({
       query: options.sourceQuery || options.query || '',
-      hours: options.hours || 24,
+      hours: Math.min(48, Math.max(1, Number(options.hours || 24))),
       limit: Math.min(250, Math.max(20, Number(options.sourceLimit || 100))),
       sources: options.sources,
       sort: options.sort || 'latest'
@@ -65,7 +68,7 @@ export class NewsIntelligenceService {
     const output = Object.freeze({
       articles: Object.freeze(articles.slice(0, Math.min(500, limit * 5)).map(publicArticle)),
       stories: Object.freeze(enrichedStories.slice(0, limit)),
-      analytics: Object.freeze({ ...newsAnalytics(articles, enrichedStories, { hours: options.hours || 24 }), provenance: provenance.metrics }),
+      analytics: Object.freeze({ ...newsAnalytics(articles, enrichedStories, { hours: Math.min(48, Math.max(1, Number(options.hours || 24))) }), provenance: provenance.metrics }),
       provenance: Object.freeze({ nodes: provenance.nodes.slice(0, 300), edges: provenance.edges.slice(0, 600), metrics: provenance.metrics }),
       sources: sourceSnapshot.sources,
       rawCount: sourceSnapshot.rawCount,

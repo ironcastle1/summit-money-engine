@@ -1,1 +1,16 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';test('client exposes advanced overlay controls',async()=>{const [controller,engine,css,index]=await Promise.all([readFile('public/overlays/overlay-controller.js','utf8'),readFile('public/map-v20/map-engine.js','utf8'),readFile('public/css/overlays.css','utf8'),readFile('public/index.html','utf8')]);assert.match(controller,/OverlayViewportLoader/);assert.match(engine,/registerOverlay/);assert.match(engine,/PolygonRenderer/);assert.match(css,/overlay-panel/);assert.match(index,/overlays\.css/);});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, stat } from 'node:fs/promises';
+
+test('advanced overlay implementation remains available without cluttering the customer shell', async () => {
+  const [controller, engine, index] = await Promise.all([
+    readFile('public/overlays/overlay-controller.js', 'utf8'),
+    readFile('public/map-v20/map-engine.js', 'utf8'),
+    readFile('public/index.html', 'utf8')
+  ]);
+  assert.match(controller, /OverlayViewportLoader/);
+  assert.match(engine, /PolygonRenderer/);
+  assert.equal((await stat('public/css/overlays.css')).isFile(), true);
+  assert.doesNotMatch(index, /overlays\.css|overlay-panel/);
+  assert.match(index, />Current events</);
+});

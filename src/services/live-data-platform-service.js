@@ -12,7 +12,6 @@ import { PortWatchCatalogConnector } from '../live-data/connectors/portwatch-cat
 import { CoinbasePublicConnector, BinancePublicConnector } from '../live-data/connectors/public-market-connectors.js';
 import { NoaaCoopsConnector, NdbcObservationConnector } from '../live-data/connectors/shipping-observation-connectors.js';
 import { UnComtradePublicConnector } from '../live-data/connectors/un-comtrade-public-connector.js';
-import { retainMaterialEarthquake } from '../overlays/material-earthquake-gate.js';
 
 export async function createLiveDataPlatformService(options = {}) {
   const store = new LiveSnapshotStore({
@@ -32,11 +31,6 @@ export async function createLiveDataPlatformService(options = {}) {
   platform.register('news-core', new NewsRegistryConnector({
     registry: options.newsRegistry,
     sources: ['gdelt', 'rss']
-  }));
-  platform.register('usgs', new EventRegistryConnector({
-    registry: options.registry,
-    sourceIds: ['usgs'],
-    filter: retainMaterialEarthquake
   }));
   platform.register('nasa-eonet', new EventRegistryConnector({
     registry: options.registry,

@@ -1,35 +1,49 @@
-# MERLIN V22 — Global Intelligence and Opportunity Platform
+# Merlin V23 — Current Events and Commercial Opportunities
 
-Merlin is a map-first operating system for monitoring world events, market reactions, logistics exposure, political risk and commercial opportunities. The V22 release retains the complete V20 intelligence, account, billing, live-data, security and operations platform while replacing the customer-facing interface with a unified premium visual system.
+Merlin is a customer-facing world-events product built around three practical questions:
 
-## V22 interface
+1. What has changed in the last 24 hours?
+2. Where is it happening and what can I click to inspect?
+3. What commercial research lead or market implication follows from it?
 
-- Permanent professional navigation arranged by Intelligence, Workflows and Administration.
-- A bounded full-screen intelligence map with compact search, layer controls and viewport-safe drawers.
-- English-first place labels with local names shown second where available.
-- Six coordinated themes covering the shell, map, tables, forms, cards and analytical workspaces.
-- Responsive desktop, laptop, tablet and mobile layouts.
-- Accessible focus states, keyboard navigation, onboarding and reduced-motion support.
-- Non-blocking startup: local catalogue and cached data open immediately while optional live systems initialise in the background.
-- One self-contained production browser bundle, avoiding fragile multi-module startup chains on hosted deployments.
+V23 replaces the previous internal-operations interface with a fast, simple product intended for paying users.
 
-## Product principles
+## Customer product
 
-- The map remains the primary working surface.
-- Shipping intelligence is exposed through map layers, route analysis and contextual drawers rather than a standalone navigation tab.
-- Earthquakes are shown only when they meet a material-impact policy covering major magnitude, population exposure, infrastructure, ports, chokepoints or national disruption.
-- Core public feeds warm automatically without mandatory API keys. Static catalogues, cached snapshots and configured connectors remain labelled separately.
-- Every map entity is expected to open a usable detail surface.
-- Panels and drawers are viewport-bounded and independently scrollable.
-- Themes apply to the application shell, charts and map treatment together.
+The visible application contains only:
+
+- **Live map** — current events, current news, major ports and optional shipping routes.
+- **Opportunities** — ranked commercial research leads with beneficiaries, potential customers, immediate actions and verification steps.
+- **Markets** — current public market data and notable movers.
+- **Conflicts** — current conflict-related reporting from the selected time window.
+- **Countries** — current activity grouped by country.
+- **Daily briefing** — a concise summary of current events, opportunities and markets.
+- **Saved items** — a browser-stored customer watchlist.
+
+Internal account, billing, source, security and operational services remain available to the application, but they are not presented as customer navigation.
+
+## V23 corrections
+
+- Removed earthquake news, earthquake map layers and USGS earthquake ingestion from the customer product.
+- Default data window is 24 hours; the maximum customer window is 48 hours.
+- Old fallback news and events are not used to make the application appear populated.
+- Map markers and labels render correctly through the shared viewport state.
+- Place labels are English first; local names appear second only when useful at closer zoom levels.
+- Static country, city, port and route catalogues are served from `public/data` immediately.
+- Map tiles load directly from CARTO rather than waiting for a Render tile proxy.
+- Existing tiles remain visible while the next zoom level loads.
+- Touchpad and mouse-wheel zoom are throttled and substantially less aggressive.
+- The Merlin logo is inline SVG and cannot fail as a missing image asset.
+- Detail panels, feeds and workspaces have visible independent scrollbars.
+- Theme/colour switching and customer-facing administration clutter were removed.
+- Current-data APIs load concurrently with hard browser deadlines; the map itself does not wait for them.
 
 ## Runtime
 
 Requirements:
 
 - Node.js 20 or newer
-- No mandatory runtime npm dependencies
-- A writable `runtime-data` directory for account and session storage
+- A writable `runtime-data` directory
 
 Development:
 
@@ -44,28 +58,35 @@ Production minimum:
 
 ```text
 NODE_ENV=production
-PUBLIC_ORIGIN=https://your-domain.example
+PUBLIC_ORIGIN=https://your-real-domain.example
 SESSION_SECRET=<at-least-32-random-characters>
 SECURE_COOKIES=true
 ```
 
-On Render, Merlin can derive `PUBLIC_ORIGIN` from Render's supplied external URL or hostname when the explicit variable is absent. The startup readiness gate still refuses unsafe production placeholders. Public-first live-data services persist their last successful snapshots. ReliefWeb, ACLED, X and licensed global AIS remain optional because their providers require approved application identifiers, credentials or commercial access.
+For the existing Render service, use:
+
+```text
+PUBLIC_ORIGIN=https://summit-money-engine-1.onrender.com
+```
 
 ## Verification
 
 ```bash
 npm test
-npm run verify:part20
-npm run browser:part20
+npm run test:v23
+npm run browser:v23
 npm run security:scan
-npm run lines
+npm run verify:imports
 ```
 
-The complete repository is delivered in exactly 20 numbered GitHub upload ZIPs. Every ZIP contains fewer than 100 files and preserves repository-relative paths. Extract each ZIP and upload its contents into the same GitHub repository in numerical order.
+The release was verified with the complete Node test suite, JavaScript syntax checks, an import-graph audit, a secret scan, a production server smoke test and rendered Chromium interaction tests at desktop and mobile sizes.
 
-## Release documentation
+## Replacing the GitHub repository with GitHub Desktop
 
-- `docs/release/V22-AESTHETIC-REBUILD.md`
-- `docs/release/PART-20-ACCEPTANCE.md`
-- `docs/PART-19-LIVE-DATA.md`
-- `docs/release/V20-PARTS.md`
+1. Clone `ironcastle1/summit-money-engine` in GitHub Desktop.
+2. Open the cloned repository folder in Explorer.
+3. Keep the hidden `.git` directory.
+4. Delete the other repository contents.
+5. Extract the complete Merlin V23 ZIP and copy everything inside into the cloned repository folder.
+6. In GitHub Desktop, commit the replacement and push `main`.
+7. Render will deploy the complete repository as one commit.

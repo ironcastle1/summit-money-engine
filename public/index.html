@@ -1,178 +1,152 @@
 <!doctype html>
-<html lang="en" data-theme="obsidian">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#090d12">
-  <meta name="description" content="Merlin is a map-first global intelligence, risk, logistics and opportunity operating system.">
-  <meta name="color-scheme" content="dark light">
-  <title>Merlin Intelligence</title>
-  <link rel="icon" href="/icons/merlin-64.png" type="image/png">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="preload" href="/data/bootstrap-v18.json" as="fetch" crossorigin="same-origin">
-  <link rel="stylesheet" href="/css/merlin-v18.css?v=20.0.0">
-  <link rel="stylesheet" href="/css/map-v20.css?v=20.0.0">
-  <link rel="stylesheet" href="/css/overlays.css?v=20.0.0">
-  <link rel="stylesheet" href="/css/logistics-v20.css?v=20.0.0">
-  <link rel="stylesheet" href="/css/hazards-v20.css?v=20.0.0">
-  <link rel="stylesheet" href="/css/market-intelligence-v20.css?v=20.9.0">
-  <link rel="stylesheet" href="/css/country-risk-v20.css?v=20.10.0">
-  <link rel="stylesheet" href="/css/conflict-intelligence-v20.css?v=20.11.0">
-  <link rel="stylesheet" href="/css/decision-support-v20.css?v=20.12.0">
-  <link rel="stylesheet" href="/css/automation-v20.css?v=20.13.0">
-  <link rel="stylesheet" href="/css/publishing-v20.css?v=20.14.0">
-  <link rel="stylesheet" href="/css/commercial-v20.css?v=20.15.0">
-  <link rel="stylesheet" href="/css/security-v20.css?v=20.16.0">
-  <link rel="stylesheet" href="/css/reliability-v20.css?v=20.18.0">
-  <link rel="stylesheet" href="/css/release-v20.css?v=20.18.0">
-  <link rel="stylesheet" href="/css/live-data-v20.css?v=20.19.0">
-  <link rel="stylesheet" href="/css/readiness-v20.css?v=20.20.0">
-  <link rel="stylesheet" href="/css/merlin-22.css?v=22.0.0">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="Merlin turns current world events, markets and logistics into clear research leads and commercial opportunities.">
+  <title>Merlin</title>
+  <link rel="manifest" href="/manifest.webmanifest?v=23.0.0">
+  <link rel="stylesheet" href="/css/map-v20.css?v=23.0.0">
+  <link rel="stylesheet" href="/css/merlin-v23.css?v=23.0.0">
 </head>
 <body>
-  <a class="skip-link" href="#main-workspace">Skip to main workspace</a>
-  <div id="app" class="merlin-shell" data-view="map">
-    <header class="merlin-header">
-      <button id="home-button" class="merlin-brand" type="button" aria-label="Open live map">
-        <span class="merlin-brand-mark" aria-hidden="true"><img src="/assets/merlin-logo-inverted.png" alt=""></span>
-        <span class="brand-copy"><strong>MERLIN</strong><small>GLOBAL INTELLIGENCE</small></span>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <button class="brand" id="brand-home" type="button" aria-label="Open live map">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" role="img"><path d="M7 31.5c6.5-2.2 8.6-7.9 8.6-13.3 0-5.4 3.4-9.7 8.2-9.7 4.3 0 7.6 3.1 7.6 7.3 0 5.8-5.7 10.1-12.7 10.1-2.2 0-4.1-.3-5.8-.9 2.4 3.3 6.2 5.5 10.9 5.5 3.1 0 5.9-.9 8.2-2.5-2.7 5-7.9 8.4-13.9 8.4-4.4 0-8.3-1.8-11.1-4.9Z"/><circle cx="25.5" cy="14.2" r="1.5"/></svg>
+        </span>
+        <span><strong>Merlin</strong><small>World events and opportunities</small></span>
       </button>
 
-      <nav class="merlin-nav" aria-label="Primary">
-        <div class="nav-section">
-          <span class="nav-section-title">INTELLIGENCE</span>
-          <button class="merlin-nav-item active" data-view="map" type="button"><span class="nav-index">01</span><span>Map</span></button>
-          <button class="merlin-nav-item" data-view="opportunities" type="button"><span class="nav-index">02</span><span>Opportunities</span></button>
-          <button class="merlin-nav-item" data-view="markets" type="button"><span class="nav-index">03</span><span>Markets</span></button>
-          <button class="merlin-nav-item" data-view="conflict" type="button"><span class="nav-index">04</span><span>Conflict</span></button>
-          <button class="merlin-nav-item" data-view="places" type="button"><span class="nav-index">05</span><span>Places</span></button>
-          <button class="merlin-nav-item" data-view="live-data" type="button"><span class="nav-index">06</span><span>Live data</span></button>
-        </div>
-        <div class="nav-section">
-          <span class="nav-section-title">WORKFLOWS</span>
-          <button class="merlin-nav-item" data-view="briefings" type="button"><span class="nav-index">07</span><span>Briefings</span></button>
-          <button class="merlin-nav-item" data-view="automation" type="button"><span class="nav-index">08</span><span>Automation</span></button>
-          <button class="merlin-nav-item" data-view="publishing" type="button"><span class="nav-index">09</span><span>Publishing</span></button>
-        </div>
-        <div class="nav-section">
-          <span class="nav-section-title">ADMINISTRATION</span>
-          <button class="merlin-nav-item" data-view="commercial" type="button"><span class="nav-index">10</span><span>Customers</span></button>
-          <button class="merlin-nav-item" data-view="security" type="button"><span class="nav-index">11</span><span>Security</span></button>
-          <button class="merlin-nav-item" data-view="operations" type="button"><span class="nav-index">12</span><span>Operations</span></button>
-          <button class="merlin-nav-item" data-view="release" type="button"><span class="nav-index">13</span><span>Release</span></button>
-        </div>
-        <div class="nav-footnote"><i></i><span>System online</span><b>V22</b></div>
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="map" type="button"><span class="nav-icon">⌖</span><span>Live map</span></button>
+        <button class="nav-item" data-view="opportunities" type="button"><span class="nav-icon">↗</span><span>Opportunities</span></button>
+        <button class="nav-item" data-view="markets" type="button"><span class="nav-icon">▥</span><span>Markets</span></button>
+        <button class="nav-item" data-view="conflicts" type="button"><span class="nav-icon">◉</span><span>Conflicts</span></button>
+        <button class="nav-item" data-view="countries" type="button"><span class="nav-icon">◎</span><span>Countries</span></button>
+        <button class="nav-item" data-view="briefing" type="button"><span class="nav-icon">≡</span><span>Daily briefing</span></button>
+        <button class="nav-item" data-view="saved" type="button"><span class="nav-icon">☆</span><span>Saved items</span></button>
       </nav>
 
-      <div class="merlin-header-status">
-        <div class="header-context">
-          <span id="context-kicker">GLOBAL OVERVIEW</span>
-          <strong id="context-title">Live intelligence map</strong>
-        </div>
-        <div class="header-actions">
-          <button id="mobile-nav-toggle" class="header-control mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false">MENU</button>
-          <label class="visually-hidden" for="theme-select">Colour theme</label>
-          <select id="theme-select" class="header-control header-select" aria-label="Colour theme">
-            <option value="midnight">OBSIDIAN</option>
-            <option value="graphite">GRAPHITE</option>
-            <option value="forest">FOREST</option>
-            <option value="crimson">BURGUNDY</option>
-            <option value="sand">PARCHMENT</option>
-            <option value="light">LIGHT</option>
-          </select>
-          <button id="help-button" class="header-control help-button" type="button" aria-label="Open product guide" title="Product guide">GUIDE</button>
-          <span class="live-pill"><i></i><b>LIVE</b></span>
-          <span class="header-counter"><b id="header-alert-count">0</b><small>ALERTS</small></span>
-          <span class="header-counter"><b id="header-event-count">0</b><small>EVENTS</small></span>
-          <time id="utc-clock">--:--:-- UTC</time>
-          <button id="layout-toggle" class="header-icon" type="button" aria-label="Toggle map information panels" title="Toggle panels">PANEL</button>
-        </div>
+      <div class="sidebar-status">
+        <span class="status-dot" id="source-dot"></span>
+        <div><strong id="source-label">Connecting to public sources</strong><small id="source-note">The map remains usable while feeds load.</small></div>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation">☰</button>
+      <div class="page-heading"><small id="page-kicker">Current world activity</small><h1 id="page-title">Live map</h1></div>
+      <div class="topbar-actions">
+        <span class="freshness" id="freshness-badge">Loading current data…</span>
+        <button class="icon-button" id="global-search-button" type="button" aria-label="Search">⌕</button>
+        <button class="primary-button" id="refresh-button" type="button">Refresh</button>
       </div>
     </header>
 
-    <section class="market-ticker commodity-ribbon" aria-label="Market and commodity snapshot">
-      <div id="market-ticker-track"><span class="ticker-item"><span>LOADING MARKET AND COMMODITY SNAPSHOT</span></span></div>
-    </section>
+    <main id="main-content" class="main-content">
+      <section class="view active" data-view-panel="map">
+        <div class="map-layout">
+          <div class="map-stage">
+            <div id="world-map" tabindex="0" aria-label="Interactive world map"></div>
 
-    <main id="main-workspace" class="merlin-main" tabindex="-1">
-      <section class="map-stage" aria-label="Live world map">
-        <div id="world-map" class="world-map" aria-label="Interactive world map">
-          <div class="map-instant-base" aria-hidden="true"></div>
-          <div id="map-loading" class="map-loading"><span></span><b>Preparing map</b><small>Loading local intelligence first</small></div>
-        </div>
+            <div class="map-search" id="map-search">
+              <button id="map-search-toggle" class="map-search-toggle" type="button" aria-label="Open map search" aria-expanded="false">⌕</button>
+              <div class="map-search-panel">
+                <input id="global-search" type="search" autocomplete="off" placeholder="Search a country, city or port" tabindex="-1">
+                <div id="search-results" class="search-results hidden"></div>
+              </div>
+            </div>
 
-        <div class="map-search map-glass" aria-label="Map search">
-          <button id="map-search-toggle" class="map-search-toggle" type="button" aria-label="Open map search" aria-expanded="false">SEARCH</button>
-          <div class="map-search-panel">
-            <input id="global-search" type="search" autocomplete="off" spellcheck="false" placeholder="City, country, port or coordinates" tabindex="-1">
-            <kbd>/</kbd>
-            <div id="search-results" class="search-results hidden"></div>
+            <div class="map-layer-card">
+              <div class="layer-card-heading"><strong>Show on map</strong><button id="layer-collapse" type="button">Hide</button></div>
+              <label><input type="checkbox" data-layer-toggle="events" checked><i class="legend-dot event"></i><span>Current events</span><b id="event-count">0</b></label>
+              <label><input type="checkbox" data-layer-toggle="news" checked><i class="legend-dot news"></i><span>Latest news</span><b id="news-count">0</b></label>
+              <label><input type="checkbox" data-layer-toggle="ports" checked><i class="legend-dot port"></i><span>Major ports</span><b id="port-count">0</b></label>
+              <label><input type="checkbox" data-layer-toggle="routes"><i class="legend-line route"></i><span>Shipping routes</span><b id="route-count">0</b></label>
+              <label><input type="checkbox" data-layer-toggle="labels" checked><i class="legend-text">Aa</i><span>English labels</span><b>On</b></label>
+            </div>
+
+            <div class="map-controls" aria-label="Map controls">
+              <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+              <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+              <button id="world-view" type="button">World</button>
+            </div>
+
+            <div class="time-filter" aria-label="Time window">
+              <span>Show items from</span>
+              <button data-hours="6" type="button">6h</button>
+              <button data-hours="12" type="button">12h</button>
+              <button data-hours="24" class="active" type="button">24h</button>
+              <button data-hours="48" type="button">48h</button>
+            </div>
+
+            <div class="map-attribution">Map © OpenStreetMap contributors © CARTO</div>
           </div>
+
+          <aside class="current-panel" aria-label="Latest activity">
+            <header>
+              <div><small>Updated continuously</small><h2>Latest activity</h2></div>
+              <button id="current-panel-close" type="button" aria-label="Close latest activity">×</button>
+            </header>
+            <div class="feed-filters">
+              <button class="active" data-feed="all" type="button">All</button>
+              <button data-feed="conflict" type="button">Conflict</button>
+              <button data-feed="business" type="button">Business</button>
+              <button data-feed="disruption" type="button">Disruption</button>
+            </div>
+            <div id="live-feed" class="live-feed" tabindex="0"></div>
+          </aside>
         </div>
-
-        <aside id="layer-dock" class="layer-dock map-glass" aria-label="Map layers">
-          <div class="dock-title"><div><span>MAP LAYERS</span><small>Operational overlays</small></div><button id="collapse-layers" type="button" aria-label="Collapse layers">HIDE</button></div>
-          <button class="layer-button active" data-layer="alerts" type="button"><i class="layer-dot alert"></i><span>Live alerts</span><b id="count-alerts">0</b></button>
-          <button class="layer-button active" data-layer="news" type="button"><i class="layer-dot news"></i><span>News</span><b id="count-news">0</b></button>
-          <button class="layer-button active" data-layer="earthquakes" type="button"><i class="layer-dot earthquake"></i><span>Major earthquakes</span><b id="count-earthquakes">0</b></button>
-          <button class="layer-button active" data-layer="disasters" type="button"><i class="layer-dot disaster"></i><span>Disasters</span><b id="count-disasters">0</b></button>
-          <button class="layer-button active" data-layer="conflict" type="button"><i class="layer-dot conflict"></i><span>Conflict</span><b id="count-conflict">0</b></button>
-          <button class="layer-button active" data-layer="routes" type="button"><i class="layer-dot route"></i><span>Shipping routes</span><b id="count-routes">0</b></button>
-          <button class="layer-button active" data-layer="ports" type="button"><i class="layer-dot port"></i><span>Ports</span><b id="count-ports">0</b></button>
-          <button class="layer-button active" data-layer="countryRisk" type="button"><i class="layer-dot risk"></i><span>Political boundaries</span><b id="count-countries">0</b></button>
-          <button class="layer-button active" data-layer="labels" type="button"><i class="layer-dot place"></i><span>English / local labels</span><b>ON</b></button>
-          <button class="layer-button active" data-layer="heat" type="button"><i class="layer-dot heat"></i><span>Activity heat</span><b>ON</b></button>
-          <div class="dock-divider"></div>
-          <label class="base-style-control"><span>BASE MAP</span><select id="base-style"><option value="streets" selected>Detailed streets</option><option value="light">Light streets</option><option value="terrain">Terrain</option><option value="local">Local political</option></select></label>
-        </aside>
-
-        <div class="map-tools map-glass" aria-label="Map tools">
-          <button id="zoom-in" type="button" title="Zoom in" aria-label="Zoom in">+</button>
-          <button id="zoom-out" type="button" title="Zoom out" aria-label="Zoom out">−</button>
-          <button id="world-view" type="button" title="World view" aria-label="World view">WORLD</button>
-          <button id="locate-me" type="button" title="My location" aria-label="My location">LOCATE</button>
-        </div>
-
-        <div class="map-timeline map-glass">
-          <label><span>TIME WINDOW</span><select id="event-window"><option value="1">24 hours</option><option value="7" selected>7 days</option><option value="30">30 days</option></select></label>
-          <label><span>RADIUS</span><select id="radius-select"><option value="50">50 km</option><option value="100">100 km</option><option value="250" selected>250 km</option><option value="500">500 km</option><option value="1000">1,000 km</option></select></label>
-          <button id="refresh-live" type="button">Refresh live</button>
-          <span id="last-updated">UPDATED --</span>
-        </div>
-
-        <section id="map-drawer" class="map-drawer closed">
-          <header class="drawer-tabs">
-            <button class="drawer-tab active" data-drawer="alerts" type="button">Alerts <b id="tab-alert-count">0</b></button>
-            <button class="drawer-tab" data-drawer="news" type="button">News <b id="tab-news-count">0</b></button>
-            <button class="drawer-tab" data-drawer="markets" type="button">Markets</button>
-            <button class="drawer-tab" data-drawer="place" type="button">Place</button>
-            <button id="drawer-close" class="drawer-close" type="button" aria-label="Close panel">Close</button>
-          </header>
-          <div id="drawer-content" class="drawer-content"></div>
-        </section>
-
-        <article id="map-detail" class="map-detail hidden" aria-live="polite">
-          <header><div><span id="detail-type">EVENT</span><h2 id="detail-title">No selection</h2></div><button id="detail-close" type="button" aria-label="Close details">Close</button></header>
-          <p id="detail-summary"></p>
-          <div id="detail-metrics" class="detail-metrics"></div>
-          <div id="detail-actions" class="detail-actions"></div>
-        </article>
-
-        <div id="map-toast" class="map-toast hidden" role="status"></div>
       </section>
 
-      <section id="workspace-sheet" class="workspace-sheet hidden" aria-label="Analysis workspace">
-        <header class="sheet-header">
-          <div><span id="sheet-kicker">MERLIN</span><h1 id="sheet-title">OPPORTUNITIES</h1></div>
-          <div class="sheet-actions"><input id="sheet-search" type="search" placeholder="Filter current workspace"><button id="sheet-refresh" type="button">Refresh</button><button id="sheet-close" type="button">Return to map</button></div>
-        </header>
-        <div id="sheet-summary" class="sheet-summary"></div>
-        <div id="sheet-content" class="sheet-content"></div>
+      <section class="view workspace" data-view-panel="opportunities">
+        <div class="workspace-header"><div><small>Research leads based on current signals</small><h2>Opportunities</h2></div><span class="workspace-meta" id="opportunity-meta">Loading…</span></div>
+        <div class="workspace-toolbar"><input id="opportunity-search" type="search" placeholder="Filter opportunities"><button data-opportunity-filter="all" class="active">All</button><button data-opportunity-filter="market">Markets</button><button data-opportunity-filter="event">World events</button></div>
+        <div id="opportunity-grid" class="opportunity-grid scroll-area"></div>
+      </section>
+
+      <section class="view workspace" data-view-panel="markets">
+        <div class="workspace-header"><div><small>Live public exchange data</small><h2>Markets</h2></div><span class="workspace-meta" id="market-meta">Loading…</span></div>
+        <div id="market-grid" class="market-grid scroll-area"></div>
+      </section>
+
+      <section class="view workspace" data-view-panel="conflicts">
+        <div class="workspace-header"><div><small>Current conflict-related reporting only</small><h2>Conflicts</h2></div><span class="workspace-meta" id="conflict-meta">Last 24 hours</span></div>
+        <div id="conflict-list" class="story-list scroll-area"></div>
+      </section>
+
+      <section class="view workspace" data-view-panel="countries">
+        <div class="workspace-header"><div><small>Current activity by country</small><h2>Countries</h2></div><input id="country-search" type="search" placeholder="Search countries"></div>
+        <div id="country-grid" class="country-grid scroll-area"></div>
+      </section>
+
+      <section class="view workspace" data-view-panel="briefing">
+        <div class="workspace-header"><div><small>A concise summary of what changed</small><h2>Daily briefing</h2></div><span class="workspace-meta" id="briefing-meta">Current 24-hour window</span></div>
+        <div id="briefing-content" class="briefing-content scroll-area"></div>
+      </section>
+
+      <section class="view workspace" data-view-panel="saved">
+        <div class="workspace-header"><div><small>Your watchlist is stored in this browser</small><h2>Saved items</h2></div><button id="clear-saved" class="secondary-button" type="button">Clear all</button></div>
+        <div id="saved-list" class="story-list scroll-area"></div>
       </section>
     </main>
-  </div>
 
-  <script src="/merlin.bundle.js?v=22.0.0" defer></script>
-  <script src="/merlin-shell-v22.js?v=22.0.0" defer></script>
+    <aside id="detail-panel" class="detail-panel" aria-hidden="true">
+      <header><div><small id="detail-kind">Details</small><h2 id="detail-title">Select an item</h2></div><button id="detail-close" type="button" aria-label="Close details">×</button></header>
+      <div id="detail-body" class="detail-body"></div>
+      <footer id="detail-footer"></footer>
+    </aside>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(list => list.forEach(item => item.unregister())).catch(() => {});
+    if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).catch(() => {});
+  </script>
+  <script type="module" src="/merlin-v23.js?v=23.0.0"></script>
 </body>
 </html>

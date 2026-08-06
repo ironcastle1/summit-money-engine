@@ -5,7 +5,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / 'public'
-ENTRY = PUBLIC / 'merlin.js'
+ENTRY = PUBLIC / 'merlin-v23.js'
 OUTPUT = ROOT / '.tmp' / 'merlin-browser-bundle.js'
 IMPORT_RE = re.compile(r"\bimport\s*([^;]+?)\s*from\s*['\"]([^'\"]+)['\"]\s*;")
 SIDE_IMPORT_RE = re.compile(r"\bimport\s+['\"]([^'\"]+)['\"]\s*;")
@@ -106,7 +106,7 @@ def transform(path: Path, is_entry: bool) -> str:
 def main():
     paths=ordered(ENTRY)
     OUTPUT.parent.mkdir(parents=True,exist_ok=True)
-    chunks=['/* MERLIN V20.20 BROWSER ACCEPTANCE BUNDLE — generated for testing only. */',"'use strict';",'const __modules = Object.create(null);']
+    chunks=['/* MERLIN V23 BROWSER ACCEPTANCE BUNDLE — generated for testing only. */',"'use strict';",'const __modules = Object.create(null);']
     chunks.extend(transform(path,path==ENTRY) for path in paths)
     OUTPUT.write_text('\n\n'.join(chunks)+'\n',encoding='utf-8')
     print(f'Wrote {OUTPUT.relative_to(ROOT)} from {len(paths)} modules')

@@ -32,7 +32,7 @@ test('operations endpoints expose health quality build and metrics', async () =>
     const metrics = await metricsResponse.json();
     assert.equal(typeof health.ready, 'boolean');
     assert.ok(Number.isFinite(quality.catalogs.score));
-    assert.equal(build.version, '20.20.0-merlin');
+    assert.equal(build.version, '23.0.0-merlin');
     assert.ok(Array.isArray(metrics.counters));
 });
 test('prometheus metrics and PWA assets are served', async () => {
@@ -79,8 +79,8 @@ test('instant local datasets and vector map assets are production-served', async
         fetch(`${baseUrl}/data/preload-intelligence.json`),
         fetch(`${baseUrl}/data/preload-markets.json`),
         fetch(`${baseUrl}/data/preload-opportunities.json`),
-        fetch(`${baseUrl}/merlin.js?v=20.0.0`),
-        fetch(`${baseUrl}/map-v20/map-engine.js?v=20.0.0`)
+        fetch(`${baseUrl}/merlin-v23.js?v=23.0.0`),
+        fetch(`${baseUrl}/map-v20/map-engine.js?v=23.0.0`)
     ]);
     for (const response of [mapResponse, newsResponse, shippingResponse, intelligenceResponse, marketsResponse, opportunitiesResponse, bundleResponse, mapEngineResponse]) {
         assert.equal(response.status, 200);
@@ -95,8 +95,8 @@ test('instant local datasets and vector map assets are production-served', async
     assert.ok(intelligence.countries.length >= 200);
     assert.ok(markets.results.some(item => Number.isFinite(Number(item.quote?.price))));
     assert.ok(opportunities.opportunities.length > 0);
-    assert.match(bundle, /new MerlinTileMap/);
-    assert.match(bundle, /22\.0\.0/);
+    assert.match(bundle, /new MapEngineV20/);
+    assert.match(bundle, /deriveOpportunities/);
     assert.match(mapEngine, /class MapEngineV20/);
-    assert.match(mapEngine, /materialEarthquake/);
+    assert.doesNotMatch(mapEngine, /materialEarthquake/);
 });

@@ -36,7 +36,7 @@ export function registerApiRoutes(router, services) {
       marketTimeframes: ['15m', '1h', '4h', '1d'],
       defaultMarketTimeframe: '1h',
       capabilities: ['ACCOUNTS', 'SUBSCRIPTIONS', 'BILLING', 'USER_DATA', 'ADMIN', 'MAP', 'RADIUS', 'NEWS', 'SOCIAL', 'VERIFICATION', 'CORRELATION', 'SHIPPING', 'PORTS', 'TRADE_FLOWS', 'COMMODITIES', 'COUNTRIES', 'CITIES', 'CRIME', 'ELECTIONS', 'SAFETY', 'CONFLICT', 'DISASTERS', 'MARKETS', 'PREDICTIONS', 'OPPORTUNITIES', 'ALERTS', 'REPLAY', 'WORKSPACES', 'EXPORT', 'PWA', 'OFFLINE_SHELL', 'OBSERVABILITY', 'DATA_QUALITY', 'HEALTH_CHECKS', 'COMPRESSED_STATIC', 'SECURITY_HARDENING', 'INTELLIGENCE_PROCESSING', 'ENTITY_RESOLUTION', 'EVENT_FUSION', 'MATERIAL_EVENT_FILTERING', 'MARKET_INTELLIGENCE', 'MARKET_REGIMES', 'MARKET_SCREENERS', 'MARKET_SCENARIOS', 'CONFLICT_THEATRES', 'ESCALATION_ANALYSIS', 'FRONTLINES', 'CEASEFIRE_MONITORING', 'CONFLICT_THEATRES', 'ESCALATION_ANALYSIS', 'FRONTLINES', 'CEASEFIRE_MONITORING', 'PUBLIC_FIRST_LIVE_DATA', 'PERSISTENT_LIVE_CACHE', 'SOURCE_COVERAGE'],
-      eventCategories: ['earthquake', 'volcano', 'wildfire', 'storm', 'flood', 'drought', 'landslide', 'ice', 'conflict', 'protest', 'terror', 'crime', 'infrastructure', 'transport', 'energy', 'economic', 'health', 'other']
+      eventCategories: ['volcano', 'wildfire', 'storm', 'flood', 'drought', 'landslide', 'ice', 'conflict', 'protest', 'terror', 'crime', 'infrastructure', 'transport', 'energy', 'economic', 'health', 'other']
     }, { cacheControl: 'public, max-age=300' });
   });
 
@@ -65,10 +65,13 @@ export function registerApiRoutes(router, services) {
   });
 
   router.get('/api/events', async ({ response, context }) => {
-    const days = clampInteger(context.query.get('days'), 30, 1, 30);
+    const hoursValue = context.query.get('hours');
+    const hours = hoursValue === null ? null : clampInteger(hoursValue, 24, 1, 48);
+    const days = clampInteger(context.query.get('days'), 1, 1, 2);
     const limit = clampInteger(context.query.get('limit'), 2000, 1, 5000);
     const categories = categoryList(context.query.get('categories'));
-    const snapshot = await services.eventService.globalSnapshot({ categories, since: Date.now() - days * DAY_MS, limit, maxAgeMs: 20_000 });
+    const since = Date.now() - (hours === null ? days * DAY_MS : hours * 3_600_000);
+    const snapshot = await services.eventService.globalSnapshot({ categories, since, limit, maxAgeMs: 20_000 });
     sendJson(response, 200, { events: snapshot.events, sources: snapshot.sources, rawCount: snapshot.rawCount, totalCount: snapshot.eventCount, filteredCount: snapshot.filteredCount, generatedAt: snapshot.generatedAt });
   });
 
@@ -149,7 +152,7 @@ export function registerApiRoutes(router, services) {
   router.get('/api/news', async ({ response, context }) => {
     const query = String(context.query.get('q') || '').slice(0, 240);
     const sourceQuery = String(context.query.get('sourceQuery') || query).slice(0, 500);
-    const hours = clampInteger(context.query.get('hours'), 24, 1, 168);
+    const hours = clampInteger(context.query.get('hours'), 24, 1, 48);
     const limit = clampInteger(context.query.get('limit'), 80, 1, 200);
     const minimumVerification = finiteNumber(context.query.get('minimumVerification') || 0, 'minimumVerification', { min: 0, max: 100 });
     const result = await services.newsIntelligence.search({

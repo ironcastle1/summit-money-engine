@@ -1,9 +1,9 @@
 {
   "name": "merlin",
-  "version": "20.20.0",
+  "version": "23.0.0",
   "private": true,
   "type": "module",
-  "description": "Merlin V20 market-ready map-first global intelligence, risk, logistics and opportunity operating system",
+  "description": "Merlin V23 current-events, markets and commercial opportunity platform",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
@@ -78,7 +78,11 @@
     "test:part20": "node --test tests/part20/*.test.js tests/integration/application.test.js tests/integration/resilient-fallbacks.test.js",
     "verify:part20": "node scripts/verify-part20.js",
     "browser:part20": "python scripts/run-browser-e2e-part20.py",
-    "release:part20": "npm run test:part20 && npm run verify:part20 && npm run browser:part20 && npm run security:scan"
+    "release:part20": "npm run test:part20 && npm run verify:part20 && npm run browser:part20 && npm run security:scan",
+    "test:v23": "node --test tests/part20/*.test.js tests/integration/application.test.js tests/integration/resilient-fallbacks.test.js",
+    "browser:v23": "python scripts/browser-e2e-v23.py",
+    "verify:imports": "node scripts/import-graph-audit-v23.js",
+    "release:v23": "npm run test && npm run browser:v23 && npm run security:scan && npm run verify:imports"
   },
   "engines": {
     "node": ">=20"

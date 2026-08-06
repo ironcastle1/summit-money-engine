@@ -29,25 +29,24 @@ test.after(async () => {
   globalThis.fetch = nativeFetch;
 });
 
-test('bundled event snapshot keeps map and radius metrics operational', async () => {
-  const events = await fetch(`${baseUrl}/api/events?days=30&limit=25`).then(response => response.json());
-  assert.ok(events.events.length > 0);
-  assert.equal(events.sources.snapshot.state, 'ONLINE');
+test('offline mode remains honest and never injects stale event records', async () => {
+  const events = await fetch(`${baseUrl}/api/events?hours=24&limit=25`).then(response => response.json());
+  assert.deepEqual(events.events, []);
+  assert.equal(events.totalCount, 0);
   const scan = await fetch(`${baseUrl}/api/scan?lat=51.5074&lon=-0.1278&radiusKm=250`).then(response => response.json());
-  assert.equal(scan.metrics.estimateSupported, true);
-  assert.ok(Number.isFinite(scan.metrics.eventProbability24h));
-  assert.ok(Number.isFinite(scan.metrics.confidencePct));
+  assert.deepEqual(scan.events, []);
+  assert.ok(scan.metrics && typeof scan.metrics === 'object');
 });
 
-test('news, shipping, places, and markets return usable fallback payloads', async () => {
+test('offline mode keeps reference data and markets usable without stale news', async () => {
   const [news, shipping, places, markets] = await Promise.all([
-    fetch(`${baseUrl}/api/news?hours=168&limit=20`).then(response => response.json()),
+    fetch(`${baseUrl}/api/news?hours=24&limit=20`).then(response => response.json()),
     fetch(`${baseUrl}/api/shipping/snapshot?hours=48`).then(response => response.json()),
-    fetch(`${baseUrl}/api/intelligence/overview?hours=168&limit=20`).then(response => response.json()),
+    fetch(`${baseUrl}/api/intelligence/overview?hours=24&limit=20`).then(response => response.json()),
     fetch(`${baseUrl}/api/markets/screener?timeframe=1h&assets=btc,eth,sol&limit=3`).then(response => response.json())
   ]);
-  assert.ok(news.articles.length > 0);
-  assert.ok(news.stories.length > 0);
+  assert.deepEqual(news.articles, []);
+  assert.deepEqual(news.stories, []);
   assert.equal(shipping.ports.length, 75);
   assert.equal(shipping.routes.length, 15);
   assert.ok(places.countries.length > 0);
