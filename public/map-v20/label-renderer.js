@@ -38,7 +38,7 @@ export class LabelRenderer {
         x: candidate.point.x,
         y: candidate.point.y + 14,
         'text-anchor': 'middle',
-        class: 'merlin-v20-label',
+        class: candidate.feature.properties?.priorityCoverage ? 'merlin-v20-label merlin-v20-label-priority' : 'merlin-v20-label',
         'data-map-entity': key,
         tabindex: 0,
         role: 'button'

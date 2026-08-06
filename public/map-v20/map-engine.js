@@ -24,7 +24,7 @@ import { installMapSearchToggle } from './search-toggle.js';
 function pointFor(item, layer) {
   if (layer === 'ports') return item.coordinates;
   if (layer === 'news') return item.mapPoint || item.coordinates;
-  if (layer === 'places') return { lat: item.lat ?? item.country?.lat, lon: item.lon ?? item.country?.lon };
+  if (['places', 'focus', 'watch'].includes(layer)) return item.coordinates || { lat: item.lat ?? item.country?.lat, lon: item.lon ?? item.country?.lon };
   return item.coordinates || { lat: item.lat, lon: item.lon };
 }
 
@@ -33,7 +33,7 @@ function pointFeature(item, layer, index) {
   if (!Number.isFinite(Number(point?.lat)) || !Number.isFinite(Number(point?.lon))) return null;
   const nameEnglish = item.nameEnglish || item.name || item.country?.name || item.title || item.category || 'Map item';
   const nameLocal = item.nameLocal || item.nativeName || item.country?.nativeName || '';
-  const kind = layer === 'places' ? 'PLACE' : layer === 'events' ? String(item.kind || item.category || 'EVENT').toUpperCase() : layer.slice(0, -1).toUpperCase();
+  const kind = layer === 'places' ? 'PLACE' : layer === 'focus' ? 'FOCUS' : layer === 'watch' ? 'WATCH' : layer === 'events' ? String(item.kind || item.category || 'EVENT').toUpperCase() : layer.slice(0, -1).toUpperCase();
   return {
     type: 'Feature',
     id: String(item.id || `${layer}:${index}`),
@@ -68,7 +68,7 @@ export class MapEngineV20 {
 
     this.localBase = document.createElement('img');
     this.localBase.className = 'merlin-v20-local-base';
-    this.localBase.src = '/assets/world-base.svg?v=23.0.0';
+    this.localBase.src = '/assets/world-base.svg?v=24.1.0';
     this.localBase.alt = '';
     this.localBase.draggable = false;
 
@@ -82,15 +82,17 @@ export class MapEngineV20 {
       width: this.container.clientWidth || 1280,
       height: this.container.clientHeight || 720
     });
-    this.tileLayer = new TileLayer(this.tileContainer, tileSourceForMode(options.tileMode || 'clean'));
+    this.tileLayer = new TileLayer(this.tileContainer, tileSourceForMode(options.tileMode || 'dark'));
     this.surface = new SvgSurface(this.container);
     this.features = new FeatureStore();
     this.entities = new EntityRegistry();
     this.layerRegistry = new LayerRegistry([
-      { id: 'routes', source: 'routes', renderer: 'route', order: 10, visible: false, style: { colour: '#1479a8', width: 2.2 } },
-      { id: 'events', source: 'events', renderer: 'cluster', order: 20, visible: true, style: { colour: '#d24c4f', clusterRadius: 46, clusterMaxZoom: 8 } },
-      { id: 'news', source: 'news', renderer: 'cluster', order: 30, visible: true, style: { colour: '#4f63d7', clusterRadius: 44, clusterMaxZoom: 8 } },
-      { id: 'ports', source: 'ports', renderer: 'marker', order: 40, visible: true, minimumZoom: 2.5, style: { colour: '#007f72', radius: 4.5 } },
+      { id: 'routes', source: 'routes', renderer: 'route', order: 10, visible: false, style: { colour: '#d4a749', width: 2.2, opacity: .88 } },
+      { id: 'events', source: 'events', renderer: 'cluster', order: 20, visible: true, style: { colour: '#f35d6f', clusterRadius: 50, clusterMaxZoom: 7 } },
+      { id: 'news', source: 'news', renderer: 'cluster', order: 30, visible: true, style: { colour: '#58b8e7', clusterRadius: 48, clusterMaxZoom: 7 } },
+      { id: 'focus', source: 'focus', renderer: 'marker', order: 34, visible: true, minimumZoom: 1.5, style: { colour: '#d4a749', radius: 3.5 } },
+      { id: 'watch', source: 'watch', renderer: 'marker', order: 36, visible: true, minimumZoom: 2, style: { colour: '#ec9250', radius: 4.6 } },
+      { id: 'ports', source: 'ports', renderer: 'marker', order: 40, visible: true, minimumZoom: 2, style: { colour: '#59d4d0', radius: 4.8 } },
       { id: 'places', source: 'places', renderer: 'marker', order: 50, visible: false, minimumZoom: 5.5, style: { colour: '#53636d', radius: 2.8 } },
       { id: 'labels', source: 'places', renderer: 'label', order: 60, visible: true, minimumZoom: 1.8, style: { maximum: 220 } }
     ]);
@@ -152,6 +154,8 @@ export class MapEngineV20 {
     const groups = {
       events: [...(data.events || [])].map((item, index) => pointFeature(item, 'events', index)).filter(Boolean),
       news: [...(data.news || [])].map((item, index) => pointFeature(item, 'news', index)).filter(Boolean),
+      focus: [...(data.focus || [])].map((item, index) => pointFeature(item, 'focus', index)).filter(Boolean),
+      watch: [...(data.watch || [])].map((item, index) => pointFeature(item, 'watch', index)).filter(Boolean),
       ports: [...(data.ports || [])].map((item, index) => pointFeature(item, 'ports', index)).filter(Boolean),
       places: [...(data.places || [])].map((item, index) => pointFeature(item, 'places', index)).filter(Boolean),
       routes: [...(data.routes || [])].map(routeFeature).filter(Boolean)
@@ -162,7 +166,7 @@ export class MapEngineV20 {
 
   setLayerVisibility(values = {}) {
     this.layersState = { ...this.layersState, ...values };
-    for (const id of ['events', 'news', 'routes', 'ports', 'places', 'labels']) {
+    for (const id of ['events', 'news', 'focus', 'watch', 'routes', 'ports', 'places', 'labels']) {
       if (id in values) this.layerRegistry.setVisible(id, values[id]);
     }
     this.render('layers');
@@ -196,7 +200,7 @@ export class MapEngineV20 {
     const state = this.viewport.snapshot();
     this.tileLayer.render(state);
     this.runtime.render(this.viewport);
-    this.localBase.style.display = this.tileLayer.source?.enabled ? 'none' : '';
+    this.localBase.style.display = ''; this.localBase.style.opacity = this.tileLayer.source?.enabled ? '.16' : '.42';
     this.status.textContent = `Zoom ${Math.round(state.zoom)} · ${state.center.lat.toFixed(1)}, ${state.center.lon.toFixed(1)}`;
     this.events.emit('render', { reason, viewport: this.getViewport(), features: this.features.version });
   }

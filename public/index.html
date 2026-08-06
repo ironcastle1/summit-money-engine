@@ -2,151 +2,150 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
-  <meta name="description" content="Merlin turns current world events, markets and logistics into clear research leads and commercial opportunities.">
-  <title>Merlin</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=23.0.0">
-  <link rel="stylesheet" href="/css/map-v20.css?v=23.0.0">
-  <link rel="stylesheet" href="/css/merlin-v23.css?v=23.0.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071019">
+  <meta name="color-scheme" content="dark">
+  <title>Merlin — Live world intelligence</title>
+  <meta name="description" content="Current world events, commercial opportunities, markets, conflict and shipping disruption in one live map.">
+  <link rel="icon" href="/icons/merlin-64.png" type="image/png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/merlin-v24.css?v=24.1.0">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Main navigation">
-      <button class="brand" id="brand-home" type="button" aria-label="Open live map">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 40 40" role="img"><path d="M7 31.5c6.5-2.2 8.6-7.9 8.6-13.3 0-5.4 3.4-9.7 8.2-9.7 4.3 0 7.6 3.1 7.6 7.3 0 5.8-5.7 10.1-12.7 10.1-2.2 0-4.1-.3-5.8-.9 2.4 3.3 6.2 5.5 10.9 5.5 3.1 0 5.9-.9 8.2-2.5-2.7 5-7.9 8.4-13.9 8.4-4.4 0-8.3-1.8-11.1-4.9Z"/><circle cx="25.5" cy="14.2" r="1.5"/></svg>
-        </span>
-        <span><strong>Merlin</strong><small>World events and opportunities</small></span>
+  <div id="app" class="app-shell" data-view="map">
+    <header class="topbar">
+      <button id="brand-home" class="brand" type="button" aria-label="Open live map">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64" role="img"><defs><linearGradient id="merlin-gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6d98a"/><stop offset="1" stop-color="#b98628"/></linearGradient></defs><circle cx="32" cy="32" r="29" fill="#071019" stroke="url(#merlin-gold)" stroke-width="2"/><path d="M20 42c5-2 8-6 9-12-5 1-8-1-9-5 5 1 9-1 12-6 5 7 9 11 13 13-2 3-5 5-9 6 2 4 5 6 9 8-8 4-17 3-25-4Z" fill="url(#merlin-gold)"/><path d="M28 28c2-4 5-6 9-7-2 3-2 6 0 9-3-2-6-2-9-2Z" fill="#071019"/></svg></span>
+        <span class="brand-copy"><strong>MERLIN</strong><small>WORLD INTELLIGENCE</small></span>
       </button>
 
-      <nav class="nav-list">
-        <button class="nav-item active" data-view="map" type="button"><span class="nav-icon">⌖</span><span>Live map</span></button>
-        <button class="nav-item" data-view="opportunities" type="button"><span class="nav-icon">↗</span><span>Opportunities</span></button>
-        <button class="nav-item" data-view="markets" type="button"><span class="nav-icon">▥</span><span>Markets</span></button>
-        <button class="nav-item" data-view="conflicts" type="button"><span class="nav-icon">◉</span><span>Conflicts</span></button>
-        <button class="nav-item" data-view="countries" type="button"><span class="nav-icon">◎</span><span>Countries</span></button>
-        <button class="nav-item" data-view="briefing" type="button"><span class="nav-icon">≡</span><span>Daily briefing</span></button>
-        <button class="nav-item" data-view="saved" type="button"><span class="nav-icon">☆</span><span>Saved items</span></button>
+      <nav class="primary-nav" aria-label="Primary navigation">
+        <button class="nav-item is-active" data-view="map" type="button">LIVE MAP</button>
+        <button class="nav-item" data-view="opportunities" type="button">OPPORTUNITIES</button>
+        <button class="nav-item" data-view="markets" type="button">MARKETS</button>
+        <button class="nav-item" data-view="conflicts" type="button">CONFLICTS</button>
+        <button class="nav-item" data-view="countries" type="button">COUNTRIES</button>
+        <button class="nav-item" data-view="briefing" type="button">DAILY BRIEF</button>
+        <button class="nav-item" data-view="saved" type="button">SAVED</button>
       </nav>
 
-      <div class="sidebar-status">
-        <span class="status-dot" id="source-dot"></span>
-        <div><strong id="source-label">Connecting to public sources</strong><small id="source-note">The map remains usable while feeds load.</small></div>
-      </div>
-    </aside>
-
-    <header class="topbar">
-      <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation">☰</button>
-      <div class="page-heading"><small id="page-kicker">Current world activity</small><h1 id="page-title">Live map</h1></div>
-      <div class="topbar-actions">
-        <span class="freshness" id="freshness-badge">Loading current data…</span>
-        <button class="icon-button" id="global-search-button" type="button" aria-label="Search">⌕</button>
-        <button class="primary-button" id="refresh-button" type="button">Refresh</button>
+      <div class="top-status" aria-live="polite">
+        <span id="connection-state" class="status-pill is-loading"><i></i><b>CONNECTING</b></span>
+        <span class="status-stat"><b id="header-event-count">0</b> CURRENT</span>
+        <span class="status-stat"><b id="header-opportunity-count">0</b> OPPORTUNITIES</span>
+        <time id="utc-clock">--:--:-- UTC</time>
+        <button id="mobile-menu" class="icon-button mobile-only" type="button" aria-label="Open navigation">☰</button>
       </div>
     </header>
 
-    <main id="main-content" class="main-content">
-      <section class="view active" data-view-panel="map">
-        <div class="map-layout">
-          <div class="map-stage">
-            <div id="world-map" tabindex="0" aria-label="Interactive world map"></div>
+    <section class="ticker" aria-label="Live market snapshot">
+      <div id="market-ticker" class="ticker-track"><span class="ticker-loading">Loading current market snapshot…</span></div>
+    </section>
 
-            <div class="map-search" id="map-search">
-              <button id="map-search-toggle" class="map-search-toggle" type="button" aria-label="Open map search" aria-expanded="false">⌕</button>
-              <div class="map-search-panel">
-                <input id="global-search" type="search" autocomplete="off" placeholder="Search a country, city or port" tabindex="-1">
-                <div id="search-results" class="search-results hidden"></div>
-              </div>
-            </div>
 
-            <div class="map-layer-card">
-              <div class="layer-card-heading"><strong>Show on map</strong><button id="layer-collapse" type="button">Hide</button></div>
-              <label><input type="checkbox" data-layer-toggle="events" checked><i class="legend-dot event"></i><span>Current events</span><b id="event-count">0</b></label>
-              <label><input type="checkbox" data-layer-toggle="news" checked><i class="legend-dot news"></i><span>Latest news</span><b id="news-count">0</b></label>
-              <label><input type="checkbox" data-layer-toggle="ports" checked><i class="legend-dot port"></i><span>Major ports</span><b id="port-count">0</b></label>
-              <label><input type="checkbox" data-layer-toggle="routes"><i class="legend-line route"></i><span>Shipping routes</span><b id="route-count">0</b></label>
-              <label><input type="checkbox" data-layer-toggle="labels" checked><i class="legend-text">Aa</i><span>English labels</span><b>On</b></label>
-            </div>
+    <section class="coverage-focus" aria-label="Priority regional coverage">
+      <div class="coverage-focus-label"><span>PRIORITY COVERAGE</span><small>All countries remain available</small></div>
+      <div id="region-focus-buttons" class="region-focus-buttons" role="group" aria-label="Choose a regional focus">
+        <button class="is-active" data-region-focus="priority" type="button">PRIORITY OVERVIEW</button>
+        <button data-region-focus="middle-east" type="button">MIDDLE EAST</button>
+        <button data-region-focus="europe" type="button">EUROPE</button>
+        <button data-region-focus="russia" type="button">RUSSIA</button>
+        <button data-region-focus="major-asia" type="button">MAJOR ASIA</button>
+        <button data-region-focus="north-africa" type="button">NORTH AFRICA</button>
+        <button data-region-focus="united-states" type="button">UNITED STATES</button>
+        <button data-region-focus="world" type="button">WORLD</button>
+      </div>
+      <div id="region-focus-summary" class="region-focus-summary">Focused coverage is loading</div>
+    </section>
 
-            <div class="map-controls" aria-label="Map controls">
-              <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-              <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-              <button id="world-view" type="button">World</button>
-            </div>
+    <main id="main-content" class="main-stage">
+      <section id="map-view" class="map-view" aria-label="Live world map">
+        <div id="world-map" class="world-map" aria-label="Interactive current-events map"></div>
 
-            <div class="time-filter" aria-label="Time window">
-              <span>Show items from</span>
-              <button data-hours="6" type="button">6h</button>
-              <button data-hours="12" type="button">12h</button>
-              <button data-hours="24" class="active" type="button">24h</button>
-              <button data-hours="48" type="button">48h</button>
-            </div>
-
-            <div class="map-attribution">Map © OpenStreetMap contributors © CARTO</div>
+        <button id="search-toggle" class="map-search-button" type="button" aria-label="Search the map" title="Search">⌕</button>
+        <section id="search-panel" class="search-panel is-hidden" aria-label="Map search">
+          <label for="map-search">Search city, country or port</label>
+          <div class="search-row">
+            <input id="map-search" type="search" autocomplete="off" spellcheck="false" placeholder="Type a place name">
+            <button id="search-close" type="button" aria-label="Close search">×</button>
           </div>
+          <div id="search-results" class="search-results"></div>
+        </section>
 
-          <aside class="current-panel" aria-label="Latest activity">
-            <header>
-              <div><small>Updated continuously</small><h2>Latest activity</h2></div>
-              <button id="current-panel-close" type="button" aria-label="Close latest activity">×</button>
-            </header>
-            <div class="feed-filters">
-              <button class="active" data-feed="all" type="button">All</button>
-              <button data-feed="conflict" type="button">Conflict</button>
-              <button data-feed="business" type="button">Business</button>
-              <button data-feed="disruption" type="button">Disruption</button>
-            </div>
-            <div id="live-feed" class="live-feed" tabindex="0"></div>
-          </aside>
+        <aside id="layer-panel" class="floating-panel layer-panel" aria-label="Map layers">
+          <header class="panel-heading">
+            <div><strong>MAP LAYERS</strong><span>Choose what appears on the map</span></div>
+            <button id="layer-collapse" type="button" aria-label="Collapse map layers">−</button>
+          </header>
+          <div class="layer-list">
+            <label class="layer-row"><input type="checkbox" data-layer="events" checked><i class="dot dot-event"></i><span>Current events</span><b id="count-events">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="news" checked><i class="dot dot-news"></i><span>Latest reporting</span><b id="count-news">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="focus" checked><i class="dot dot-focus"></i><span>Priority countries</span><b id="count-focus">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="watch" checked><i class="dot dot-watch"></i><span>Strategic watch areas</span><b id="count-watch">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="ports" checked><i class="dot dot-port"></i><span>Major ports</span><b id="count-ports">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="routes"><i class="dot dot-route"></i><span>Shipping routes</span><b id="count-routes">0</b></label>
+            <label class="layer-row"><input type="checkbox" data-layer="labels" checked><i class="dot dot-label"></i><span>English place labels</span><b>ON</b></label>
+          </div>
+        </aside>
+
+        <div class="map-tools" aria-label="Map controls">
+          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+          <button id="world-view" type="button" aria-label="Reset to world view">WORLD</button>
         </div>
+
+        <div class="time-controls" aria-label="Current-data time window">
+          <span>SHOW ITEMS FROM</span>
+          <button data-hours="6" type="button">6H</button>
+          <button data-hours="12" type="button" class="is-active">12H</button>
+          <button data-hours="24" type="button">24H</button>
+          <button id="refresh-live" class="refresh-button" type="button">REFRESH</button>
+          <small id="last-updated">Waiting for current sources</small>
+        </div>
+
+        <aside id="live-feed" class="live-feed" aria-label="Current activity">
+          <header class="feed-header">
+            <div><span id="feed-region-kicker">PRIORITY REGIONS</span><h1 id="feed-region-title">Latest developments</h1></div>
+            <button id="feed-collapse" type="button" aria-label="Collapse latest developments">›</button>
+          </header>
+          <div class="feed-filters" role="group" aria-label="Filter current activity">
+            <button class="is-active" data-feed-filter="all" type="button">ALL</button>
+            <button data-feed-filter="conflict" type="button">CONFLICT</button>
+            <button data-feed-filter="disruption" type="button">DISRUPTION</button>
+            <button data-feed-filter="markets" type="button">MARKETS</button>
+            <button data-feed-filter="politics" type="button">POLITICS</button>
+          </div>
+          <div id="feed-list" class="feed-list" tabindex="0"></div>
+        </aside>
+
+        <article id="detail-panel" class="detail-panel is-hidden" aria-live="polite">
+          <header>
+            <div><span id="detail-kicker">DETAIL</span><h2 id="detail-title">Select an item</h2></div>
+            <button id="detail-close" type="button" aria-label="Close detail panel">×</button>
+          </header>
+          <div id="detail-body" class="detail-body"></div>
+        </article>
+
+        <div id="map-message" class="map-message is-hidden" role="status"></div>
       </section>
 
-      <section class="view workspace" data-view-panel="opportunities">
-        <div class="workspace-header"><div><small>Research leads based on current signals</small><h2>Opportunities</h2></div><span class="workspace-meta" id="opportunity-meta">Loading…</span></div>
-        <div class="workspace-toolbar"><input id="opportunity-search" type="search" placeholder="Filter opportunities"><button data-opportunity-filter="all" class="active">All</button><button data-opportunity-filter="market">Markets</button><button data-opportunity-filter="event">World events</button></div>
-        <div id="opportunity-grid" class="opportunity-grid scroll-area"></div>
-      </section>
-
-      <section class="view workspace" data-view-panel="markets">
-        <div class="workspace-header"><div><small>Live public exchange data</small><h2>Markets</h2></div><span class="workspace-meta" id="market-meta">Loading…</span></div>
-        <div id="market-grid" class="market-grid scroll-area"></div>
-      </section>
-
-      <section class="view workspace" data-view-panel="conflicts">
-        <div class="workspace-header"><div><small>Current conflict-related reporting only</small><h2>Conflicts</h2></div><span class="workspace-meta" id="conflict-meta">Last 24 hours</span></div>
-        <div id="conflict-list" class="story-list scroll-area"></div>
-      </section>
-
-      <section class="view workspace" data-view-panel="countries">
-        <div class="workspace-header"><div><small>Current activity by country</small><h2>Countries</h2></div><input id="country-search" type="search" placeholder="Search countries"></div>
-        <div id="country-grid" class="country-grid scroll-area"></div>
-      </section>
-
-      <section class="view workspace" data-view-panel="briefing">
-        <div class="workspace-header"><div><small>A concise summary of what changed</small><h2>Daily briefing</h2></div><span class="workspace-meta" id="briefing-meta">Current 24-hour window</span></div>
-        <div id="briefing-content" class="briefing-content scroll-area"></div>
-      </section>
-
-      <section class="view workspace" data-view-panel="saved">
-        <div class="workspace-header"><div><small>Your watchlist is stored in this browser</small><h2>Saved items</h2></div><button id="clear-saved" class="secondary-button" type="button">Clear all</button></div>
-        <div id="saved-list" class="story-list scroll-area"></div>
+      <section id="workspace" class="workspace is-hidden" aria-label="Merlin workspace">
+        <header class="workspace-header">
+          <div><span id="workspace-kicker">MERLIN</span><h1 id="workspace-title">Opportunities</h1><p id="workspace-subtitle"></p></div>
+          <div class="workspace-actions">
+            <input id="workspace-search" type="search" placeholder="Filter this page" aria-label="Filter current page">
+            <button id="workspace-refresh" type="button">REFRESH</button>
+            <button id="workspace-close" class="accent-button" type="button">RETURN TO MAP</button>
+          </div>
+        </header>
+        <div id="workspace-summary" class="workspace-summary"></div>
+        <div id="workspace-content" class="workspace-content" tabindex="0"></div>
       </section>
     </main>
 
-    <aside id="detail-panel" class="detail-panel" aria-hidden="true">
-      <header><div><small id="detail-kind">Details</small><h2 id="detail-title">Select an item</h2></div><button id="detail-close" type="button" aria-label="Close details">×</button></header>
-      <div id="detail-body" class="detail-body"></div>
-      <footer id="detail-footer"></footer>
-    </aside>
-
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="mobile-nav-scrim" class="mobile-nav-scrim is-hidden"></div>
   </div>
-  <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(list => list.forEach(item => item.unregister())).catch(() => {});
-    if ('caches' in window) caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).catch(() => {});
-  </script>
-  <script type="module" src="/merlin-v23.js?v=23.0.0"></script>
+  <script type="module" src="/merlin-v24.js?v=24.1.0"></script>
 </body>
 </html>

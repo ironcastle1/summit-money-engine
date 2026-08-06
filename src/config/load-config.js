@@ -1,6 +1,6 @@
 import { clampInteger, optionalString, requiredEnum } from '../core/validation.js';
 
-const VERSION = '23.0.0-merlin';
+const VERSION = '24.1.0-merlin';
 
 function parseRssFeeds(value) {
   const defaults = [

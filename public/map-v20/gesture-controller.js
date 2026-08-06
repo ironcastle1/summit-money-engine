@@ -6,6 +6,7 @@ export class GestureController {
     this.drag = null;
     this.wheelAccumulator = 0;
     this.lastWheelAt = 0;
+    this.wheelReset = null;
     this.move = rafThrottle(event => this.#move(event));
     this.#bind();
   }
@@ -13,11 +14,16 @@ export class GestureController {
   #bind() {
     this.onWheel = event => {
       event.preventDefault();
-      const multiplier = event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? 120 : 1;
-      const pinchFactor = event.ctrlKey ? 0.42 : 1;
-      this.wheelAccumulator += event.deltaY * multiplier * pinchFactor;
+      const lineMultiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 90 : 1;
+      const touchpadOrPinch = event.ctrlKey || Math.abs(event.deltaY) < 45;
+      const sensitivity = touchpadOrPinch ? .32 : .72;
+      this.wheelAccumulator += event.deltaY * lineMultiplier * sensitivity;
+      clearTimeout(this.wheelReset);
+      this.wheelReset = setTimeout(() => { this.wheelAccumulator = 0; }, 260);
       const now = performance.now();
-      if (now - this.lastWheelAt < 75 || Math.abs(this.wheelAccumulator) < 95) return;
+      const threshold = touchpadOrPinch ? 210 : 150;
+      const minimumInterval = touchpadOrPinch ? 260 : 180;
+      if (now - this.lastWheelAt < minimumInterval || Math.abs(this.wheelAccumulator) < threshold) return;
       this.lastWheelAt = now;
       const direction = this.wheelAccumulator < 0 ? 1 : -1;
       this.wheelAccumulator = 0;
@@ -69,6 +75,7 @@ export class GestureController {
   }
 
   destroy() {
+    clearTimeout(this.wheelReset);
     this.element.removeEventListener('wheel', this.onWheel);
     this.element.removeEventListener('pointerdown', this.onDown);
     this.element.removeEventListener('pointermove', this.move);

@@ -4,10 +4,10 @@ import { readFile, stat } from 'node:fs/promises';
 
 test('market workspace loads the simplified live market client', async () => {
   const [source, html] = await Promise.all([
-    readFile(new URL('../../public/merlin-v23.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../public/merlin-v24.js', import.meta.url), 'utf8'),
     readFile(new URL('../../public/index.html', import.meta.url), 'utf8')
   ]);
-  assert.match(source, /api\/markets\/screener/);
+  assert.match(source, /api\/customer\/snapshot/);
   assert.match(source, /renderMarkets/);
   assert.match(html, /data-view="markets"/);
 });
@@ -21,6 +21,6 @@ test('advanced market modules remain available for future paid features', async 
 
 test('customer shell uses the unified stylesheet rather than stacking old market CSS', async () => {
   const html = await readFile(new URL('../../public/index.html', import.meta.url), 'utf8');
-  assert.match(html, /merlin-v23\.css/);
+  assert.match(html, /merlin-v24\.css/);
   assert.doesNotMatch(html, /market-intelligence-v20\.css/);
 });

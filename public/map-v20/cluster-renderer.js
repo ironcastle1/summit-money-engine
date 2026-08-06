@@ -28,7 +28,7 @@ export class ClusterRenderer {
             }
             const key = entities.register({ key: `cluster:${layer.id}:${items.map(item => item.feature.__key).join('|')}`, kind: 'CLUSTER', data: { title: `${items.length} map items`, count: items.length, members: items.map(item => item.feature) }, feature: { __layerId: layer.id } });
             const radius = Math.min(24, 11 + Math.log2(items.length) * 3);
-            group.append(svg('circle', { cx: point.x, cy: point.y, r, fill: layer.style?.colour || '#496c7c', stroke: '#fff', 'stroke-width': 2, class: 'merlin-v20-cluster', 'data-map-entity': key, tabindex: 0, role: 'button', 'aria-label': `${items.length} clustered map items` }));
+            group.append(svg('circle', { cx: point.x, cy: point.y, r: radius, fill: layer.style?.colour || '#496c7c', stroke: '#fff', 'stroke-width': 2, class: 'merlin-v20-cluster', 'data-map-entity': key, tabindex: 0, role: 'button', 'aria-label': `${items.length} clustered map items` }));
             const text = svg('text', { x: point.x, y: point.y + 4, 'text-anchor': 'middle', class: 'merlin-v20-cluster-count', 'data-map-entity': key });
             text.textContent = String(items.length);
             group.append(text);

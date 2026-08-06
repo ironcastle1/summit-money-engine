@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = process.cwd();
-const entry = 'public/merlin-v23.js';
+const entry = 'public/merlin-v24.js';
 const importPattern = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const visited = new Set();
 const missing = [];

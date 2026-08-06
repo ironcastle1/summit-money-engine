@@ -10,11 +10,12 @@ test('conflict routes and service remain registered', async () => {
 
 test('customer conflict page is populated from current reports using plain language', async () => {
   const [client, html] = await Promise.all([
-    readFile(new URL('../../public/merlin-v23.js', import.meta.url), 'utf8'),
+    readFile(new URL('../../public/merlin-v24.js', import.meta.url), 'utf8'),
     readFile(new URL('../../public/index.html', import.meta.url), 'utf8')
   ]);
   assert.match(client, /renderConflicts/);
+  assert.match(client, /currentArticles\(\).*conflict|snapshot\?\.conflicts/s);
   assert.match(html, /data-view="conflicts"/);
-  assert.match(html, />Conflicts</);
-  assert.doesNotMatch(html, /conflict-intelligence-v20\.css|theatre posture/i);
+  assert.match(html, /CONFLICTS/);
+  assert.doesNotMatch(html, /conflict-intelligence-v20\.css|theatre posture|operator console/i);
 });

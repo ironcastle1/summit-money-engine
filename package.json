@@ -1,9 +1,9 @@
 {
   "name": "merlin",
-  "version": "23.0.0",
+  "version": "24.1.0",
   "private": true,
   "type": "module",
-  "description": "Merlin V23 current-events, markets and commercial opportunity platform",
+  "description": "Merlin V24.1 priority-region intelligence and commercial opportunity platform",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",

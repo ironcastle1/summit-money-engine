@@ -127,6 +127,8 @@ import { createReleaseEngineeringService } from '../services/release-engineering
 import { registerReleaseEngineeringRoutes } from '../api/register-release-engineering-routes.js';
 import { createLiveDataPlatformService } from '../services/live-data-platform-service.js';
 import { registerLiveDataRoutes } from '../api/register-live-data-routes.js';
+import { CustomerDataService } from '../customer/customer-data-service.js';
+import { registerCustomerDataRoutes } from '../customer/customer-data-routes.js';
 import { createMarketReadinessPlatformService } from '../services/market-readiness-platform-service.js';
 import { registerMarketReadinessRoutes } from '../api/register-market-readiness-routes.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -306,6 +308,12 @@ export async function createApplication(options) {
         shippingRegistry,
         shippingCatalog
     });
+    const customerData = await CustomerDataService.create({
+        rootDir: ROOT_DIR,
+        fetchImpl: globalThis.fetch,
+        logger: logger.child({ component: 'customer-data' }),
+        cacheFile: path.join(ROOT_DIR, 'runtime-data/customer-snapshot.json')
+    });
     const marketReadiness = createMarketReadinessPlatformService({ reliabilityStatus: 'PASS', securityStatus: 'PASS' });
     const overlayDependencies = { eventService, intelligenceCatalog, intelligenceRegistry, shippingCatalog, hazards };
     const overlays = createOverlayPlatformService(overlayDependencies);
@@ -315,7 +323,7 @@ export async function createApplication(options) {
         opportunities, marketReplay, alertEvaluation, newsRegistry, newsIntelligence,
         shippingRegistry, shippingCatalog, shippingIntelligence, tradeFlows, commodityShipping,
         intelligenceRegistry, intelligenceCatalog, countryIntelligence, intelligenceProcessing,
-        mapLayers, mapFeatures, mapSearch, mapStyles, mapDiagnostics, mapPlatform, savedMapViews, overlays, logistics, hazards, marketIntelligence, countryRisk, conflictIntelligence, decisionSupport, automation, publishing, commercial, securityCompliance, reliabilityOperations, releaseEngineering, liveData, marketReadiness,
+        mapLayers, mapFeatures, mapSearch, mapStyles, mapDiagnostics, mapPlatform, savedMapViews, overlays, logistics, hazards, marketIntelligence, countryRisk, conflictIntelligence, decisionSupport, automation, publishing, commercial, securityCompliance, reliabilityOperations, releaseEngineering, liveData, customerData, marketReadiness,
         accountStore, accounts, sessionRepository, subscriptionRepository, userDataRepository,
         audit, auth, entitlements, userData, subscriptions, admin, billingProviders,
         metrics, runtime, requestMetrics, clientReports, clientVersions, dataQuality, health, buildInfo, startupDiagnostics
@@ -338,6 +346,7 @@ export async function createApplication(options) {
     registerReliabilityOperationsRoutes(router, services);
     registerReleaseEngineeringRoutes(router, services);
     registerLiveDataRoutes(router, services);
+    registerCustomerDataRoutes(router, services);
     registerMarketReadinessRoutes(router, services);
     const serveStatic = createStaticHandler({ root: path.join(ROOT_DIR, 'public'), production: config.isProduction, compressionThreshold: 1024 });
     const limiter = new SlidingWindowRateLimiter({ limit: config.rateLimitPerMinute, windowMs: 60000 });
