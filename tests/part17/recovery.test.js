@@ -1,6 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { backupPolicy, backupRecord, restoreTest, recoveryObjective, disasterRecoveryPlan, maintenanceWindow } from '../../src/reliability-operations/index.js';
-test('backup policies require encrypted verifiable evidence', () => { const policy = backupPolicy({ name: 'Daily', resourceIds: ['db'], immutable: true }); const backup = backupRecord({ policyId: policy.id, resourceId: 'db', checksum: 'abc' }); assert.equal(policy.verificationRequired, true); assert.equal(backup.state, 'VERIFIED'); });
-test('restore tests and recovery objectives remain evidence based', () => { const testResult = restoreTest({ backupId: 'b', checks: [{ name: 'Checksum', passed: true }, { name: 'App', passed: true }], applicationStarted: true, durationMinutes: 20 }); assert.equal(testResult.passed, true); assert.equal(recoveryObjective({ rpoMinutes: 60, rtoMinutes: 120, actualRpoMinutes: 30, actualRtoMinutes: 100 }).state, 'MET'); });
-test('disaster recovery and maintenance validate operating windows', () => { const plan = disasterRecoveryPlan({ name: 'Core', serviceIds: ['api'], primaryRegion: 'a', recoveryRegion: 'b' }); assert.equal(plan.strategy, 'PILOT_LIGHT'); assert.throws(() => maintenanceWindow({ title: 'Bad', startsAt: '2026-01-02', endsAt: '2026-01-01' }), /after start/); });

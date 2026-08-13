@@ -1,2 +1,0 @@
-import { el } from './dom.js';
-export function freshnessBadge(freshness){const state=freshness?.state||'unknown';const age=freshness?.ageSeconds===null||freshness?.ageSeconds===undefined?'UNKNOWN':freshness.ageSeconds<60?'NOW':freshness.ageSeconds<3600?`${Math.round(freshness.ageSeconds/60)}M`:`${Math.round(freshness.ageSeconds/3600)}H`;return el('span',{class:`overlay-freshness ${state}`,text:age,title:`Freshness: ${state}`});}

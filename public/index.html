@@ -3,149 +3,195 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071019">
-  <meta name="color-scheme" content="dark">
-  <title>Merlin — Live world intelligence</title>
-  <meta name="description" content="Current world events, commercial opportunities, markets, conflict and shipping disruption in one live map.">
-  <link rel="icon" href="/icons/merlin-64.png" type="image/png">
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/css/merlin-v24.css?v=24.1.0">
+  <meta name="theme-color" content="#06111d">
+  <meta name="description" content="Merlin compiles high-value world events, source evidence, market effects and practical risk information on a live map.">
+  <title>Merlin — Live World Map</title>
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
-  <div id="app" class="app-shell" data-view="map">
-    <header class="topbar">
-      <button id="brand-home" class="brand" type="button" aria-label="Open live map">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64" role="img"><defs><linearGradient id="merlin-gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f6d98a"/><stop offset="1" stop-color="#b98628"/></linearGradient></defs><circle cx="32" cy="32" r="29" fill="#071019" stroke="url(#merlin-gold)" stroke-width="2"/><path d="M20 42c5-2 8-6 9-12-5 1-8-1-9-5 5 1 9-1 12-6 5 7 9 11 13 13-2 3-5 5-9 6 2 4 5 6 9 8-8 4-17 3-25-4Z" fill="url(#merlin-gold)"/><path d="M28 28c2-4 5-6 9-7-2 3-2 6 0 9-3-2-6-2-9-2Z" fill="#071019"/></svg></span>
-        <span class="brand-copy"><strong>MERLIN</strong><small>WORLD INTELLIGENCE</small></span>
+<div id="app" class="app-shell">
+  <header class="topbar">
+    <button class="brand" data-action="workspace" data-view="map" aria-label="Open map">
+      <strong>MERLIN</strong>
+    </button>
+
+    <nav class="primary-nav" aria-label="Primary navigation">
+      <button class="nav active" data-action="workspace" data-view="map">LIVE MAP</button>
+      <button class="nav" data-action="workspace" data-view="opportunities">OPPORTUNITIES</button>
+      <button class="nav" data-action="workspace" data-view="markets">MARKETS</button>
+      <button class="nav" data-action="workspace" data-view="conflicts">CONFLICTS</button>
+      <button class="nav" data-action="workspace" data-view="countries">COUNTRIES</button>
+      <button class="nav" data-action="workspace" data-view="briefing">DAILY BRIEF</button>
+    </nav>
+
+    <div id="demoBadge" class="demo-badge hidden">DEMO DATASET</div>
+    <div class="top-metrics">
+      <button id="sourceHealth" class="health" data-action="sources" title="Open source status">
+        <i></i><span>CONNECTING</span>
       </button>
+      <div class="metric"><b id="highCount">0</b><small>HIGH</small></div>
+      <div class="metric"><b id="eventCount">0</b><small>SIGNALS</small></div>
+      <div class="metric source-metric"><b id="coverageMetric">—</b><small>COVERAGE</small></div>
+      <div id="utcClock" class="clock">--:-- UTC</div>
+      <button class="icon-button" data-action="search-toggle" title="Search" aria-label="Search">⌕</button>
+    </div>
+  </header>
 
-      <nav class="primary-nav" aria-label="Primary navigation">
-        <button class="nav-item is-active" data-view="map" type="button">LIVE MAP</button>
-        <button class="nav-item" data-view="opportunities" type="button">OPPORTUNITIES</button>
-        <button class="nav-item" data-view="markets" type="button">MARKETS</button>
-        <button class="nav-item" data-view="conflicts" type="button">CONFLICTS</button>
-        <button class="nav-item" data-view="countries" type="button">COUNTRIES</button>
-        <button class="nav-item" data-view="briefing" type="button">DAILY BRIEF</button>
-        <button class="nav-item" data-view="saved" type="button">SAVED</button>
-      </nav>
+  <section class="focusbar">
+    <div class="focus-title"><strong>PRIORITY COVERAGE</strong><small>Deeper collection in selected regions</small></div>
+    <div id="regionTabs" class="region-tabs"></div>
+    <div class="focus-controls">
+      <label>WINDOW
+        <select id="windowSelect" aria-label="Time window">
+          <option value="6">6H</option>
+          <option value="12">12H</option>
+          <option value="24" selected>24H</option>
+          <option value="48">48H</option>
+          <option value="72">72H</option>
+        </select>
+      </label>
+      <label class="score-control">MIN SCORE
+        <input id="scoreInput" type="range" min="40" max="90" value="52">
+        <output id="scoreOutput">52</output>
+      </label>
+      <button class="refresh" data-action="refresh">REFRESH</button>
+    </div>
+  </section>
 
-      <div class="top-status" aria-live="polite">
-        <span id="connection-state" class="status-pill is-loading"><i></i><b>CONNECTING</b></span>
-        <span class="status-stat"><b id="header-event-count">0</b> CURRENT</span>
-        <span class="status-stat"><b id="header-opportunity-count">0</b> OPPORTUNITIES</span>
-        <time id="utc-clock">--:--:-- UTC</time>
-        <button id="mobile-menu" class="icon-button mobile-only" type="button" aria-label="Open navigation">☰</button>
-      </div>
-    </header>
+  <main class="main">
+    <section id="mapWorkspace" class="workspace map-workspace active">
+      <div id="mapViewport" class="map-viewport" tabindex="0">
+        <div id="fallbackMap" class="fallback-map" aria-label="Local relief world map">
+          <img src="/assets/world-tech-equirect.jpg" alt="Dark blue relief world map" draggable="false">
+          <svg id="fallbackRouteLayer" class="fallback-route-layer" viewBox="0 0 1000 500" preserveAspectRatio="none"></svg>
+          <div id="fallbackOverlay" class="fallback-overlay"></div>
+        </div>
+        <div id="glMap" class="gl-map" aria-label="Interactive world map"></div>
+        <div id="mapUnavailable" class="map-unavailable hidden" role="status">
+          <b>High-detail map unavailable</b>
+          <span>Live events and the rest of Merlin remain available. The vector map will retry automatically.</span>
+        </div>
+        <div class="map-vignette" aria-hidden="true"></div>
 
-    <section class="ticker" aria-label="Live market snapshot">
-      <div id="market-ticker" class="ticker-track"><span class="ticker-loading">Loading current market snapshot…</span></div>
-    </section>
+        <div class="map-search-button">
+          <button data-action="search-toggle" title="Search map" aria-label="Search map">⌕</button>
+        </div>
 
-
-    <section class="coverage-focus" aria-label="Priority regional coverage">
-      <div class="coverage-focus-label"><span>PRIORITY COVERAGE</span><small>All countries remain available</small></div>
-      <div id="region-focus-buttons" class="region-focus-buttons" role="group" aria-label="Choose a regional focus">
-        <button class="is-active" data-region-focus="priority" type="button">PRIORITY OVERVIEW</button>
-        <button data-region-focus="middle-east" type="button">MIDDLE EAST</button>
-        <button data-region-focus="europe" type="button">EUROPE</button>
-        <button data-region-focus="russia" type="button">RUSSIA</button>
-        <button data-region-focus="major-asia" type="button">MAJOR ASIA</button>
-        <button data-region-focus="north-africa" type="button">NORTH AFRICA</button>
-        <button data-region-focus="united-states" type="button">UNITED STATES</button>
-        <button data-region-focus="world" type="button">WORLD</button>
-      </div>
-      <div id="region-focus-summary" class="region-focus-summary">Focused coverage is loading</div>
-    </section>
-
-    <main id="main-content" class="main-stage">
-      <section id="map-view" class="map-view" aria-label="Live world map">
-        <div id="world-map" class="world-map" aria-label="Interactive current-events map"></div>
-
-        <button id="search-toggle" class="map-search-button" type="button" aria-label="Search the map" title="Search">⌕</button>
-        <section id="search-panel" class="search-panel is-hidden" aria-label="Map search">
-          <label for="map-search">Search city, country or port</label>
-          <div class="search-row">
-            <input id="map-search" type="search" autocomplete="off" spellcheck="false" placeholder="Type a place name">
-            <button id="search-close" type="button" aria-label="Close search">×</button>
+        <div id="searchPanel" class="search-panel hidden">
+          <div class="search-head">
+            <input id="searchInput" placeholder="Search country, city, port or route">
+            <button data-action="search-close" aria-label="Close search">×</button>
           </div>
-          <div id="search-results" class="search-results"></div>
-        </section>
+          <div id="searchResults" class="search-results"></div>
+        </div>
 
-        <aside id="layer-panel" class="floating-panel layer-panel" aria-label="Map layers">
-          <header class="panel-heading">
-            <div><strong>MAP LAYERS</strong><span>Choose what appears on the map</span></div>
-            <button id="layer-collapse" type="button" aria-label="Collapse map layers">−</button>
-          </header>
-          <div class="layer-list">
-            <label class="layer-row"><input type="checkbox" data-layer="events" checked><i class="dot dot-event"></i><span>Current events</span><b id="count-events">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="news" checked><i class="dot dot-news"></i><span>Latest reporting</span><b id="count-news">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="focus" checked><i class="dot dot-focus"></i><span>Priority countries</span><b id="count-focus">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="watch" checked><i class="dot dot-watch"></i><span>Strategic watch areas</span><b id="count-watch">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="ports" checked><i class="dot dot-port"></i><span>Major ports</span><b id="count-ports">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="routes"><i class="dot dot-route"></i><span>Shipping routes</span><b id="count-routes">0</b></label>
-            <label class="layer-row"><input type="checkbox" data-layer="labels" checked><i class="dot dot-label"></i><span>English place labels</span><b>ON</b></label>
+        <aside class="layer-box">
+          <div class="layer-title">
+            <div><b>MAP LAYERS</b><small>Show or hide map information</small></div>
+            <button data-action="layers-collapse" title="Collapse">−</button>
+          </div>
+          <div class="layer-content tech-layers">
+            <div class="layer-group-title">SIGNALS</div>
+            <label><span><input type="checkbox" data-layer="events" checked><i class="dot dot-event"></i>Current signals</span><b id="layerEventCount">0</b></label>
+            <label><span><input type="checkbox" data-layer="conflict" checked><i class="dot dot-conflict"></i>Conflict</span><b>RED</b></label>
+            <label><span><input type="checkbox" data-layer="politics" checked><i class="dot dot-politics"></i>Political risk</span><b>PURPLE</b></label>
+            <label><span><input type="checkbox" data-layer="sanctions" checked><i class="dot dot-sanctions"></i>Sanctions</span><b>AMBER</b></label>
+            <label><span><input type="checkbox" data-layer="shipping" checked><i class="dot dot-shipping"></i>Shipping disruption</span><b>CYAN</b></label>
+            <label><span><input type="checkbox" data-layer="energy" checked><i class="dot dot-energy"></i>Energy</span><b>GOLD</b></label>
+            <label><span><input type="checkbox" data-layer="cyber" checked><i class="dot dot-cyber"></i>Cyber / infrastructure</span><b>PINK</b></label>
+            <label><span><input type="checkbox" data-layer="market" checked><i class="dot dot-market"></i>Market stress</span><b>GREEN</b></label>
+            <label><span><input type="checkbox" data-layer="supply" checked><i class="dot dot-supply"></i>Supply chain</span><b>BLUE</b></label>
+            <label><span><input type="checkbox" data-layer="alerts" checked><i class="ring-sample"></i>Air / maritime alerts</span><b>RING</b></label>
+            <label><span><input type="checkbox" data-layer="heatmap" checked><i class="heat-sample"></i>Signal heat</span><b>ON</b></label>
+            <div class="layer-group-title">REFERENCE</div>
+            <label><span><input type="checkbox" data-layer="nodes" checked><i class="dot dot-node"></i>Strategic nodes</span><b id="layerNodeCount">0</b></label>
+            <label><span><input type="checkbox" data-layer="ports" checked><i class="dot dot-port"></i>Major ports</span><b id="layerPortCount">0</b></label>
+            <label><span><input type="checkbox" data-layer="routes" checked><i class="line-sample"></i>Shipping routes</span><b id="layerRouteCount">0</b></label>
+            <label><span><input type="checkbox" data-layer="labels" checked><i class="label-sample">Aa</i>Place labels</span><b>ON</b></label>
           </div>
         </aside>
 
-        <div class="map-tools" aria-label="Map controls">
-          <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
-          <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
-          <button id="world-view" type="button" aria-label="Reset to world view">WORLD</button>
+        <aside class="map-controls">
+          <div class="control-title">MAP</div>
+          <div class="map-control-grid">
+            <button class="active" data-action="basemap" data-map="tech">DARK BLUE</button>
+            <button data-action="basemap" data-map="satellite">SATELLITE</button>
+            <button data-action="zoom-out" title="Zoom out">−</button>
+            <button data-action="zoom-in" title="Zoom in">+</button>
+            <button data-action="world" class="wide">WORLD</button>
+          </div>
+        </aside>
+
+        <div class="category-box" id="categoryFilters">
+          <button class="active" data-category="all">ALL</button>
+          <button data-category="conflict">CONFLICT</button>
+          <button data-category="sanctions">SANCTIONS</button>
+          <button data-category="shipping">SHIPPING</button>
+          <button data-category="energy">ENERGY</button>
+          <button data-category="macro">MACRO</button>
+          <button data-category="policy">POLICY</button>
+          <button data-category="semiconductors">TECH</button>
+          <button data-category="cyber">CYBER</button>
         </div>
 
-        <div class="time-controls" aria-label="Current-data time window">
+        <div class="time-bar">
           <span>SHOW ITEMS FROM</span>
-          <button data-hours="6" type="button">6H</button>
-          <button data-hours="12" type="button" class="is-active">12H</button>
-          <button data-hours="24" type="button">24H</button>
-          <button id="refresh-live" class="refresh-button" type="button">REFRESH</button>
-          <small id="last-updated">Waiting for current sources</small>
+          <button data-hours="6">6H</button>
+          <button data-hours="12">12H</button>
+          <button data-hours="24" class="active">24H</button>
+          <button data-action="refresh">REFRESH ↻</button>
+          <small id="mapUpdated">Waiting for data</small>
         </div>
 
-        <aside id="live-feed" class="live-feed" aria-label="Current activity">
-          <header class="feed-header">
-            <div><span id="feed-region-kicker">PRIORITY REGIONS</span><h1 id="feed-region-title">Latest developments</h1></div>
-            <button id="feed-collapse" type="button" aria-label="Collapse latest developments">›</button>
-          </header>
-          <div class="feed-filters" role="group" aria-label="Filter current activity">
-            <button class="is-active" data-feed-filter="all" type="button">ALL</button>
-            <button data-feed-filter="conflict" type="button">CONFLICT</button>
-            <button data-feed-filter="disruption" type="button">DISRUPTION</button>
-            <button data-feed-filter="markets" type="button">MARKETS</button>
-            <button data-feed-filter="politics" type="button">POLITICS</button>
-          </div>
-          <div id="feed-list" class="feed-list" tabindex="0"></div>
-        </aside>
+        <div class="map-attribution" id="mapAttribution">MERLIN dark relief · local tiles · vector overlays</div>
+      </div>
 
-        <article id="detail-panel" class="detail-panel is-hidden" aria-live="polite">
-          <header>
-            <div><span id="detail-kicker">DETAIL</span><h2 id="detail-title">Select an item</h2></div>
-            <button id="detail-close" type="button" aria-label="Close detail panel">×</button>
-          </header>
-          <div id="detail-body" class="detail-body"></div>
-        </article>
+      <aside class="event-feed-panel">
+        <div class="feed-head">
+          <div><small>FILTERED PUBLIC SOURCES</small><h1>Signals that matter</h1></div>
+          <span id="feedStamp">—</span>
+        </div>
+        <div id="demoNotice" class="demo-notice hidden">Deterministic demo data — interface preview, not live reporting.</div>
+        <div class="feed-tabs" id="feedTabs">
+          <button class="active" data-feed-category="all">ALL</button>
+          <button data-feed-category="conflict">CONFLICT</button>
+          <button data-feed-category="shipping">DISRUPTION</button>
+          <button data-feed-category="macro">MARKETS</button>
+          <button data-feed-category="policy">POLICY</button>
+        </div>
+        <div id="feedSummary" class="feed-summary"></div>
+        <div id="eventFeed" class="event-feed"></div>
+      </aside>
+    </section>
 
-        <div id="map-message" class="map-message is-hidden" role="status"></div>
-      </section>
+    <section id="genericWorkspace" class="workspace generic-workspace">
+      <div class="workspace-head">
+        <div><small id="workspaceKicker">MERLIN</small><h1 id="workspaceTitle">Events</h1><p id="workspaceSubtitle"></p></div>
+        <button data-action="workspace" data-view="map">OPEN MAP</button>
+      </div>
+      <div id="workspaceBody" class="workspace-body"></div>
+    </section>
+  </main>
 
-      <section id="workspace" class="workspace is-hidden" aria-label="Merlin workspace">
-        <header class="workspace-header">
-          <div><span id="workspace-kicker">MERLIN</span><h1 id="workspace-title">Opportunities</h1><p id="workspace-subtitle"></p></div>
-          <div class="workspace-actions">
-            <input id="workspace-search" type="search" placeholder="Filter this page" aria-label="Filter current page">
-            <button id="workspace-refresh" type="button">REFRESH</button>
-            <button id="workspace-close" class="accent-button" type="button">RETURN TO MAP</button>
-          </div>
-        </header>
-        <div id="workspace-summary" class="workspace-summary"></div>
-        <div id="workspace-content" class="workspace-content" tabindex="0"></div>
-      </section>
-    </main>
+  <aside id="detailDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div><small id="detailKicker">EVENT</small><h2 id="detailTitle">Event detail</h2></div>
+      <button data-action="detail-close">×</button>
+    </div>
+    <div id="detailBody" class="drawer-body"></div>
+  </aside>
 
-    <div id="mobile-nav-scrim" class="mobile-nav-scrim is-hidden"></div>
-  </div>
-  <script type="module" src="/merlin-v24.js?v=24.1.0"></script>
+  <aside id="sourceDrawer" class="drawer source-drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div><small>SOURCES</small><h2>Source status</h2></div>
+      <button data-action="sources-close">×</button>
+    </div>
+    <div id="sourceBody" class="drawer-body"></div>
+  </aside>
+
+  <div id="toast" class="toast"></div>
+</div>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

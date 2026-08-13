@@ -1,3 +1,0 @@
-import { commercialId } from './ids.js';
-import { clean, finite, frozen } from './utilities.js';
-export function usageEventRecord(input = {}) { const now = new Date().toISOString(); const quantity = Math.max(0, finite(input.quantity, 1)); return frozen({ id: clean(input.id, 190) || commercialId('usage', input.metric), tenantId: clean(input.tenantId, 190), userId: clean(input.userId, 190), metric: clean(input.metric || 'apiRequests', 120), quantity, source: clean(input.source || 'APPLICATION', 120), metadata: frozen({ ...(input.metadata || {}) }), occurredAt: input.occurredAt || now, createdAt: now }); }

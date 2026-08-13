@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fixtureResults } from '../src/sources/fixture.js';
+import { runIntelligencePipeline } from '../src/intel/pipeline.js';
+import { sourceCatalog } from '../src/sources/registry.js';
+import { REGIONS } from '../src/catalog/regions.js';
+import { STRATEGIC_NODES } from '../src/catalog/strategic-nodes.js';
+import { STRATEGIC_AREAS } from '../src/catalog/strategic-areas.js';
+import { SCENARIOS } from '../src/catalog/scenarios.js';
+import { COUNTRY_PRIORITY_PROFILES } from '../src/catalog/country-priority-profiles.js';
+import { reference } from '../src/catalog/reference.js';
+const f=fixtureResults();
+const sourceStatuses=sourceCatalog().map(s=>({id:s.id,name:s.name,kind:s.kind,type:s.type,lane:s.lane||null,regionId:s.regionId||null,status:'ok',checkedAt:new Date().toISOString(),itemCount:s.kind==='gdelt'?4:1,durationMs:12}));
+const snapshot=runIntelligencePipeline({rawItems:f.items,markets:f.markets,predictions:f.predictions,sourceStatuses});snapshot.demoMode=true;snapshot.demoNotice='Deterministic demo dataset for interface testing; not live reporting.';
+const ref={regions:REGIONS,strategicNodes:STRATEGIC_NODES,strategicAreas:STRATEGIC_AREAS,countryPriorityProfiles:COUNTRY_PRIORITY_PROFILES,scenarios:SCENARIOS,countries:reference.countries,cities:reference.cities,ports:reference.ports,routes:reference.routes,chokepoints:reference.chokepoints};
+const target=process.argv[2]||path.resolve('browser-output/fixture.json');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,JSON.stringify({snapshot,reference:ref},null,2));console.log(target);

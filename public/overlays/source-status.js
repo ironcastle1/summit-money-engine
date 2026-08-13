@@ -1,2 +1,0 @@
-import { el } from './dom.js';
-export function sourceStatusBadge(layer,availability){const state=availability?.available?'available':layer.sourceMode==='static'?'catalogue':'connector';return el('span',{class:`overlay-source-status ${state}`,text:availability?.available?String(layer.sourceMode).toUpperCase():availability?.reason==='CONNECTOR_REQUIRED'?'CONNECTOR':'UNAVAILABLE',title:availability?.reason||layer.metadata?.sourceLabel||layer.sourceMode});}

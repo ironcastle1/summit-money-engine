@@ -1,1 +1,0 @@
-/* MapLibre is vendored during the production Docker build. CDN fallback remains enabled. */

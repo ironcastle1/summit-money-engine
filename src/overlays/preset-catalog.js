@@ -1,9 +1,0 @@
-export const OVERLAY_PRESETS = Object.freeze([
-  { id:'morning-brief', title:'Morning brief', description:'Material global developments with logistics and market context', layers:['active-wars','major-earthquakes','tropical-storms','ports','shipping-routes','chokepoints','elections','protests','supply-chain-risk','verification-gaps'] },
-  { id:'war-room', title:'War room', description:'Armed conflict, strikes, front lines and strategic infrastructure', layers:['active-wars','front-lines','strikes-explosions','armed-groups','military-bases','naval-deployments','border-closures','energy-sites','airports','verification-gaps'] },
-  { id:'logistics', title:'Global logistics', description:'Ports, corridors, congestion and disruption exposure', layers:['ports','shipping-routes','chokepoints','port-congestion','vessel-incidents','air-cargo','rail-corridors','pipelines','major-earthquakes','tropical-storms','floods'] },
-  { id:'political-risk', title:'Political risk', description:'Elections, unrest, sanctions and state stability', layers:['political-boundaries','elections','protests','sanctions','diplomatic-events','government-stability','border-closures','contradictory-claims'] },
-  { id:'humanitarian', title:'Humanitarian', description:'Displacement, food security, health and aid access', layers:['displacement','food-security','health-emergencies','aid-access','active-wars','floods','verification-gaps'] },
-  { id:'infrastructure', title:'Infrastructure', description:'Energy, communications, transport and industrial assets', layers:['power-grid','subsea-cables','data-centres','airports','energy-sites','industrial-sites','pipelines','major-earthquakes','wildfires'] },
-  { id:'verification', title:'Verification audit', description:'Coverage, freshness and unresolved evidence problems', layers:['source-density','verification-gaps','stale-signals','contradictory-claims','english-local-labels'] }
-]);

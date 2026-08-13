@@ -1,5 +1,0 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { distanceKm, escalationDue, evaluateGeofenceTrigger, triggerRecord } from '../../src/automation-workflows/index.js';
-test('geofence computes distance and matches nearby point', () => { assert.ok(distanceKm({ lat: 51.5, lon: -0.1 }, { lat: 51.51, lon: -0.11 }) < 2); const trigger = triggerRecord({ type: 'GEOFENCE', configuration: { center: { lat: 51.5, lon: -0.1 }, radiusKm: 10 } }); assert.equal(evaluateGeofenceTrigger(trigger, { location: { lat: 51.51, lon: -0.11 } }).passed, true); });
-test('escalation chain emits due levels until acknowledged', () => { const chain = { levels: [{ afterMinutes: 0, target: 'operator' }, { afterMinutes: 30, target: 'manager' }] }; const incident = { id: 'i', createdAt: '2026-08-04T10:00:00Z' }; assert.equal(escalationDue(chain, incident, Date.parse('2026-08-04T10:31:00Z')).length, 2); assert.equal(escalationDue(chain, { ...incident, acknowledgedAt: '2026-08-04T10:05:00Z' }, Date.parse('2026-08-04T10:31:00Z')).length, 0); });

@@ -1,2 +1,0 @@
-import { groupBy, sum } from './utilities.js';
-export function rollupUsage(events = []) { const byMetric = groupBy(events, item => item.metric); const metrics = Object.fromEntries([...byMetric].map(([metric, items]) => [metric, sum(items.map(item => item.quantity))])); const byUser = groupBy(events, item => item.userId || 'unknown'); const users = Object.fromEntries([...byUser].map(([userId, items]) => [userId, sum(items.map(item => item.quantity))])); return Object.freeze({ events: events.length, metrics: Object.freeze(metrics), users: Object.freeze(users) }); }

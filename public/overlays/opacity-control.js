@@ -1,2 +1,0 @@
-import { el } from './dom.js';
-export function opacityControl(layer,onChange){const value=Math.round(Number(layer.opacity??1)*100);const output=el('output',{text:`${value}%`});const input=el('input',{type:'range',min:'0',max:'100',step:'5',value:String(value),'aria-label':`${layer.definition.title} opacity`,oninput:event=>{const opacity=Number(event.target.value)/100;output.textContent=`${event.target.value}%`;onChange(opacity);}});return el('label',{class:'overlay-opacity'},[el('span',{text:'OPACITY'}),input,output]);}

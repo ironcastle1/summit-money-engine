@@ -1,2 +1,0 @@
-import test from'node:test';import assert from'node:assert/strict';import{sourceDefinition}from'../../src/live-data/source-definition.js';
-test('source definitions require valid ids and domains',()=>{assert.equal(sourceDefinition({id:'test-source',domain:'NEWS'}).keyless,true);assert.throws(()=>sourceDefinition({id:'Bad ID',domain:'NEWS'}));assert.throws(()=>sourceDefinition({id:'good-id',domain:'NOPE'}));});

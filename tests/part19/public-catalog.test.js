@@ -1,2 +1,0 @@
-import test from'node:test';import assert from'node:assert/strict';import{PUBLIC_SOURCE_CATALOG}from'../../src/live-data/public-source-catalog.js';
-test('public-first catalogue has broad keyless coverage',()=>{const ids=new Set(PUBLIC_SOURCE_CATALOG.map(item=>item.id));assert.equal(ids.size,PUBLIC_SOURCE_CATALOG.length);assert.ok(PUBLIC_SOURCE_CATALOG.filter(item=>item.keyless&&item.required).length>=15);assert.ok(ids.has('un-sanctions'));assert.ok(ids.has('ecb-fx'));assert.ok(ids.has('imf-portwatch-catalog'));});

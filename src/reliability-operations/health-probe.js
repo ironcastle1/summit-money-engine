@@ -1,4 +1,0 @@
-import { operationsId } from './ids.js';
-import { clean, finite } from './utilities.js';
-import { iso } from './time.js';
-export function healthProbe(input = {}) { return Object.freeze({ id: clean(input.id, 140) || operationsId('probe', input.serviceId || input.name), serviceId: clean(input.serviceId, 120), name: clean(input.name, 160) || 'Health probe', type: clean(input.type, 40).toUpperCase() || 'HTTP', target: clean(input.target, 500), intervalSeconds: Math.max(10, Number(input.intervalSeconds) || 60), timeoutMs: Math.max(100, Number(input.timeoutMs) || 5000), expectedStatus: Number(input.expectedStatus) || 200, observedStatus: Number(input.observedStatus) || null, latencyMs: Number.isFinite(Number(input.latencyMs)) ? finite(input.latencyMs) : null, state: clean(input.state, 20).toUpperCase() || 'UNKNOWN', checkedAt: input.checkedAt || iso() }); }

@@ -1,9 +1,0 @@
-import { decodeXml, extractTag } from '../../util/xml.js';
-function blocks(xml,tag){return[...String(xml||'').matchAll(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`,'gi'))].map(match=>match[1]);}
-function aliases(block){return blocks(block,'INDIVIDUAL_ALIAS').concat(blocks(block,'ENTITY_ALIAS')).map(value=>extractTag(value,'ALIAS_NAME')).filter(Boolean);}
-function nameParts(block){return['FIRST_NAME','SECOND_NAME','THIRD_NAME','FOURTH_NAME','NAME'].map(tag=>extractTag(block,tag)).filter(Boolean).join(' ').replace(/\s+/g,' ').trim();}
-function record(block,type){const reference=extractTag(block,'REFERENCE_NUMBER')||extractTag(block,'DATAID');const name=nameParts(block);if(!reference||!name)return null;return{reference,name,nameOriginal:decodeXml(extractTag(block,'NAME_ORIGINAL_SCRIPT')),type,listedOn:extractTag(block,'LISTED_ON')||null,updatedAt:extractTag(block,'LAST_DAY_UPDATED')||null,aliases:aliases(block).slice(0,20),nationality:blocks(block,'NATIONALITY').map(value=>extractTag(value,'VALUE')).filter(Boolean).slice(0,10),regime:String(reference).split('.')[0].replace(/[ie]$/i,''),source:'UN Security Council'};}
-export class UnSanctionsConnector{
-  constructor(options){this.http=options.http;this.url=options.url||'https://scsanctions.un.org/resources/xml/en/consolidated.xml';}
-  async fetch(){const xml=await this.http.text(this.url,{upstream:'un-sanctions',attempts:2,timeoutMs:20000,accept:'application/xml,text/xml'});const records=[...blocks(xml,'INDIVIDUAL').map(block=>record(block,'INDIVIDUAL')),...blocks(xml,'ENTITY').map(block=>record(block,'ENTITY'))].filter(Boolean);if(!records.length)throw Object.assign(new Error('UN sanctions XML contained no records'),{code:'UN_SANCTIONS_NO_DATA'});return{records,observedAt:new Date().toISOString(),metadata:{individuals:records.filter(row=>row.type==='INDIVIDUAL').length,entities:records.filter(row=>row.type==='ENTITY').length}};}
-}

@@ -1,2 +1,0 @@
-import { clean } from './utilities.js';
-export function queryLogs(logs = [], filter = {}) { const q = clean(filter.q, 300).toLowerCase(); return logs.filter(item => (!filter.serviceId || item.serviceId === filter.serviceId) && (!filter.level || item.level === String(filter.level).toUpperCase()) && (!q || JSON.stringify(item).toLowerCase().includes(q))).slice(0, Math.max(1, Number(filter.limit) || 1000)); }

@@ -1,120 +1,31 @@
-import { createServer } from 'node:http';
-import { once } from 'node:events';
-import { pathToFileURL } from 'node:url';
-import { createApplication } from './src/app/create-application.js';
-import { loadConfig } from './src/config/load-config.js';
-import { createLogger } from './src/core/logger.js';
-import { ShutdownCoordinator } from './src/core/shutdown-coordinator.js';
-import { assertStartupReadiness, buildStartupDiagnostics } from './src/deployment/startup-diagnostics.js';
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { config } from './src/config.js';
+import { IntelligenceService } from './src/service/intelligence-service.js';
+import { createApiRouter } from './src/api/router.js';
+import { json, text } from './src/core/response.js';
+import { log } from './src/core/log.js';
 
-function isDirectExecution() {
-  const entry = process.argv[1];
-  return Boolean(entry) && import.meta.url === pathToFileURL(entry).href;
+const here=path.dirname(fileURLToPath(import.meta.url)),publicDir=path.join(here,'public'),maplibreDir=path.join(here,'node_modules','maplibre-gl','dist');
+const service=await new IntelligenceService().init(),api=createApiRouter(service);
+const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.ico':'image/x-icon'};
+const server=http.createServer(async(req,res)=>{
+  try{const url=new URL(req.url||'/','http://'+(req.headers.host||`localhost:${config.port}`));if(url.pathname.startsWith('/api/'))return await api(req,res,url);if(url.pathname==='/vendor/maplibre-gl.mjs'||url.pathname==='/vendor/maplibre-gl.css')return await serveMapLibre(req,res,url.pathname);return await serve(req,res,url.pathname);}catch(error){log.error('request-failed',{message:error.message,path:req.url});if(!res.headersSent)json(res,500,{error:'internal_error'});else res.end();}
+});
+
+async function serveMapLibre(req,res,pathname){
+  if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'method_not_allowed'});
+  const file=pathname.endsWith('.css')?'maplibre-gl.css':'maplibre-gl.mjs';
+  const target=path.join(maplibreDir,file);
+  try{const body=await fs.readFile(target);const type=file.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8';res.writeHead(200,{'content-type':type,'content-length':body.length,'cache-control':'public,max-age=86400','x-content-type-options':'nosniff'});if(req.method==='HEAD')return res.end();res.end(body);}catch(error){if(error.code==='ENOENT')return text(res,503,'Map renderer dependency is not installed. Run npm install.');throw error;}
 }
 
-
-function isPlaceholderOrigin(value) {
-  const origin = String(value || '').trim().replace(/\/$/, '');
-  return !origin || /^https?:\/\/(?:www\.)?example\.com(?::\d+)?$/i.test(origin);
+async function serve(req,res,pathname){
+  if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'method_not_allowed'});let p=decodeURIComponent(pathname);if(p==='/')p='/index.html';const target=path.normalize(path.join(publicDir,p));if(!target.startsWith(publicDir))return json(res,403,{error:'forbidden'});
+  try{const stat=await fs.stat(target);if(stat.isDirectory())return serve(req,res,path.join(p,'index.html'));const body=await fs.readFile(target);const ext=path.extname(target);res.writeHead(200,{'content-type':MIME[ext]||'application/octet-stream','content-length':body.length,'cache-control':ext==='.html'?'no-cache':'public,max-age=300','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin','content-security-policy':"default-src 'self'; img-src 'self' data: blob: https://tiles.openfreemap.org https://server.arcgisonline.com; style-src 'self'; script-src 'self'; connect-src 'self' https://tiles.openfreemap.org https://server.arcgisonline.com; worker-src 'self' blob:; font-src 'self' data: https://tiles.openfreemap.org"});if(req.method==='HEAD')return res.end();res.end(body);}catch(error){if(error.code==='ENOENT')return text(res,404,'Not found');throw error;}
 }
-
-export function resolveRuntimeEnvironment(inputEnv = {}) {
-  const env = { ...inputEnv };
-  if (!isPlaceholderOrigin(env.PUBLIC_ORIGIN)) return env;
-
-  const renderUrl = String(env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
-  const renderHostname = String(env.RENDER_EXTERNAL_HOSTNAME || '')
-    .trim()
-    .replace(/^https?:\/\//i, '')
-    .replace(/\/$/, '');
-  const renderServiceName = String(env.RENDER_SERVICE_NAME || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  if (/^https:\/\/[^/]+$/i.test(renderUrl)) {
-    env.PUBLIC_ORIGIN = renderUrl;
-  } else if (renderHostname) {
-    env.PUBLIC_ORIGIN = `https://${renderHostname}`;
-  } else if (String(env.RENDER || '').toLowerCase() === 'true' && renderServiceName) {
-    env.PUBLIC_ORIGIN = `https://${renderServiceName}.onrender.com`;
-  }
-
-  return env;
-}
-
-function closeHttpServer(server) {
-  if (!server.listening) return Promise.resolve();
-  server.close();
-  return once(server, 'close').then(() => undefined);
-}
-
-export async function startMerlinServer(options = {}) {
-  const env = resolveRuntimeEnvironment(options.env || process.env);
-  const config = options.config || loadConfig(env);
-  const logger = options.logger || createLogger({ level: config.logLevel, service: 'merlin' });
-  const startupDiagnostics = buildStartupDiagnostics(config);
-  assertStartupReadiness(startupDiagnostics);
-
-  for (const warning of startupDiagnostics.warnings) {
-    logger.warn('startup.warning', warning);
-  }
-
-  const application = await createApplication({ config, logger, startupDiagnostics });
-  const server = createServer(application.handle);
-  server.keepAliveTimeout = 65_000;
-  server.headersTimeout = 66_000;
-  server.requestTimeout = config.requestTimeoutMs;
-
-  const shutdown = new ShutdownCoordinator({ logger, taskTimeoutMs: 9_000 })
-    .register('application', () => application.close())
-    .register('http-server', () => closeHttpServer(server));
-
-  const host = options.host || config.host;
-  const port = options.port ?? config.port;
-  server.listen(port, host);
-  await once(server, 'listening');
-  const address = server.address();
-
-  logger.info('server.started', {
-    host,
-    port: typeof address === 'object' && address ? address.port : port,
-    environment: config.environment,
-    version: config.version,
-    startupStatus: startupDiagnostics.status,
-    configuredConnectors: startupDiagnostics.connectorSummary.configured
-  });
-
-  const stop = async reason => shutdown.shutdown(reason);
-
-  if (options.attachProcessHandlers !== false) {
-    const handleSignal = signal => {
-      stop(signal).then(result => {
-        process.exitCode = result.state === 'STOPPED' ? 0 : 1;
-      }).catch(error => {
-        logger.fatal('server.shutdown_failed', { signal, error });
-        process.exitCode = 1;
-      });
-    };
-
-    process.once('SIGINT', handleSignal);
-    process.once('SIGTERM', handleSignal);
-    process.on('unhandledRejection', error => logger.error('process.unhandled_rejection', { error }));
-    process.on('uncaughtException', error => {
-      logger.fatal('process.uncaught_exception', { error });
-      process.exitCode = 1;
-      stop('uncaughtException').catch(() => {});
-    });
-  }
-
-  return Object.freeze({ server, application, config, logger, startupDiagnostics, shutdown, stop });
-}
-
-if (isDirectExecution()) {
-  startMerlinServer().catch(error => {
-    const logger = createLogger({ level: process.env.LOG_LEVEL || 'info', service: 'merlin-bootstrap' });
-    logger.fatal('server.startup_failed', { error, diagnostics: error?.diagnostics });
-    process.exitCode = 1;
-  });
-}
+server.listen(config.port,config.host,()=>log.info('merlin-ready',{port:config.port,fixtureMode:config.fixtureMode,sources:service.sources.length}));
+function shutdown(signal){log.info('shutdown',{signal});server.close(()=>process.exit(0));setTimeout(()=>process.exit(1),5000).unref();}
+process.on('SIGINT',()=>shutdown('SIGINT'));process.on('SIGTERM',()=>shutdown('SIGTERM'));

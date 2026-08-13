@@ -1,26 +1,17 @@
 services:
   - type: web
-    name: merlin
+    name: merlin-strategic-intelligence
     runtime: docker
     plan: starter
-    healthCheckPath: /api/ops/ready
-    autoDeploy: true
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: HOST
-        value: 0.0.0.0
-      - key: PORT
-        value: 4173
-      - key: LOG_LEVEL
-        value: info
-      - key: PUBLIC_ORIGIN
-        value: https://summit-money-engine-1.onrender.com
-      - key: SESSION_SECRET
-        generateValue: true
-      - key: ACCOUNT_DATA_FILE
-        value: /var/data/accounts.json
+    healthCheckPath: /api/health
     disk:
-      name: merlin-runtime-data
+      name: merlin-data
       mountPath: /var/data
       sizeGB: 1
+    envVars:
+      - key: MERLIN_DATA_DIR
+        value: /var/data
+      - key: MERLIN_REFRESH_MS
+        value: 180000
+      - key: MERLIN_SOURCE_TIMEOUT_MS
+        value: 9000

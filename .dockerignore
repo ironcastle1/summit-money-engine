@@ -1,12 +1,5 @@
 .git
-.github
-node_modules
-runtime-data
-.tmp
-coverage
-release-output
-*.zip
+release
+browser-output
+runtime
 *.log
-.env
-.env.*
-!.env.example
