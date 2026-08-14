@@ -1,7 +1,5 @@
 node_modules/
-.env
-.DS_Store
+runtime/*.json
+screenshots/*.png
 *.log
-runtime/
-browser-output/*.tmp
-release/*.zip
+.DS_Store

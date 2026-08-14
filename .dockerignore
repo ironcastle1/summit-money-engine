@@ -1,5 +1,3 @@
 .git
-release
-browser-output
-runtime
-*.log
+screenshots
+runtime/*.json

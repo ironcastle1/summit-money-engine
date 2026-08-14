@@ -1,339 +1,72 @@
-import { $, $$, debounce, esc, toast, ago } from './modules/utils.js';
-import { state, setState } from './modules/state.js';
-import { api } from './modules/api.js';
-import { MerlinMap } from './modules/map.js';
-import { MapRenderer } from './modules/map-renderer.js';
-import { renderFeed } from './modules/feed.js';
-import { openEvent, closeDetail } from './modules/detail.js';
-import { renderWorkspace } from './modules/workspaces.js';
-
-let renderer;
-let feedCategory = 'all';
-let refreshTimer = null;
-let tileState = { loaded: 0, failed: 0, pending: 0, basemap: 'tech' };
-
-const map = new MerlinMap($('#mapViewport'), {
-  onTiles: status => {
-    tileState = status;
-    renderMapStatus();
-  },
-});
-renderer = new MapRenderer(map, selectEvent);
-
-boot();
-
-async function boot() {
-  bindEvents();
-  clock();
-  setInterval(clock, 1000);
-  try {
-    const [reference, snapshot] = await Promise.all([
-      api.reference(),
-      api.snapshot(params()),
-    ]);
-    setState({ reference, snapshot });
-    renderer.setReference(reference);
-    buildRegions();
-    updateLayerCounts();
-    focusRegion(state.region, false);
-    render();
-    refreshTimer = setInterval(() => loadSnapshot(false).catch(() => {}), 60_000);
-  } catch (error) {
-    renderFatal(error);
-  }
+import {api,getJSON} from './modules/api.js';
+import {state,filteredSignals} from './modules/state.js';
+import {MerlinMap} from './modules/map-engine.js';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let map,pollTimer;
+const LAYERS=[
+ ['SIGNALS',null,null],['signals','Current signals','#57d7ff'],['conflict','Conflict / force posture','#ff5367'],['politics','Political risk','#4da8ff'],['sanctions','Sanctions / export controls','#ff9b3d'],['maritime','Shipping disruption','#20d9ff'],['energy','Energy','#ffd35a'],['cyber','Cyber / infrastructure','#b47cff'],['markets','Market stress','#37e2a3'],
+ ['EXPOSURE',null,null],['supply','Supply-chain pressure','#52a8ff'],['air','Air / maritime alert rings','#6de2ff'],['heat','Signal heat','#ff8745'],
+ ['REFERENCE',null,null],['countryBorders','Country borders','#67cbed'],['countryRisk','Country risk shading','#f2b83f'],['strategicNodes','Strategic nodes','#f2b83f'],['ports','Major ports','#27d5ff'],['routes','Shipping routes','#12c2f4'],['cities','Cities','#8ad7ec'],['labels','Labels','#eaf7fc']
+];
+boot().catch(fatal);
+async function boot(){
+ bindUI();renderLayerRows();clock();setInterval(clock,1000);
+ const [reference,snapshot,lines,polygons]=await Promise.all([api.reference(),api.snapshot(),getJSON('/data/tech-base-lines.json'),getJSON('/data/country-polygons.geojson')]);
+ state.reference=reference;state.snapshot=snapshot;
+ map=new MerlinMap($('#mapCanvas'),{onSelect:handleMapSelect,onMove:v=>{$('#zoomReadout').textContent=`${(2**v.zoom).toFixed(1)}×`;$('#mapCanvas').dataset.center=`${v.center[0].toFixed(4)},${v.center[1].toFixed(4)}`;}});
+ await map.load({reference,lines,polygons,imageUrl:'/assets/world-tech-mercator.jpg'});map.setLayers(state.layers);syncMap();renderAll();
+ $('#mapCanvas').addEventListener('pointermove',e=>{if(!map)return;const r=e.currentTarget.getBoundingClientRect(),ll=map.screenToLonLat(e.clientX-r.left,e.clientY-r.top);$('#coordReadout').textContent=`${Math.abs(ll.lat).toFixed(1)}°${ll.lat>=0?'N':'S'} ${Math.abs(ll.lon).toFixed(1)}°${ll.lon>=0?'E':'W'}`;});
+ if(snapshot.sourceCoverage.responded===0&&snapshot.dataMode!=='LIVE')setTimeout(()=>refresh(false),1200);
+ pollTimer=setInterval(pollSnapshot,30000);
 }
-
-function params() {
-  return {
-    region: state.region,
-    hours: state.hours,
-    minScore: state.minScore,
-    category: state.category,
-  };
+function bindUI(){
+ $$('.nav-btn,.view-link').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+ $$('#regionTabs button').forEach(b=>b.addEventListener('click',()=>setRegion(b.dataset.region)));
+ $$('#categoryTabs button').forEach(b=>b.addEventListener('click',()=>{state.filters.category=b.dataset.category;$$('#categoryTabs button').forEach(x=>x.classList.toggle('active',x===b));syncMap();renderSignalPane();}));
+ $('#windowSelect').addEventListener('change',e=>{state.filters.hours=Number(e.target.value);syncMap();renderSignalPane();renderWorkspaces();});
+ $('#scoreRange').addEventListener('input',e=>{$('#scoreValue').textContent=e.target.value;state.filters.minScore=Number(e.target.value);syncMap();renderSignalPane();renderWorkspaces();});
+ $('#refreshButton').addEventListener('click',()=>refresh(true));$('#paneRefresh').addEventListener('click',()=>refresh(true));
+ $('#sourceStatusButton').addEventListener('click',openSources);$('#closeSourceDrawer').addEventListener('click',closeDrawers);$('#closeDrawer').addEventListener('click',closeDrawers);$('#drawerBackdrop').addEventListener('click',closeDrawers);
+ $('#collapseLayers').addEventListener('click',()=>{$('#layerPanel').classList.toggle('collapsed');$('#collapseLayers').textContent=$('#layerPanel').classList.contains('collapsed')?'+':'−';});
+ $('#zoomIn').addEventListener('click',()=>map?.zoomBy(.55));$('#zoomOut').addEventListener('click',()=>map?.zoomBy(-.55));$('#fitWorldButton').addEventListener('click',()=>map?.fitWorld());
+ $$('[data-map-mode]').forEach(b=>b.addEventListener('click',()=>{state.mapMode=b.dataset.mapMode;$$('[data-map-mode]').forEach(x=>x.classList.toggle('active',x===b));map?.setMode(state.mapMode);}));
+ $('#countrySearch').addEventListener('input',renderCountries);
+ $('#searchButton').addEventListener('click',openSearch);$('#mapSearchButton').addEventListener('click',openSearch);$('#closeSearch').addEventListener('click',closeSearch);$('#globalSearchInput').addEventListener('input',renderSearch);$('#searchModal').addEventListener('click',e=>{if(e.target.id==='searchModal')closeSearch();});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawers();closeSearch();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSearch();}});
 }
-
-async function loadSnapshot(showToast = true) {
-  if (showToast) toast('Updating current data…');
-  const snapshot = await api.snapshot(params());
-  setState({ snapshot });
-  render();
-  return snapshot;
-}
-
-async function manualRefresh() {
-  const buttons = $$('[data-action="refresh"]');
-  buttons.forEach(button => { button.disabled = true; button.dataset.oldText = button.textContent; button.textContent = 'UPDATING'; });
-  try {
-    await api.refresh();
-    await loadSnapshot(false);
-    toast('Sources refreshed');
-  } catch (error) {
-    toast(`Refresh failed: ${error.message}`);
-  } finally {
-    buttons.forEach(button => { button.disabled = false; button.textContent = button.dataset.oldText || 'REFRESH'; });
-  }
-}
-
-function bindEvents() {
-  document.addEventListener('click', event => {
-    const actionEl = event.target.closest('[data-action]');
-    if (!actionEl) return;
-    const action = actionEl.dataset.action;
-    if (action === 'workspace') return navigate(actionEl.dataset.view);
-    if (action === 'refresh') return manualRefresh();
-    if (action === 'zoom-in') return map.setZoom(map.zoom + .55);
-    if (action === 'zoom-out') return map.setZoom(map.zoom - .55);
-    if (action === 'world') return map.world();
-    if (action === 'search-toggle') return toggleSearch(true);
-    if (action === 'search-close') return toggleSearch(false);
-    if (action === 'detail-close') return closeDetail();
-    if (action === 'sources') return openSources();
-    if (action === 'sources-close') return closeSources();
-    if (action === 'layers-collapse') return $('.layer-box').classList.toggle('collapsed');
-    if (action === 'basemap') {
-      map.setBasemap(actionEl.dataset.map);
-      $$('[data-action="basemap"]').forEach(button => button.classList.toggle('active', button === actionEl));
-      return;
-    }
-  });
-
-  $('#windowSelect').addEventListener('change', event => setHours(Number(event.target.value)));
-  $('#scoreInput').addEventListener('input', event => { $('#scoreOutput').textContent = event.target.value; });
-  $('#scoreInput').addEventListener('change', event => {
-    state.minScore = Number(event.target.value);
-    loadSnapshot(false);
-  });
-
-  $('#categoryFilters').addEventListener('click', event => {
-    const button = event.target.closest('[data-category]');
-    if (!button) return;
-    $$('[data-category]', $('#categoryFilters')).forEach(row => row.classList.toggle('active', row === button));
-    state.category = button.dataset.category;
-    loadSnapshot(false);
-  });
-
-  $('#feedTabs').addEventListener('click', event => {
-    const button = event.target.closest('[data-feed-category]');
-    if (!button) return;
-    feedCategory = button.dataset.feedCategory;
-    $$('[data-feed-category]', $('#feedTabs')).forEach(row => row.classList.toggle('active', row === button));
-    renderCurrentFeed();
-  });
-
-  document.addEventListener('click', event => {
-    const hours = event.target.closest('[data-hours]');
-    if (!hours) return;
-    setHours(Number(hours.dataset.hours));
-  });
-
-  document.addEventListener('change', event => {
-    const id = event.target?.dataset?.layer;
-    if (!id) return;
-    state.layers[id] = event.target.checked;
-    renderer.setLayers(state.layers);
-  });
-
-  $('#searchInput').addEventListener('input', debounce(runSearch, 120));
-}
-
-function setHours(hours) {
-  state.hours = hours;
-  $('#windowSelect').value = String(hours);
-  $$('[data-hours]').forEach(button => button.classList.toggle('active', Number(button.dataset.hours) === hours));
-  loadSnapshot(false);
-}
-
-function buildRegions() {
-  const tabs = $('#regionTabs');
-  tabs.innerHTML = '';
-  for (const region of state.reference.regions) {
-    const button = document.createElement('button');
-    button.textContent = region.short;
-    button.dataset.region = region.id;
-    button.classList.toggle('active', region.id === state.region);
-    button.onclick = () => {
-      state.region = region.id;
-      $$('[data-region]', tabs).forEach(row => row.classList.toggle('active', row === button));
-      focusRegion(region.id, true);
-      loadSnapshot(false);
-    };
-    tabs.append(button);
-  }
-}
-
-function focusRegion(id, animate = true) {
-  const region = state.reference.regions.find(row => row.id === id) || state.reference.regions.find(row => row.id === 'world');
-  const adjustedZoom = region.id === 'world' ? 2.05 : Math.max(2.2, region.zoom + .15);
-  map.focus(region.center[0], region.center[1], adjustedZoom, animate);
-}
-
-function render() {
-  const snapshot = state.snapshot || {};
-  const events = snapshot.signals || [];
-  renderer.setEvents(events);
-  renderer.setLayers(state.layers);
-  $('#eventCount').textContent = events.length;
-  const coverage = snapshot.sourceCoverage || {};
-  $('#coverageMetric').textContent = Number.isFinite(coverage.availability) ? `${coverage.availability}%` : '—';
-  $('#demoBadge').classList.toggle('hidden', !snapshot.demoMode);
-  $('#demoNotice').classList.toggle('hidden', !snapshot.demoMode);
-  if (snapshot.demoMode) $('#demoNotice').textContent = snapshot.demoNotice || 'Deterministic demo data — interface preview, not live reporting.';
-  $('#highCount').textContent = events.filter(item => ['HIGH', 'CRITICAL'].includes(item.urgency)).length;
-  $('#layerEventCount').textContent = events.length;
-  $('#feedStamp').textContent = snapshot.generatedAt ? `${ago(snapshot.generatedAt)} old` : '—';
-  renderCurrentFeed();
-  renderSourceHealth();
-  renderMapStatus();
-  if (state.view !== 'map') renderCurrentWorkspace();
-}
-
-function renderCurrentFeed() {
-  const events = state.snapshot?.signals || [];
-  const shown = feedCategory === 'all' ? events : events.filter(item => feedGroup(item.category) === feedCategory || item.category === feedCategory);
-  renderFeed($('#eventFeed'), shown, selectEvent);
-  renderSummary(shown);
-}
-
-function feedGroup(category) {
-  if (['shipping', 'energy', 'cyber'].includes(category)) return 'shipping';
-  if (['macro', 'rates', 'trade', 'commodities'].includes(category)) return 'macro';
-  if (['policy', 'sanctions'].includes(category)) return 'policy';
-  return category;
-}
-
-function renderSummary(events) {
-  const high = events.filter(item => ['HIGH', 'CRITICAL'].includes(item.urgency)).length;
-  const market = events.filter(item => item.market?.rules?.length).length;
-  const verified = events.filter(item => item.independentSources >= 2 || item.officialPrimary).length;
-  $('#feedSummary').innerHTML = `<span><b>${high}</b> high priority</span><span><b>${market}</b> market-linked</span><span><b>${verified}</b> corroborated / primary</span>`;
-}
-
-function navigate(view) {
-  state.view = view;
-  $$('.nav').forEach(button => button.classList.toggle('active', button.dataset.view === view));
-  $('#mapWorkspace').classList.toggle('active', view === 'map');
-  $('#genericWorkspace').classList.toggle('active', view !== 'map');
-  if (view !== 'map') renderCurrentWorkspace();
-  else requestAnimationFrame(() => { map.render(); renderer.updatePositions(); });
-}
-
-function renderCurrentWorkspace() {
-  const titles = {
-    opportunities: ['FINANCIAL USE', 'Opportunities', 'Current developments with a defined market effect, ranked by evidence and model match.'],
-    markets: ['PRICES AND EFFECTS', 'Markets', 'Current prices together with the events most likely to affect them.'],
-    conflicts: ['CONFLICT AND ESCALATION', 'Conflicts', 'Current military and escalation events that pass the selected relevance threshold.'],
-    countries: ['COUNTRY COVERAGE', 'Countries', 'Priority coverage, current event counts and the exposures worth checking.'],
-    briefing: ['CURRENT SUMMARY', 'Daily brief', 'The most useful current developments without general-news clutter.'],
-  };
-  const title = titles[state.view] || titles.opportunities;
-  $('#workspaceKicker').textContent = title[0];
-  $('#workspaceTitle').textContent = title[1];
-  $('#workspaceSubtitle').textContent = title[2];
-  $('#workspaceBody').innerHTML = renderWorkspace(state.view, state.snapshot, selectEvent, state.reference);
-}
-
-function selectEvent(item) {
-  if (!item) return;
-  state.selectedSignal = item;
-  openEvent(item);
-  if (Number.isFinite(item.location?.lat) && Number.isFinite(item.location?.lon) && state.view === 'map') {
-    map.focus(item.location.lat, item.location.lon, Math.max(map.zoom, 4.0));
-  }
-}
-
-function renderSourceHealth() {
-  const rows = state.snapshot?.sourceStatuses || [];
-  const ok = rows.filter(row => row.status === 'ok').length;
-  const button = $('#sourceHealth');
-  button.querySelector('span').textContent = `${ok}/${rows.length} SOURCES`;
-  button.classList.toggle('degraded', rows.length > 0 && ok / rows.length < .55);
-}
-
-function renderMapStatus() {
-  const stamp = state.snapshot?.generatedAt ? `Data ${ago(state.snapshot.generatedAt)} old` : 'Waiting for data';
-  const mapText = tileState.mode === 'fallback' || tileState.basemap === 'local-tech' ? `${stamp} · dark blue relief` : tileState.basemap === 'tech' ? `${stamp} · dark blue relief` : tileState.loaded > 0 ? `${stamp} · satellite` : tileState.failed > 0 ? `${stamp} · dark blue relief` : stamp;
-  $('#mapUpdated').textContent = mapText;
-}
-
-function updateLayerCounts() {
-  const ref = state.reference || {};
-  $('#layerNodeCount').textContent = (ref.strategicNodes || []).length;
-  $('#layerPortCount').textContent = (ref.ports || []).filter(port => Number(port.importance || 0) >= 70).length;
-  $('#layerRouteCount').textContent = (ref.routes || []).length;
-}
-
-async function openSources() {
-  try {
-    const data = await api.sources();
-    const coverage = data.coverage || {};
-    const lanes = coverage.lanes || [];
-    $('#sourceBody').innerHTML = `<p class="source-intro"><b>${coverage.total || data.sources.length} configured public-source streams.</b> Primary documents and official notices are weighted above discovery feeds. Tabloid and low-quality domains are blocked or discounted; disputed claims require corroboration.</p>
-      <div class="coverage-summary"><div><b>${coverage.online ?? 0}</b><span>ONLINE</span></div><div><b>${coverage.availability ?? 0}%</b><span>AVAILABLE</span></div><div><b>${coverage.items ?? 0}</b><span>ITEMS</span></div><div><b>${coverage.error ?? 0}</b><span>FAILED</span></div></div>
-      <div class="lane-grid">${lanes.map(l => `<div class="lane-card"><b>${esc(l.id.toUpperCase())}</b><strong>${l.online}/${l.total}</strong><small>${l.items} items</small></div>`).join('')}</div>
-      <h3 class="source-heading">SOURCE STREAMS</h3>
-      <div class="source-grid">${data.sources.map(source => `<div class="source-row ${source.status}"><i></i><span><b>${esc(source.name)}</b><small>${esc((source.lane || source.kind || 'source').toUpperCase())}${source.regionId ? ` · ${esc(source.regionId)}` : ''}</small></span><strong>${esc(source.status.toUpperCase())}</strong><small>${source.itemCount ?? 0} items${source.error ? ` · ${esc(source.error)}` : ''}</small></div>`).join('')}</div>`;
-    $('#sourceDrawer').classList.add('open');
-    $('#sourceDrawer').setAttribute('aria-hidden', 'false');
-  } catch (error) {
-    toast(error.message);
-  }
-}
-
-function closeSources() {
-  $('#sourceDrawer').classList.remove('open');
-  $('#sourceDrawer').setAttribute('aria-hidden', 'true');
-}
-
-function toggleSearch(show) {
-  $('#searchPanel').classList.toggle('hidden', !show);
-  if (show) {
-    $('#searchInput').focus();
-    runSearch();
-  } else {
-    $('#searchInput').value = '';
-    $('#searchResults').innerHTML = '';
-  }
-}
-
-function runSearch() {
-  const q = $('#searchInput').value.trim().toLowerCase();
-  if (q.length < 2) {
-    $('#searchResults').innerHTML = '<span>Type at least 2 characters.</span>';
-    return;
-  }
-  const ref = state.reference;
-  const rows = [];
-  for (const country of ref.countries || []) {
-    if (`${country.name} ${country.nativeName || ''}`.toLowerCase().includes(q)) rows.push({ name: country.name, sub: country.nativeName || country.region, lat: country.lat, lon: country.lon, zoom: 4 });
-  }
-  for (const city of ref.cities || []) {
-    if (`${city.name} ${city.localName || ''}`.toLowerCase().includes(q)) rows.push({ name: city.name, sub: city.country, lat: city.lat, lon: city.lon, zoom: 5 });
-  }
-  for (const port of ref.ports || []) {
-    if (port.name.toLowerCase().includes(q)) rows.push({ name: port.name, sub: `Port · ${port.country}`, lat: port.coordinates.lat, lon: port.coordinates.lon, zoom: 5 });
-  }
-  for (const node of ref.strategicNodes || []) {
-    if (node.name.toLowerCase().includes(q)) rows.push({ name: node.name, sub: 'Key location', lat: node.lat, lon: node.lon, zoom: 5 });
-  }
-  for (const area of ref.strategicAreas || []) {
-    if (`${area.name} ${(area.aliases || []).join(' ')}`.toLowerCase().includes(q)) rows.push({ name: area.name, sub: `Key area · ${area.type}`, lat: area.lat, lon: area.lon, zoom: 5 });
-  }
-  const top = rows.slice(0, 16);
-  $('#searchResults').innerHTML = top.map((row, index) => `<button data-i="${index}"><b>${esc(row.name)}</b><small>${esc(row.sub || '')}</small></button>`).join('') || '<span>No matching place.</span>';
-  $$('[data-i]', $('#searchResults')).forEach(button => {
-    button.onclick = () => {
-      const row = top[Number(button.dataset.i)];
-      map.focus(row.lat, row.lon, row.zoom);
-      toggleSearch(false);
-    };
-  });
-}
-
-function clock() {
-  $('#utcClock').textContent = `${new Date().toISOString().slice(11, 16)} UTC`;
-}
-
-function renderFatal(error) {
-  $('#eventFeed').innerHTML = `<div class="empty"><b>Merlin could not start.</b><span>${esc(error.message)}</span></div>`;
-  $('#sourceHealth span').textContent = 'ERROR';
-}
+function renderLayerRows(){const box=$('#layerRows');box.innerHTML='';for(const [id,label,color] of LAYERS){if(!label){box.insertAdjacentHTML('beforeend',`<div class="layer-section">${esc(id)}</div>`);continue;}const row=document.createElement('label');row.className='layer-row';row.innerHTML=`<input type="checkbox" ${state.layers[id]?'checked':''} data-layer="${id}"><span><i class="swatch" style="color:${color};background:${color}"></i>${esc(label)}</span><small>${id==='countryBorders'?'VECTOR':id==='routes'?'15 ROUTES':'ON'}</small>`;box.append(row);}box.addEventListener('change',e=>{const id=e.target.dataset.layer;if(!id)return;state.layers[id]=e.target.checked;map?.setLayers(state.layers);});}
+function switchView(view){state.view=view;$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));if(view==='map')setTimeout(()=>map?.resize(),0);else renderWorkspaces();}
+function setRegion(id){state.filters.region=id;$$('#regionTabs button').forEach(b=>b.classList.toggle('active',b.dataset.region===id));const region=state.reference?.regions?.find(r=>r.id===id);map?.setRegion(region||{id:'world'});syncMap();renderSignalPane();renderWorkspaces();}
+function syncMap(){if(!map||!state.snapshot)return;map.setSignals(filteredSignals());map.setRisk(state.snapshot.countryRisk);map.setLayers(state.layers);}
+function renderAll(){renderStatus();renderSignalPane();renderTicker();renderWorkspaces();}
+function renderStatus(){const s=state.snapshot,c=s.sourceCoverage||{},snapshotOnly=s.dataMode==='BUILD_SNAPSHOT';$('#sourceCount').textContent=snapshotOnly?String(c.total||0):`${c.responded||0}/${c.total||0}`;$('#sourceLabel').textContent=snapshotOnly?'CONFIGURED':'SOURCES';$('#highCount').textContent=s.metrics?.high||0;$('#signalCount').textContent=s.metrics?.signals||0;$('#coveragePercent').textContent=snapshotOnly?'—':`${c.percent||0}%`;$('#coverageLabel').textContent=snapshotOnly?'LIVE COVERAGE':'COVERAGE';$('#dataAge').textContent=age(s.generatedAt);const live=s.metrics?.liveRecords||0,fallback=s.metrics?.fallbackRecords||0;if(s.dataMode==='LIVE')$('#modeNotice').innerHTML=`<span class="status-ok">LIVE</span> · ${live} current public records`;else if(s.dataMode==='MIXED')$('#modeNotice').innerHTML=`<span class="status-ok">MIXED LIVE</span> · ${live} live · ${fallback} labelled fallback`;else if(s.dataMode==='BUILD_SNAPSHOT')$('#modeNotice').innerHTML=`<span class="status-seed">BUILD SNAPSHOT</span> · ${fallback} timestamped public records · live refresh pending/unavailable`;else $('#modeNotice').innerHTML='<span class="status-error">NO CURRENT DATA</span> · inspect source status';}
+function renderSignalPane(){const rows=filteredSignals();$('#paneHigh').textContent=rows.filter(x=>x.priority==='HIGH').length;$('#paneMarket').textContent=rows.filter(x=>x.marketTransmission?.length).length;$('#paneCorroborated').textContent=rows.filter(x=>(x.corroborationCount||1)>1).length;const box=$('#signalList');if(!rows.length){box.innerHTML='<div class="empty-state"><b>No signal passes this filter.</b>Lower the score, widen the time window, change region, or inspect source status.</div>';return;}box.innerHTML=rows.slice(0,100).map(s=>`<article class="signal-card" data-signal="${s.id}"><div class="meta"><span class="badge ${s.priority==='HIGH'?'high':''}">${s.signalScore} ${s.priority}</span><span>${esc(s.category.toUpperCase())}</span>${s.fallback?'<span class="badge seed">BUILD SNAPSHOT</span>':''}<span>${relative(s.publishedAt)}</span></div><h3>${esc(s.title)}</h3><p>${esc(s.summary||s.eventType||'Public-source development')}</p><div class="footer"><span>${esc(s.sourceName||s.sourceDomain)}</span><span>${s.corroborationCount||1} domain${s.corroborationCount===1?'':'s'} · ${s.confidence||0}% model confidence</span></div></article>`).join('');box.querySelectorAll('[data-signal]').forEach(el=>el.addEventListener('click',()=>openSignal(state.snapshot.signals.find(s=>s.id===el.dataset.signal))));}
+function renderTicker(){const markets=state.snapshot.markets||[];$('#marketTicker').innerHTML=markets.slice(0,16).map(m=>{const ch=Number(m.change24h);return`<div class="ticker-item"><b>${esc(m.symbol)}</b><span>${fmtPrice(m.price)}</span>${Number.isFinite(ch)?`<span class="${ch>=0?'up':'down'}">${ch>=0?'+':''}${ch.toFixed(2)}%</span>`:''}${m.fallback?'<span class="status-seed">SNAPSHOT</span>':'<span class="status-ok">LIVE</span>'}</div>`;}).join('')||'<div class="ticker-item status-error">Market sources unavailable</div>';}
+function renderWorkspaces(){if(!state.snapshot)return;renderOpportunities();renderMarkets();renderConflicts();renderCountries();renderBrief();}
+function renderOpportunities(){const rows=(state.snapshot.opportunities||[]).filter(o=>state.filters.region==='world'||o.regionId===state.filters.region);$('#opportunityGrid').innerHTML=rows.length?rows.slice(0,40).map(o=>`<article class="data-card"><div class="card-meta"><span>${esc(regionName(o.regionId))}</span><span>MODEL ${o.confidence}% · SCORE ${o.score}</span></div><h3>${esc(o.title)}</h3><p>${esc(o.rationale)}</p><div class="op-evidence">${o.evidenceCount||1} supporting signal${(o.evidenceCount||1)===1?'':'s'} · ${o.corroboratingSources||o.sourceNames?.length||1} source${(o.corroboratingSources||o.sourceNames?.length||1)===1?'':'s'}${o.highEvidence?` · ${o.highEvidence} high priority`:''}</div><div class="tags">${(o.assets||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}${(o.potentialBeneficiaries||[]).slice(0,4).map(x=>`<span class="tag">POTENTIAL + ${esc(x)}</span>`).join('')}</div><div class="card-meta" style="margin-top:12px"><span>${esc(o.horizon||'')}</span><span>${o.fallback?'BUILD SNAPSHOT':relative(o.publishedAt)}</span></div></article>`).join(''):'<div class="empty-state"><b>No current market-transmission match.</b>MERLIN creates an opportunity card only when a current signal matches a defined transmission rule.</div>';}
+function renderMarkets(){const rows=state.snapshot.markets||[];$('#marketGrid').innerHTML=rows.length?rows.map(m=>{const ch=Number(m.change24h);return`<article class="market-card"><div class="symbol">${esc(m.symbol)} · ${esc(m.type||'market')}</div><div class="price">${fmtPrice(m.price)}</div><div class="change ${Number.isFinite(ch)?(ch>=0?'up':'down'):''}">${Number.isFinite(ch)?`${ch>=0?'+':''}${ch.toFixed(2)}%`:'change n/a'}</div><div class="source">${m.fallback?'BUILD SNAPSHOT':'LIVE / LAST KNOWN'} · ${esc(m.sourceName||'public market source')} · ${fmtDate(m.updatedAt)}</div></article>`;}).join(''):'<div class="empty-state">No market quote returned.</div>';const events=state.snapshot.signals.filter(s=>s.marketTransmission?.length&&(state.filters.region==='world'||s.regionId===state.filters.region)).slice(0,30);$('#marketEventGrid').innerHTML=events.length?events.map(s=>`<article class="data-card" data-market-signal="${s.id}"><div class="card-meta"><span>${s.signalScore}/100 · ${esc(s.category)}</span><span>${s.fallback?'BUILD SNAPSHOT':relative(s.publishedAt)}</span></div><h3>${esc(s.title)}</h3><p>${esc(s.marketTransmission[0]?.rationale||'Market-linked public signal')}</p><div class="tags">${s.marketTransmission.flatMap(t=>t.assetImpacts||[]).slice(0,6).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div></article>`).join(''):'<div class="empty-state">No current event has a defined market link.</div>';$$('[data-market-signal]').forEach(el=>el.onclick=()=>openSignal(state.snapshot.signals.find(s=>s.id===el.dataset.marketSignal)));}
+function renderConflicts(){const rows=(state.snapshot.conflicts||[]).filter(g=>state.filters.region==='world'||g.regionId===state.filters.region);$('#conflictGrid').innerHTML=rows.length?rows.map(g=>`<article class="data-card"><div class="card-meta"><span>${esc(regionName(g.regionId))}</span><span>PEAK ${g.score}/100 · ${g.high} HIGH</span></div><h3>${esc(regionName(g.regionId))} security picture</h3><p>${g.signals.length} current conflict/defence/maritime-security signals. ${Object.entries(g.categories||{}).map(([k,v])=>`${v} ${k}`).join(' · ')}</p><div class="brief-list">${g.signals.slice(0,6).map(s=>`<div class="brief-row" data-conflict-signal="${s.id}"><b>${esc(s.title)}</b><br>${s.signalScore}/100 · ${esc(s.eventType)} · ${s.fallback?'BUILD SNAPSHOT':relative(s.publishedAt)}</div>`).join('')}</div></article>`).join(''):'<div class="empty-state"><b>No current security group passes this region filter.</b>Change region or widen the time window.</div>';$$('[data-conflict-signal]').forEach(el=>el.onclick=()=>openSignal(state.snapshot.signals.find(s=>s.id===el.dataset.conflictSignal)));}
+function renderCountries(){if(!state.reference)return;const q=($('#countrySearch')?.value||'').trim().toLowerCase(),risk=new Map((state.snapshot.countryRisk||[]).map(r=>[r.iso2,r]));let rows=state.reference.countries.filter(c=>!q||c.name.toLowerCase().includes(q)||c.iso2.toLowerCase()===q||c.iso3.toLowerCase()===q);if(state.filters.region!=='world'){const reg=state.reference.regions.find(r=>r.id===state.filters.region);rows=rows.filter(c=>(reg?.countries||[]).includes(c.iso2));}rows.sort((a,b)=>(risk.get(b.iso2)?.score||0)-(risk.get(a.iso2)?.score||0)||a.name.localeCompare(b.name));$('#countryGrid').innerHTML=rows.slice(0,180).map(c=>{const r=risk.get(c.iso2)||{score:12,signals:0,high:0};return`<article class="country-card" data-country="${c.iso2}"><div class="card-meta"><span>${esc(c.iso2)} · ${esc(c.subregion||c.region||'')}</span><span>${r.signals} SIGNALS</span></div><h3>${esc(c.name)}</h3><div style="font-size:8px;color:#79a4b5">Current risk load ${r.score}/100 · ${r.high} high</div><div class="riskbar"><i style="width:${r.score}%"></i></div></article>`;}).join('');$$('[data-country]').forEach(el=>el.onclick=()=>openCountry(el.dataset.country));}
+function renderBrief(){const b=state.snapshot.brief||{},att=b.attention||[];$('#briefGrid').innerHTML=`<article class="brief-card wide"><div class="card-meta"><span>ATTENTION</span><span>${esc(state.snapshot.dataMode)}</span></div><h3>What changed</h3><div class="brief-list">${att.map(x=>`<div class="brief-row" data-brief-signal="${x.id}"><b>${x.score}/100 · ${esc(x.title)}</b><br>${esc(regionName(x.regionId))} · ${esc(x.category)}${x.fallback?' · BUILD SNAPSHOT':''}</div>`).join('')||'<div class="brief-row">No current signals.</div>'}</div></article><article class="brief-card"><div class="card-meta"><span>MARKETS</span><span>${(b.markets||[]).length} QUOTES</span></div><h3>Price board</h3><div class="brief-list">${(b.markets||[]).slice(0,8).map(m=>`<div class="brief-row"><b>${esc(m.symbol)} ${fmtPrice(m.price)}</b> ${Number.isFinite(Number(m.change24h))?`<span class="${Number(m.change24h)>=0?'up':'down'}">${Number(m.change24h)>=0?'+':''}${Number(m.change24h).toFixed(2)}%</span>`:''}<br>${m.fallback?'BUILD SNAPSHOT':esc(m.sourceName||'public source')}</div>`).join('')}</div></article><article class="brief-card"><div class="card-meta"><span>VERIFY NEXT</span><span>PUBLIC SOURCES</span></div><h3>Checks that matter</h3><div class="brief-list">${(b.verification||[]).slice(0,8).map(v=>`<div class="brief-row">${esc(v)}</div>`).join('')||'<div class="brief-row">No verification checklist generated.</div>'}</div></article>`;$$('[data-brief-signal]').forEach(el=>el.onclick=()=>openSignal(state.snapshot.signals.find(s=>s.id===el.dataset.briefSignal)));}
+async function refresh(user){const btn=$('#refreshButton');btn.classList.add('busy');btn.textContent='UPDATING';try{await api.refresh();state.snapshot=await api.snapshot();renderAll();syncMap();}catch(e){console.error(e);if(user)$('#modeNotice').innerHTML=`<span class="status-error">REFRESH FAILED</span> · ${esc(e.message)} · last-known data retained`;}finally{btn.classList.remove('busy');btn.textContent='REFRESH';}}
+async function pollSnapshot(){try{const next=await api.snapshot();if(next.generatedAt!==state.snapshot.generatedAt){state.snapshot=next;renderAll();syncMap();}}catch{}}
+function handleMapSelect(hit){if(hit.type==='signal')openSignal(hit.data);else if(hit.type==='port')openPort(hit.data);else if(hit.type==='node')openNode(hit.data);else if(hit.type==='country'){const c=state.reference.countries.find(x=>x.iso3===hit.data.iso3||x.name.toLowerCase()===String(hit.data.name||'').toLowerCase());if(c)openCountry(c.iso2);}}
+function openSignal(s){if(!s)return;state.selected=s;$('#drawerContent').innerHTML=`<div class="drawer-kicker">${esc(s.category.toUpperCase())} · ${s.signalScore}/100 · ${esc(s.priority)}</div><h2>${esc(s.title)}</h2><p>${esc(s.summary||'No source summary supplied.')}</p>${s.fallback?`<div class="status-banner"><b>BUILD SNAPSHOT — NOT LIVE</b><br>Captured ${fmtDate(state.snapshot.seedMeta?.capturedAt)}. Used because current live upstream coverage is incomplete. The original public source link is below.</div>`:''}<div class="drawer-section"><h3>EVIDENCE</h3><div class="drawer-list"><div class="drawer-row">Source: <b>${esc(s.sourceName||s.sourceDomain)}</b><br>Published: ${fmtDate(s.publishedAt)}<br>Independent domains in cluster: ${s.corroborationCount||1}<br>Source quality: ${Math.round((s.sourceQuality||0)*100)}/100<br>Model confidence: ${s.confidence||0}%</div><div class="drawer-row"><a href="${escAttr(s.url)}" target="_blank" rel="noopener noreferrer">Open original public source ↗</a></div></div></div>${s.publicIndicators?.length?`<div class="drawer-section"><h3>PUBLIC OBSERVABLE INDICATORS</h3><div class="drawer-list">${s.publicIndicators.map(i=>`<div class="drawer-row"><b>${esc(i.label)}</b> · ${esc(i.lane)} · weight ${i.weight}<br>${esc(i.why||'')}<br><small>Matched: ${esc((i.matched||[]).join(', '))}</small></div>`).join('')}</div></div>`:''}${s.marketTransmission?.length?`<div class="drawer-section"><h3>MARKET TRANSMISSION</h3><div class="drawer-list">${s.marketTransmission.map(t=>`<div class="drawer-row"><b>${esc(t.name)}</b> · ${Math.round((t.confidence||0)*100)}% rule match · ${esc(t.horizon||'')}<br>${esc(t.rationale||'')}<br>${(t.assetImpacts||[]).length?`Assets: ${esc(t.assetImpacts.join(', '))}<br>`:''}${(t.potentialBeneficiaries||[]).length?`Potential beneficiaries: ${esc(t.potentialBeneficiaries.join(', '))}<br>`:''}${(t.potentialLosers||[]).length?`Potential pressure: ${esc(t.potentialLosers.join(', '))}`:''}</div>`).join('')}</div></div>`:''}${s.publicIndicators?.some(i=>i.verify?.length)?`<div class="drawer-section"><h3>VERIFY NEXT</h3><div class="drawer-list">${[...new Set(s.publicIndicators.flatMap(i=>i.verify||[]))].map(v=>`<div class="drawer-row">${esc(v)}</div>`).join('')}</div></div>`:''}`;openDrawer('#detailDrawer');map?.focus(s.lon,s.lat,Math.max(map.zoom,2.2));}
+async function openCountry(iso){try{const row=await api.country(iso),c=row.country;$('#drawerContent').innerHTML=`<div class="drawer-kicker">COUNTRY · ${esc(c.iso2)} / ${esc(c.iso3)}</div><h2>${esc(c.name)}</h2><p>${esc(c.subregion||c.region||'')} · Capital ${esc(c.capital||'—')} · ${(c.currencies||[]).map(esc).join(', ')||'—'}</p><div class="drawer-section"><h3>CURRENT SIGNAL LOAD</h3><div class="drawer-row">Risk load <b>${row.risk.score}/100</b> · ${row.risk.signals} nearby/current signals · ${row.risk.high} high</div><div class="drawer-list">${row.signals.slice(0,12).map(s=>`<div class="drawer-row" data-country-signal="${s.id}"><b>${esc(s.title)}</b><br>${s.signalScore}/100 · ${esc(s.category)} · ${s.fallback?'BUILD SNAPSHOT':relative(s.publishedAt)}</div>`).join('')||'<div class="drawer-row">No current nearby signal.</div>'}</div></div><div class="drawer-section"><h3>REFERENCE</h3><div class="drawer-row">Population baseline: ${Number(c.populationBaseline||0).toLocaleString()}<br>Area: ${Number(c.areaKm2||0).toLocaleString()} km²<br>Neighbours: ${row.neighbours.map(n=>esc(n.name)).join(', ')||'none / island'}</div></div>`;openDrawer('#detailDrawer');$$('[data-country-signal]').forEach(el=>el.onclick=()=>openSignal(state.snapshot.signals.find(s=>s.id===el.dataset.countrySignal)));map?.focus(c.lon,c.lat,2.6);}catch(e){console.error(e);}}
+function openPort(p){$('#drawerContent').innerHTML=`<div class="drawer-kicker">PORT · ${esc(p.unlocode||'')}</div><h2>${esc(p.name)}</h2><p>${esc(p.country)} · importance ${p.importance}/100 · ${esc(p.type||'')}</p><div class="drawer-section"><h3>COMMODITIES</h3><div class="tags">${(p.commodities||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div></div><div class="drawer-section"><h3>ROUTE CONNECTIONS</h3><div class="drawer-row">${esc((p.routeIds||[]).join(', ')||'No route catalogue links')}</div></div>`;openDrawer('#detailDrawer');map?.focus(p.coordinates.lon,p.coordinates.lat,3);}
+function openNode(n){$('#drawerContent').innerHTML=`<div class="drawer-kicker">STRATEGIC NODE · ${esc(n.type||'')}</div><h2>${esc(n.name)}</h2><p>Importance ${n.importance}/100 · ${esc(regionName(n.regionId))}</p><div class="drawer-section"><h3>EXPOSURES</h3><div class="tags">${(n.exposures||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div></div>`;openDrawer('#detailDrawer');map?.focus(n.lon,n.lat,3);}
+function openSources(){const c=state.snapshot.sourceCoverage||{},rows=state.snapshot.sourceStatuses||[];$('#sourceDrawerContent').innerHTML=`<div class="drawer-kicker">PUBLIC SOURCE DIAGNOSTICS</div><h2>${c.responded||0}/${c.total||0} sources responded</h2><p>${c.percent||0}% current response coverage. Failures are shown explicitly; build-snapshot records are not counted as live responses.</p><div class="drawer-section"><div class="tags"><span class="tag">${c.liveOk||0} with data</span><span class="tag">${c.empty||0} responded empty</span><span class="tag">${c.error||0} errors</span><span class="tag">${c.seed||0} not checked / seed</span></div></div><div class="drawer-section"><table class="source-table"><tbody>${rows.map(s=>`<tr><td><b>${esc(s.name)}</b><br><span>${esc(s.lane||s.kind)} · ${esc(s.region||'world')}${s.error?` · ${esc(s.error)}`:''}</span></td><td class="${s.status==='ok'?'status-ok':s.status==='error'?'status-error':s.status==='seed'?'status-seed':''}">${esc(String(s.status||'').toUpperCase())}<br>${s.itemCount??0} items</td></tr>`).join('')}</tbody></table></div>`;openDrawer('#sourceDrawer');}
+function openDrawer(sel){$('#drawerBackdrop').classList.add('open');$(sel).classList.add('open');}
+function closeDrawers(){$('#drawerBackdrop').classList.remove('open');$('#detailDrawer').classList.remove('open');$('#sourceDrawer').classList.remove('open');}
+function openSearch(){$('#searchModal').classList.add('open');$('#globalSearchInput').value='';renderSearch();setTimeout(()=>$('#globalSearchInput').focus(),20);}
+function closeSearch(){$('#searchModal').classList.remove('open');}
+function renderSearch(){const q=$('#globalSearchInput').value.trim().toLowerCase(),out=[];if(!q){$('#searchResults').innerHTML='<div class="empty-state"><b>Search MERLIN</b>Countries, capitals, ports, strategic nodes and current signals.</div>';return;}for(const c of state.reference.countries)if(c.name.toLowerCase().includes(q)||c.iso2.toLowerCase()===q||c.iso3.toLowerCase()===q)out.push({type:'country',id:c.iso2,title:c.name,sub:`Country · ${c.subregion||c.region}`});for(const c of state.reference.cities)if(c.name.toLowerCase().includes(q))out.push({type:'city',data:c,title:c.name,sub:`City · ${c.country}`});for(const p of state.reference.ports)if(p.name.toLowerCase().includes(q)||String(p.unlocode).toLowerCase().includes(q))out.push({type:'port',data:p,title:p.name,sub:`Port · ${p.country}`});for(const n of state.reference.strategicNodes)if(n.name.toLowerCase().includes(q))out.push({type:'node',data:n,title:n.name,sub:`Strategic node · ${n.type}`});for(const s of state.snapshot.signals)if(s.title.toLowerCase().includes(q)||(s.summary||'').toLowerCase().includes(q))out.push({type:'signal',data:s,title:s.title,sub:`Signal · ${s.signalScore}/100 · ${regionName(s.regionId)}`});$('#searchResults').innerHTML=out.slice(0,60).map((r,i)=>`<div class="search-result" data-search-index="${i}"><b>${esc(r.title)}</b><span>${esc(r.sub)}</span></div>`).join('')||'<div class="empty-state">No match.</div>';$$('[data-search-index]').forEach(el=>el.onclick=()=>{const r=out[Number(el.dataset.searchIndex)];closeSearch();switchView('map');if(r.type==='country')openCountry(r.id);else if(r.type==='signal')openSignal(r.data);else if(r.type==='port')openPort(r.data);else if(r.type==='node')openNode(r.data);else if(r.type==='city')map.focus(r.data.lon,r.data.lat,3);});}
+function regionName(id){return state.reference?.regions?.find(r=>r.id===id)?.label||id||'World';}
+function clock(){const d=new Date();$('#clock').textContent=`${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`;}
+function relative(v){const ms=Date.now()-Date.parse(v||0),m=Math.max(0,Math.round(ms/60000));if(m<60)return`${m}m`;const h=Math.round(m/60);if(h<48)return`${h}h`;return`${Math.round(h/24)}d`;}
+function age(v){return`${relative(v)} old`;}
+function fmtDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'})+' UTC';}
+function fmtPrice(v){const n=Number(v);if(!Number.isFinite(n))return'—';if(Math.abs(n)>=1000)return n.toLocaleString(undefined,{maximumFractionDigits:2});if(Math.abs(n)>=10)return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4});return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:5});}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escAttr(v){return esc(v);}
+function fatal(e){console.error(e);document.body.innerHTML=`<div style="padding:40px;background:#04131d;color:white;min-height:100vh;font-family:system-ui"><h1>MERLIN failed to start</h1><pre>${esc(e.stack||e.message||e)}</pre></div>`;}

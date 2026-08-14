@@ -1,0 +1,219 @@
+{
+  "version": "8.0.0",
+  "capturedAt": "2026-08-13T12:55:00Z",
+  "notice": "Timestamped public build snapshot used only when live upstream coverage is unavailable. Every fallback record remains visibly labelled and linked to its original public source.",
+  "records": [
+    {
+      "title": "Iran and US make competing claims over control of the Strait of Hormuz",
+      "summary": "Iranian and U.S. officials made conflicting public claims over control and transit conditions in the Strait of Hormuz amid continuing military and shipping tensions.",
+      "url": "https://www.reuters.com/world/iran-says-strait-hormuz-is-under-its-control-fars-news-reports-2026-08-13/",
+      "publishedAt": "2026-08-13T10:30:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 26.56,
+      "lon": 56.25,
+      "regionHint": "middle-east"
+    },
+    {
+      "title": "Gulf markets ease as U.S.-Iran tensions and Hormuz disruption weigh",
+      "summary": "Gulf equities traded cautiously while shipping disruption and U.S.-Iran tensions continued to affect regional risk pricing; Brent was reported near $87.82.",
+      "url": "https://www.reuters.com/world/middle-east/gulf-markets-ease-us-iran-tensions-hormuz-disruption-weigh-2026-08-13/",
+      "publishedAt": "2026-08-13T07:40:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 25.2,
+      "lon": 55.27,
+      "regionHint": "middle-east"
+    },
+    {
+      "title": "Taiwan conducts anti-blockade naval drill during Han Kuang exercises",
+      "summary": "Taiwan carried out an anti-blockade exercise involving navy and coast guard units while civil-defence drills also tested wartime resilience and degraded communications.",
+      "url": "https://www.reuters.com/world/china/taiwan-holds-anti-blockade-naval-drill-during-war-games-china-steps-up-maritime-2026-08-13/",
+      "publishedAt": "2026-08-13T00:45:19Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 25.04,
+      "lon": 121.56,
+      "regionHint": "strategic-asia"
+    },
+    {
+      "title": "Taiwan reports AI-assisted hacking campaign against government agencies",
+      "summary": "Taiwan said it detected an AI-assisted overseas cyber campaign targeting government agencies; authorities said affected bodies handled the incident.",
+      "url": "https://www.reuters.com/world/china/taiwan-says-it-was-targeted-last-month-ai-driven-hacking-campaign-2026-08-13/",
+      "publishedAt": "2026-08-13T02:15:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 25.04,
+      "lon": 121.56,
+      "regionHint": "strategic-asia"
+    },
+    {
+      "title": "Ukrainian drone attack shuts Russia Orsk refinery, governor says",
+      "summary": "A strike forced the Orsk refinery to shut, with local authorities warning repairs could take months and fuel supply would need support from outside the region.",
+      "url": "https://www.reuters.com/business/energy/ukrainian-attack-shuts-russias-orsk-refinery-months-causing-fuel-problems-2026-08-13/",
+      "publishedAt": "2026-08-13T09:30:17Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 51.23,
+      "lon": 58.47,
+      "regionHint": "russia-eurasia"
+    },
+    {
+      "title": "Russia attacks Ukraine Danube port of Izmail",
+      "summary": "Russian strikes damaged port infrastructure and power around Izmail; the Danube export route remains important for Ukrainian grain and regional logistics.",
+      "url": "https://www.reuters.com/world/russian-attack-sets-ablaze-ukraines-izmail-port-infrastructure-regional-2026-08-13/",
+      "publishedAt": "2026-08-13T07:05:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 45.35,
+      "lon": 28.84,
+      "regionHint": "europe"
+    },
+    {
+      "title": "Hapag-Lloyd reports $600 million hit from Middle East shipping crisis",
+      "summary": "The container carrier reported a major quarterly financial impact from Middle East disruption and the closure of the Strait of Hormuz.",
+      "url": "https://www.reuters.com/business/container-shipper-hapag-lloyd-takes-600-million-hit-middle-east-crisis-2026-08-13/",
+      "publishedAt": "2026-08-13T08:15:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 53.55,
+      "lon": 9.99,
+      "regionHint": "europe"
+    },
+    {
+      "title": "India trade deficit hits six-month high as imports rise amid Middle East conflict",
+      "summary": "India reported a $31.98 billion merchandise deficit as imports rose; exporters also faced higher freight rates, container shortages and shipping delays.",
+      "url": "https://www.reuters.com/world/india/indias-july-merchandise-trade-deficit-3198-billion-2026-08-13/",
+      "publishedAt": "2026-08-13T11:10:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 28.61,
+      "lon": 77.21,
+      "regionHint": "strategic-asia"
+    },
+    {
+      "title": "Yen post-intervention gains hinge on Bank of Japan rate expectations",
+      "summary": "Markets focused on whether the Bank of Japan will tighten policy after coordinated intervention temporarily strengthened the yen.",
+      "url": "https://www.reuters.com/world/asia-pacific/rate-hike-bets-leave-yens-post-intervention-gains-bojs-mercy-2026-08-13/",
+      "publishedAt": "2026-08-13T03:30:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 35.68,
+      "lon": 139.69,
+      "regionHint": "strategic-asia"
+    },
+    {
+      "title": "Putin visits disputed Kuril island, drawing protest from Japan",
+      "summary": "The Russian president visited Iturup/Etorofu, prompting condemnation from Tokyo and adding to Russia-Japan political and security friction.",
+      "url": "https://www.reuters.com/world/russias-putin-visits-disputed-kuril-islands-samples-fish-roe-media-say-2026-08-13/",
+      "publishedAt": "2026-08-13T08:50:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 45.03,
+      "lon": 147.62,
+      "regionHint": "strategic-asia"
+    },
+    {
+      "title": "Canada unhappy with latest U.S. tariff offer, CBC reports",
+      "summary": "Canada was reported to be dissatisfied with the latest U.S. tariff proposal, keeping North American trade-policy risk in focus.",
+      "url": "https://www.reuters.com/business/canada-unhappy-with-latest-us-offer-lower-tariffs-cbc-reports-2026-08-12/",
+      "publishedAt": "2026-08-12T20:00:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 45.42,
+      "lon": -75.7,
+      "regionHint": "north-america"
+    },
+    {
+      "title": "Global stocks rise as oil falls below $90 and Iran remains in focus",
+      "summary": "Global equities advanced while oil prices fell and investors reassessed U.S. rate expectations; Iran and Hormuz remained major macro risk factors.",
+      "url": "https://www.reuters.com/world/china/global-markets-global-markets-2026-08-13/",
+      "publishedAt": "2026-08-13T12:10:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 40.71,
+      "lon": -74.01,
+      "regionHint": "north-america"
+    },
+    {
+      "title": "Dollar steadies after benign U.S. inflation reduces Fed hike bets",
+      "summary": "Traders reduced the implied chance of a September Federal Reserve rate increase after U.S. inflation data came in benign.",
+      "url": "https://www.reuters.com/world/asia-pacific/dollar-treads-water-fed-hike-bets-pared-benign-us-inflation-2026-08-13/",
+      "publishedAt": "2026-08-13T06:20:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 38.9,
+      "lon": -77.04,
+      "regionHint": "north-america"
+    },
+    {
+      "title": "IEA sees deeper 2026 oil supply shortfall while Hormuz reopening remains elusive",
+      "summary": "The IEA cut its 2026 supply outlook and projected a large third-quarter deficit as Middle East output and Hormuz transit remained disrupted.",
+      "url": "https://www.reuters.com/business/energy/iea-slashes-2026-supply-forecast-hormuz-reopening-remains-elusive-2026-08-12/",
+      "publishedAt": "2026-08-12T08:03:00Z",
+      "sourceName": "Reuters",
+      "sourceDomain": "reuters.com",
+      "lat": 48.86,
+      "lon": 2.35,
+      "regionHint": "europe"
+    }
+  ],
+  "markets": [
+    {
+      "symbol": "BTC/USD",
+      "type": "crypto",
+      "price": 63674.0,
+      "change24h": -0.50005,
+      "updatedAt": "2026-08-13T12:50:00Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "ETH/USD",
+      "type": "crypto",
+      "price": 1624.95,
+      "change24h": null,
+      "updatedAt": "2026-08-13T12:50:00Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "SPY",
+      "type": "equity",
+      "price": 772.49,
+      "change24h": 0.25696,
+      "updatedAt": "2026-08-13T12:49:13Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "QQQ",
+      "type": "equity",
+      "price": 723.7,
+      "change24h": 0.73074,
+      "updatedAt": "2026-08-13T12:50:22Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "GLD",
+      "type": "commodity",
+      "price": 404.92,
+      "change24h": 0.97765,
+      "updatedAt": "2026-08-13T12:50:06Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "USO",
+      "type": "commodity",
+      "price": 127.3,
+      "change24h": -0.25076,
+      "updatedAt": "2026-08-13T12:50:12Z",
+      "sourceName": "Build market snapshot"
+    },
+    {
+      "symbol": "BRENT",
+      "type": "commodity",
+      "price": 87.82,
+      "change24h": -1.4,
+      "updatedAt": "2026-08-13T07:40:00Z",
+      "sourceName": "Reuters build snapshot"
+    }
+  ]
+}

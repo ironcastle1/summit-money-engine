@@ -1,0 +1,2 @@
+import {fetchResponse} from '../core/http.js';import {parseFeed} from '../core/xml.js';import {domainOf,parseDate} from '../core/utils.js';
+export async function runRss(source){const r=await fetchResponse(source.url);return{records:parseFeed(r.body).slice(0,80).map(x=>({...x,publishedAt:parseDate(x.publishedAt),sourceName:source.name,sourceDomain:domainOf(x.url)||domainOf(source.url),sourceId:source.id,sourceRegion:source.region}))};}

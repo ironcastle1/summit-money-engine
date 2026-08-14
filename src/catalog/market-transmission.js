@@ -180,7 +180,12 @@ export const TRANSMISSION_RULES = Object.freeze([
       "russia",
       "missile",
       "offensive",
-      "mobilisation"
+      "mobilisation",
+      "attack",
+      "attacks",
+      "strike",
+      "strikes",
+      "ukrainian"
     ],
     "regions": [
       "europe",
@@ -517,7 +522,9 @@ export const TRANSMISSION_RULES = Object.freeze([
       "bank of japan",
       "boj",
       "rate hike",
-      "yield curve"
+      "yield curve",
+      "rate expectations",
+      "intervention"
     ],
     "regions": [
       "strategic-asia"
@@ -893,5 +900,32 @@ export const TRANSMISSION_RULES = Object.freeze([
     "baseConfidence": 0.78,
     "horizon": "hours-weeks",
     "rationale": "Only material earthquakes with industrial or logistics impact should enter the decision feed."
+  },
+  {
+    "id": "tx-33",
+    "name": "Freight and container disruption",
+    "terms": ["freight", "container", "shipping", "rerouting", "war-risk", "transit"],
+    "regions": ["world"],
+    "assetImpacts": ["container freight", "shipping"],
+    "potentialBeneficiaries": ["carriers with available capacity", "alternative-route logistics", "freight forwarding"],
+    "potentialLosers": ["importers with tight inventories", "time-sensitive manufacturing", "retailers with long supply chains"],
+    "baseConfidence": 0.84,
+    "horizon": "days-weeks",
+    "rationale": "Persistent freight, container and routing disruption can raise transport costs and lengthen inventory lead times.",
+    "minMatches": 2
+  },
+  {
+    "id": "tx-34",
+    "name": "Oil supply deficit",
+    "terms": ["oil supply", "supply outlook", "output", "crude inventories", "iea", "opec"],
+    "regions": ["world"],
+    "assetImpacts": ["Brent", "WTI", "refining margins"],
+    "potentialBeneficiaries": ["unconstrained oil producers", "upstream energy"],
+    "potentialLosers": ["fuel-intensive transport", "energy importers"],
+    "baseConfidence": 0.83,
+    "horizon": "days-months",
+    "rationale": "A credible supply deficit or material forecast revision can reprice crude benchmarks and fuel-sensitive sectors.",
+    "minMatches": 2
   }
+
 ]);

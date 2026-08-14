@@ -1,2 +1,2 @@
-async function get(path,options={}){const r=await fetch(path,{cache:'no-store',...options});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return r.json();}
-export const api={reference:()=>get('/api/reference'),snapshot:({region,hours,minScore,category})=>get(`/api/snapshot?${new URLSearchParams({region,hours,minScore,category})}`),sources:()=>get('/api/sources'),refresh:()=>get('/api/refresh',{method:'POST'})};
+export async function getJSON(url,opts={}){const r=await fetch(url,{cache:'no-store',...opts,headers:{accept:'application/json',...(opts.headers||{})}});if(!r.ok)throw new Error(`${url}: HTTP ${r.status}`);return r.json();}
+export const api={snapshot:()=>getJSON('/api/snapshot'),reference:()=>getJSON('/api/reference'),sources:()=>getJSON('/api/sources'),refresh:()=>getJSON('/api/refresh',{method:'POST'}),country:iso=>getJSON(`/api/country/${encodeURIComponent(iso)}`)};

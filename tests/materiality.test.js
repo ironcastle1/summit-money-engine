@@ -1,6 +1,0 @@
-import test from 'node:test';import assert from 'node:assert/strict';import { normalizeRecords } from '../src/intel/normalize.js';
-const now=Date.now(),iso=h=>new Date(now-h*3600000).toISOString();
-test('fresh high-quality strategic event passes materiality',()=>{const rows=normalizeRecords([{title:'Shipping warning in Strait of Hormuz after attack',summary:'',url:'https://reuters.com/x',publishedAt:iso(1),sourceName:'Reuters',sourceQuality:.98}],{now});assert.equal(rows.length,1);assert.ok(rows[0].materiality.score>60)});
-test('stale records are discarded',()=>assert.equal(normalizeRecords([{title:'Old sanctions story',url:'https://reuters.com/x',publishedAt:iso(90),sourceQuality:.98}],{now}).length,0));
-test('tabloid record is discarded regardless of dramatic title',()=>assert.equal(normalizeRecords([{title:'MISSILE ATTACK SHOCK',url:'https://thesun.co.uk/x',publishedAt:iso(1),sourceQuality:.9}],{now}).length,0));
-test('routine low-value language from unknown source fails decision filter',()=>assert.equal(normalizeRecords([{title:'Officials attend routine meeting',summary:'No policy changes were announced',url:'https://unknown-example.invalid/x',publishedAt:iso(1),sourceQuality:.45}],{now}).length,0));

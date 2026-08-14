@@ -1,41 +1,17 @@
-import { config } from '../config.js';
-
-const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
-
-export async function fetchText(url, options={}){
-  const response=await fetchWithRetry(url,options);
-  return { text:await response.text(), response };
-}
-export async function fetchJson(url, options={}){
-  const response=await fetchWithRetry(url,options);
-  return { json:await response.json(), response };
-}
-export async function fetchWithRetry(url,{timeoutMs=config.sourceTimeoutMs,retries=1,headers={},method='GET',body}={}){
+import {config} from '../config.js';
+export async function fetchResponse(url,{timeoutMs=config.sourceTimeoutMs,retries=0,headers={},...opts}={}){
   let last;
   for(let attempt=0;attempt<=retries;attempt++){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(new Error('source_timeout')),timeoutMs);
+    const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),timeoutMs);
+    const started=Date.now();
     try{
-      const response=await fetch(url,{method,body,headers:{'user-agent':config.sourceUserAgent,'accept':'*/*',...headers},signal:controller.signal,redirect:'follow'});
-      if(!response.ok) throw new Error(`http_${response.status}`);
-      return response;
-    }catch(error){
-      last=error;
-      if(attempt<retries) await sleep(250*(attempt+1));
-    }finally{ clearTimeout(timer); }
+      const res=await fetch(url,{redirect:'follow',signal:ctl.signal,...opts,headers:{'user-agent':config.userAgent,'accept':'*/*',...headers}});
+      const body=await res.text();
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+      return{ok:true,status:res.status,body,headers:res.headers,durationMs:Date.now()-started,url:res.url};
+    }catch(e){last=e;if(attempt<retries)await new Promise(r=>setTimeout(r,180*(attempt+1)));}
+    finally{clearTimeout(timer);}
   }
-  throw last;
+  throw last||new Error('request failed');
 }
-export async function runPool(tasks, concurrency=config.concurrency){
-  const out=new Array(tasks.length); let cursor=0;
-  async function worker(){
-    while(true){
-      const i=cursor++; if(i>=tasks.length)return;
-      const started=Date.now();
-      try{ out[i]={ok:true,value:await tasks[i](),durationMs:Date.now()-started}; }
-      catch(error){ out[i]={ok:false,error,durationMs:Date.now()-started}; }
-    }
-  }
-  await Promise.all(Array.from({length:Math.min(concurrency,tasks.length)},worker));
-  return out;
-}
+export async function runPool(tasks,limit=10){const out=new Array(tasks.length);let next=0;async function worker(){while(true){const i=next++;if(i>=tasks.length)return;const started=Date.now();try{out[i]={ok:true,value:await tasks[i](),durationMs:Date.now()-started};}catch(error){out[i]={ok:false,error,durationMs:Date.now()-started};}}}await Promise.all(Array.from({length:Math.min(limit,tasks.length)},worker));return out;}

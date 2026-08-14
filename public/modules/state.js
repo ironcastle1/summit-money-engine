@@ -1,12 +1,2 @@
-export const state = {
-  view: 'map',
-  region: 'world',
-  hours: 24,
-  minScore: 52,
-  category: 'all',
-  reference: null,
-  snapshot: null,
-  layers: { events: true, conflict: true, politics: true, sanctions: true, shipping: true, energy: true, cyber: true, market: true, supply: true, other: true, alerts: true, heatmap: true, nodes: true, ports: true, routes: true, labels: true },
-  selectedSignal: null,
-};
-export function setState(patch) { Object.assign(state, patch); return state; }
+export const state={snapshot:null,reference:null,view:'map',filters:{region:'world',category:'all',hours:168,minScore:35},layers:{signals:true,conflict:true,politics:true,sanctions:true,maritime:true,energy:true,cyber:true,markets:true,supply:true,air:true,heat:true,countryBorders:true,countryRisk:true,strategicNodes:true,ports:true,routes:true,cities:true,labels:true},mapMode:'dark',selected:null};
+export function filteredSignals(){if(!state.snapshot)return[];const cutoff=Date.now()-state.filters.hours*3600000;const snapshotOnly=state.snapshot.dataMode==='BUILD_SNAPSHOT';return state.snapshot.signals.filter(s=>(snapshotOnly&&s.fallback||Date.parse(s.publishedAt)>=cutoff)&&s.signalScore>=state.filters.minScore&&(state.filters.region==='world'||s.regionId===state.filters.region)&&(state.filters.category==='all'||s.category===state.filters.category));}

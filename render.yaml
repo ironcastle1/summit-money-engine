@@ -1,17 +1,11 @@
 services:
   - type: web
-    name: merlin-strategic-intelligence
-    runtime: docker
+    name: summit-money-engine-1
+    runtime: node
     plan: starter
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
     healthCheckPath: /api/health
-    disk:
-      name: merlin-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
-      - key: MERLIN_DATA_DIR
-        value: /var/data
-      - key: MERLIN_REFRESH_MS
-        value: 180000
-      - key: MERLIN_SOURCE_TIMEOUT_MS
-        value: 9000
+      - key: NODE_VERSION
+        value: 22
