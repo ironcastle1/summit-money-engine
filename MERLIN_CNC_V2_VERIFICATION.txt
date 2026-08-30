@@ -1,0 +1,18 @@
+MERLIN CNC V2 VERIFICATION
+
+Build type: full active repository replacement for GitHub main
+Version: 2.0.0
+Node target: 20.19.5
+
+Verified in build environment:
+- All 24 JavaScript source/client/script files pass `node --check` via `node scripts/preflight.js`.
+- V2 includes backward-compatible database migration logic for the V1 SQLite schema.
+- .node-version is included and pins Node 20.19.5.
+- OpenAI key remains server-side only.
+- DXF unitless files no longer receive fabricated millimetre dimensions; physical dimensions remain null until units are confirmed.
+- Market intelligence policy prohibits fabricated opportunity scores and confidence percentages.
+- Arbitrary image-to-production-DXF remains deliberately disabled.
+
+Not fully executed in this build environment:
+- npm dependency installation timed out because package retrieval/build was unavailable in the execution environment.
+- Therefore dependency-backed runtime tests could not be completed here. GitHub CI remains configured to run npm install, preflight, and tests after push.

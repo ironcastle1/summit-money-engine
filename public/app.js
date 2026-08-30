@@ -1,81 +1,123 @@
-const API = (window.MERLIN_CONFIG?.API_BASE || '').replace(/\/$/, '');
-const $ = (s) => document.querySelector(s);
-const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money = (v,c='GBP') => v == null ? '—' : new Intl.NumberFormat('en-GB',{style:'currency',currency:c}).format(v);
+const API=(window.MERLIN_CONFIG?.API_BASE||'').replace(/\/$/,'');
+const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
+const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=(v,c='GBP')=>v==null?'—':new Intl.NumberFormat('en-GB',{style:'currency',currency:c}).format(Number(v));
+const fmtDate=(v,time=false)=>!v?'—':new Intl.DateTimeFormat('en-GB',time?{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'short',year:'numeric'}).format(new Date(String(v).replace(' ','T')));
+const duration=s=>s==null?'—':s<60?`${Math.round(s)}s`:`${Math.floor(s/60)}m ${Math.round(s%60)}s`;
+const num=(v,d=1)=>v==null?'—':Number(v).toFixed(d);
+const rowEmpty=(n,t)=>`<tr><td colspan="${n}" class="empty">${esc(t)}</td></tr>`;
 
-async function api(path, options={}) {
-  const r = await fetch(`${API}${path}`, options);
-  const text = await r.text();
-  let body; try { body = JSON.parse(text); } catch { body = text; }
-  if (!r.ok) throw new Error(body?.error || `${r.status} ${r.statusText}`);
-  return body;
+const STATUS_LABELS={new:'New',confirmed:'Confirmed',queued:'Queued',cutting:'Cutting',deburring:'Deburring',surface_prep:'Surface prep',painting:'Painting',curing:'Curing',qc:'Quality check',packing:'Packing',ready:'Ready to dispatch',dispatched:'Dispatched',cancelled:'Cancelled',imported:'Imported — not tested',geometry_review:'Needs geometry review',prototype_required:'Prototype required',test_cut:'Test cut required',production_validated:'Production validated',finished_prototype:'Finished prototype',photographed:'Photographed',listed:'Listed',active:'Active',paused:'Paused',retired:'Retired',review_required:'Needs geometry review',failed:'Geometry issue detected',validated:'Validated'};
+const ACTIVE_ORDER_STATUSES=['new','confirmed','queued','cutting','deburring','surface_prep','painting','curing','qc','packing','ready'];
+const stageTone=s=>['ready','dispatched','production_validated','validated'].includes(s)?'good':['new','confirmed','queued','review_required','imported'].includes(s)?'warn':['failed','cancelled'].includes(s)?'bad':'info';
+const label=s=>STATUS_LABELS[s]||String(s||'—').replaceAll('_',' ');
+
+let cache={products:[],inventory:[],orders:[],state:null,health:null};
+
+async function api(path,options={}){const r=await fetch(`${API}${path}`,options);const text=await r.text();let body;try{body=JSON.parse(text)}catch{body=text}if(!r.ok)throw new Error(body?.error||`${r.status} ${r.statusText}`);return body;}
+function jsonHeaders(){return {'Content-Type':'application/json'};}
+function chat(role,text){const d=document.createElement('div');d.className=`chat ${role}`;d.innerHTML=`<strong>${role==='user'?'YOU':'MERLIN'}</strong><div>${esc(text).replace(/\n/g,'<br>')}</div>`;$('#chat-log').append(d);$('#chat-log').scrollTop=$('#chat-log').scrollHeight;}
+function openDrawer(){ $('#merlin-drawer').classList.add('open');$('#merlin-drawer').setAttribute('aria-hidden','false');$('#drawer-scrim').classList.remove('hidden');$('#chat-input').focus(); }
+function closeDrawer(){ $('#merlin-drawer').classList.remove('open');$('#merlin-drawer').setAttribute('aria-hidden','true');$('#drawer-scrim').classList.add('hidden'); }
+function showForm(id){const el=$(id);el.classList.toggle('hidden');if(!el.classList.contains('hidden'))el.scrollIntoView({behavior:'smooth',block:'center'});}
+function matSize(i){const bits=[];if(i.thickness_mm!=null)bits.push(`${num(i.thickness_mm,2).replace(/\.00$/,'')} mm`);if(i.width_mm!=null&&i.height_mm!=null)bits.push(`${num(i.width_mm,0)} × ${num(i.height_mm,0)} mm`);return bits.join(' · ')||'—';}
+function materialSpec(i){return [i.material_family,i.material_grade,i.form].filter(Boolean).join(' · ')||'—';}
+function productSize(p){if(p.target_width_mm!=null&&p.target_height_mm!=null)return `<strong>${num(p.target_width_mm,1)} × ${num(p.target_height_mm,1)} mm</strong><small>production target</small>`;if(p.units_confirmed&&p.width_mm!=null&&p.height_mm!=null)return `<span>${num(p.width_mm,1)} × ${num(p.height_mm,1)} mm</span><small>DXF source size; target not set</small>`;return `<span>Target not set</span><small>${p.drawing_width_units!=null?`${num(p.drawing_width_units,2)} × ${num(p.drawing_height_units,2)} drawing units`: 'DXF units/size not established'}</small>`;}
+
+async function refresh(){
+  const [health,dash,state,products,inventory,orders,activity]=await Promise.all([api('/api/health'),api('/api/dashboard'),api('/api/state'),api('/api/products'),api('/api/inventory'),api('/api/orders?active=1'),api('/api/activity?limit=30')]);
+  cache={health,dash,state,products,inventory,orders,activity};
+  $('#health').textContent=health.ok?'LIVE':'OFFLINE';$('#health').className=`health ${health.ok?'ok':''}`;$('#last-refresh').textContent=`Last refreshed ${new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit'}).format(new Date())}`;
+  $('#ai-status').textContent=health.ai_configured?'AI connected. Structured business records remain the source of truth.':'AI is not configured yet. Dashboard, inventory, orders and DXF tools still work normally.';
+
+  const raw=inventory.filter(i=>['raw_material','offcut'].includes(i.kind));
+  const supplies=inventory.filter(i=>['consumable','hardware','packaging','other'].includes(i.kind));
+  const finished=inventory.filter(i=>i.kind==='finished_product');
+  const low=inventory.filter(i=>i.reorder_point!=null&&Number(i.available_quantity)<=Number(i.reorder_point));
+  const finishedAvailable=finished.reduce((n,i)=>n+Number(i.available_quantity||0),0);
+  $('#metrics').innerHTML=[
+    ['Open orders',dash.open_order_count,dash.open_order_value?`${money(dash.open_order_value)} recorded value`:'No value recorded'],
+    ['Due today',dash.due_today_count,'Open orders due today',dash.due_today_count?'warn':''],
+    ['Overdue',dash.overdue_order_count,dash.overdue_order_count?'Needs action':'None recorded overdue',dash.overdue_order_count?'bad':''],
+    ['Revenue MTD',money(dash.revenue_mtd),'Recorded sales only'],
+    ['Expenses MTD',money(dash.expenses_mtd),'Recorded expenses only'],
+    ['Raw material',raw.length,raw.length?'Tracked material/offcut lines':'Nothing recorded'],
+    ['Finished stock',finishedAvailable,finished.length?'Available recorded units':'No finished stock'],
+    ['Low stock',low.length,low.length?'At/below reorder level':'No current alerts',low.length?'warn':'']
+  ].map(([k,v,s,c])=>`<div class="metric ${c||''}"><span>${esc(k)}</span><strong>${esc(v)}</strong><small>${esc(s)}</small></div>`).join('');
+
+  $('#order-count-label').textContent=`${orders.length} open`;
+  $('#orders-body').innerHTML=orders.length?orders.map(o=>{
+    const lines=o.line_summary||[];const item=lines.length?lines.map(l=>esc(l.product_code||l.product_name||l.description||'Custom item')).join('<br>'):'—';const qty=lines.length?lines.reduce((n,l)=>n+Number(l.quantity||0),0):'—';
+    return `<tr><td class="mono">${esc(o.external_order_id||o.id)}</td><td>${item}<small>${esc(o.channel||'')}</small></td><td>${qty}</td><td>${esc(o.customer_reference||'—')}</td><td class="nowrap">${fmtDate(o.due_at,true)}${o.is_overdue?'<br><span class="pill bad">OVERDUE</span>':''}</td><td><select class="status-select order-status-select" data-order-id="${esc(o.id)}">${ACTIVE_ORDER_STATUSES.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${esc(label(s))}</option>`).join('')}<option value="dispatched">Dispatched</option><option value="cancelled">Cancelled</option></select></td><td class="nowrap">${money(o.gross_total,o.currency)}</td></tr>`;
+  }).join(''):rowEmpty(7,'No open orders recorded.');
+
+  renderProductionBoard(orders);
+  renderInventory(raw,supplies,finished,low);
+  renderRunsAndSales(state,products);
+  renderProducts(products);
+  renderActivity(activity);
+  renderObservations(dash.observations||[]);
+  $('#capabilities').innerHTML=state.capabilities.map(c=>`<div class="card"><strong>${esc(c.name)}</strong><span>${esc(c.status)}</span></div>`).join('')||'<div class="empty">No capabilities recorded.</div>';
+  const upgrades=await api('/api/upgrades');$('#upgrades').innerHTML=upgrades.length?upgrades.filter(u=>u.status==='proposed').map(u=>`<div class="card"><strong>${esc(u.trigger)}</strong><p>${esc(u.reason)}</p></div>`).join(''):'<div class="empty">No software evolution requests.</div>';
+  populateSelectors(products,raw);
 }
 
-function chat(role, text) {
-  const div = document.createElement('div');
-  div.className = `chat ${role}`;
-  div.innerHTML = `<strong>${role === 'user' ? 'YOU' : 'MERLIN'}</strong><div>${esc(text).replace(/\n/g,'<br>')}</div>`;
-  $('#chat-log').append(div);
-  $('#chat-log').scrollTop = $('#chat-log').scrollHeight;
+function renderProductionBoard(orders){
+  const groups=[['To do',['new','confirmed','queued']],['Cutting',['cutting']],['Cleanup / finish',['deburring','surface_prep','painting','curing']],['QC / pack',['qc','packing']],['Ready',['ready']]];
+  $('#production-board').innerHTML=groups.map(([name,statuses])=>{const rows=orders.filter(o=>statuses.includes(o.status));return `<div class="stage-column"><h4>${esc(name)} <span class="stage-count">${rows.length}</span></h4>${rows.length?rows.map(o=>`<div class="job-card"><strong>${esc(o.external_order_id||o.id)}</strong><span>${esc((o.line_summary||[]).map(l=>l.product_code||l.product_name||l.description||'Custom').join(', ')||'No item linked')}</span><span>${o.due_at?`Due ${fmtDate(o.due_at)}`:'No due date'}</span></div>`).join(''):'<div class="empty">None</div>'}</div>`;}).join('');
+}
+function renderInventory(raw,supplies,finished,low){
+  $('#raw-count').textContent=`${raw.length} tracked material item${raw.length===1?'':'s'}`;$('#supply-count').textContent=`${supplies.length} tracked supply item${supplies.length===1?'':'s'}`;$('#finished-count').textContent=`${finished.length} finished-stock line${finished.length===1?'':'s'}`;
+  $('#raw-inventory').innerHTML=raw.length?raw.map(i=>`<tr><td><strong>${esc(i.name)}</strong><small>${esc(i.location||'')}</small></td><td>${esc(materialSpec(i))}</td><td>${esc(matSize(i))}</td><td>${esc(i.quantity_on_hand)} ${esc(i.unit)}</td><td>${esc(i.quantity_reserved||0)} ${esc(i.unit)}</td><td><strong>${esc(i.available_quantity)} ${esc(i.unit)}</strong></td><td>${money(i.unit_cost,i.currency)}<br><button class="product-link icon-button inventory-edit" data-inventory-id="${esc(i.id)}">Edit</button></td></tr>`).join(''):rowEmpty(7,'No metal or raw material recorded.');
+  $('#supply-inventory').innerHTML=supplies.length?supplies.map(i=>`<tr><td><strong>${esc(i.name)}</strong>${i.colour?`<small>${esc(i.colour)}</small>`:''}</td><td>${esc(label(i.kind))}</td><td>${esc(i.quantity_on_hand)} ${esc(i.unit)}</td><td>${i.reorder_point==null?'—':`${esc(i.reorder_point)} ${esc(i.unit)}`}</td><td>${money(i.unit_cost,i.currency)}<br><button class="product-link icon-button inventory-edit" data-inventory-id="${esc(i.id)}">Edit</button></td></tr>`).join(''):rowEmpty(5,'No consumables, hardware or packaging recorded.');
+  $('#finished-inventory').innerHTML=finished.length?finished.map(i=>`<tr><td>${esc(i.name)}</td><td>${esc(i.quantity_on_hand)} ${esc(i.unit)}</td><td>${esc(i.quantity_reserved||0)} ${esc(i.unit)}</td><td><strong>${esc(i.available_quantity)} ${esc(i.unit)}</strong></td><td>${esc(i.location||'—')}<br><button class="product-link icon-button inventory-edit" data-inventory-id="${esc(i.id)}">Edit</button></td></tr>`).join(''):rowEmpty(5,'No finished stock recorded.');
+  $('#low-stock-panel').classList.toggle('hidden',!low.length);$('#low-stock').innerHTML=low.map(i=>`<div class="alert-row"><span><strong>${esc(i.name)}</strong></span><span>${esc(i.available_quantity)} ${esc(i.unit)} available · reorder at ${esc(i.reorder_point)} ${esc(i.unit)}</span></div>`).join('');
+}
+function renderRunsAndSales(state,products){const map=new Map(products.map(p=>[p.id,p]));$('#production-runs').innerHTML=state.recentRuns.length?state.recentRuns.map(r=>`<tr><td>${esc(map.get(r.product_id)?.product_code||r.product_id)}</td><td>${esc(r.quantity)}</td><td>${duration(r.cut_seconds)}</td><td>${duration(r.cleanup_seconds)}</td><td>${duration(r.finishing_seconds)}</td><td><span class="pill ${r.success?'good':'bad'}">${r.success?'Success':'Failed'}</span></td><td>${fmtDate(r.created_at,true)}</td></tr>`).join(''):rowEmpty(7,'No production runs recorded yet.');$('#recent-sales').innerHTML=state.recentSales.length?state.recentSales.map(s=>`<tr><td>${esc(map.get(s.product_id)?.product_code||'—')}</td><td>${esc(s.channel||'—')}</td><td>${esc(s.quantity)}</td><td>${money(s.gross_revenue,s.currency)}</td><td>${money(Number(s.fees||0)+Number(s.shipping_cost||0),s.currency)}</td><td>${fmtDate(s.sold_at,true)}</td></tr>`).join(''):rowEmpty(6,'No sales recorded yet.');}
+function renderProducts(products){$('#products-body').innerHTML=products.length?products.map(p=>`<tr><td><button class="product-link icon-button" data-product-id="${esc(p.id)}">${esc(p.product_code)}</button></td><td><strong>${esc(p.name)}</strong><small>${esc(p.language||'')}</small></td><td>${esc(p.category||'—')}</td><td>${esc(p.primary_material_name||'Not assigned')}</td><td class="size-cell">${productSize(p)}</td><td><span class="pill ${stageTone(p.validation_status)}">${esc(label(p.validation_status))}</span>${p.fits_machine===0?'<small>Source scale exceeds current table</small>':''}</td><td>${esc(label(p.status))}</td><td>${money(p.selling_price)}</td></tr>`).join(''):rowEmpty(8,'No products ingested yet.');}
+function renderActivity(activity){$('#activity-list').innerHTML=activity.length?activity.map(a=>`<div class="activity-row"><time>${fmtDate(a.created_at,true)}</time><div><strong>${esc(a.title)}</strong><span>${esc(a.detail||'')}</span></div></div>`).join(''):'<div class="empty">No recorded activity yet.</div>';}
+function renderObservations(obs){$('#observations').innerHTML=obs.length?obs.map(o=>`<article class="observation"><h3>${esc(o.topic)}</h3><p>${esc(o.observation)}</p>${o.why_valuable?`<p><strong>Why it may matter:</strong> ${esc(o.why_valuable)}</p>`:''}${(o.direct_evidence||[]).length?`<details><summary>Direct evidence</summary><ul>${o.direct_evidence.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}${(o.unknowns||[]).length?`<details><summary>Unknowns</summary><ul>${o.unknowns.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}${(o.sources||[]).length?`<details><summary>Sources</summary><ul>${o.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title||s.url)}</a></li>`).join('')}</ul></details>`:''}</article>`).join(''):'<div class="empty">No current market observations stored. MERLIN will leave this blank rather than invent evidence.</div>';}
+function populateSelectors(products,raw){const currentOrder=$('#order-product').value,currentMat=$('#dxf-material').value;$('#order-product').innerHTML='<option value="">Unlinked / custom item</option>'+products.map(p=>`<option value="${esc(p.id)}">${esc(p.product_code)} — ${esc(p.name)}</option>`).join('');$('#dxf-material').innerHTML='<option value="">Not assigned yet</option>'+raw.filter(i=>i.kind==='raw_material').map(i=>`<option value="${esc(i.id)}">${esc(i.name)}${i.thickness_mm!=null?` — ${esc(i.thickness_mm)}mm`:''}</option>`).join('');if([...$('#order-product').options].some(o=>o.value===currentOrder))$('#order-product').value=currentOrder;if([...$('#dxf-material').options].some(o=>o.value===currentMat))$('#dxf-material').value=currentMat;}
+
+async function openInventory(id){
+  const i=await api(`/api/inventory/${encodeURIComponent(id)}`);$('#inv-dialog-title').textContent=i.name;
+  $('#inventory-detail').innerHTML=`<div class="product-detail"><form id="inventory-edit-form" class="form-card"><div class="form-grid">
+  <label>Name<input id="ie-name" value="${esc(i.name)}"></label><label>Unit<input id="ie-unit" value="${esc(i.unit)}"></label><label>Physical count<input id="ie-qty" type="number" step="any" value="${esc(i.quantity_on_hand)}"></label><label>Reorder at<input id="ie-reorder" type="number" step="any" value="${i.reorder_point??''}"></label>
+  <label>Unit cost £<input id="ie-cost" type="number" step="0.01" value="${i.unit_cost??''}"></label><label>Location<input id="ie-location" value="${esc(i.location||'')}"></label><label>Material family<input id="ie-material" value="${esc(i.material_family||'')}"></label><label>Grade / specification<input id="ie-grade" value="${esc(i.material_grade||'')}"></label>
+  <label>Form<input id="ie-form" value="${esc(i.form||'')}"></label><label>Thickness mm<input id="ie-thickness" type="number" step="0.01" value="${i.thickness_mm??''}"></label><label>Width mm<input id="ie-width" type="number" step="0.1" value="${i.width_mm??''}"></label><label>Height mm<input id="ie-height" type="number" step="0.1" value="${i.height_mm??''}"></label><label>Colour<input id="ie-colour" value="${esc(i.colour||'')}"></label>
+  </div><div class="form-actions"><button type="submit">Save inventory item</button></div></form></div>`;
+  $('#inventory-dialog').showModal();
+  $('#inventory-edit-form').addEventListener('submit',async e=>{e.preventDefault();const newQty=Number($('#ie-qty').value);await api(`/api/inventory/${encodeURIComponent(i.id)}`,{method:'PATCH',headers:jsonHeaders(),body:JSON.stringify({name:$('#ie-name').value,unit:$('#ie-unit').value,reorder_point:$('#ie-reorder').value?Number($('#ie-reorder').value):null,unit_cost:$('#ie-cost').value?Number($('#ie-cost').value):null,location:$('#ie-location').value||null,material_family:$('#ie-material').value||null,material_grade:$('#ie-grade').value||null,form:$('#ie-form').value||null,thickness_mm:$('#ie-thickness').value?Number($('#ie-thickness').value):null,width_mm:$('#ie-width').value?Number($('#ie-width').value):null,height_mm:$('#ie-height').value?Number($('#ie-height').value):null,colour:$('#ie-colour').value||null})});const delta=newQty-Number(i.quantity_on_hand||0);if(delta!==0)await api('/api/inventory/movements',{method:'POST',headers:jsonHeaders(),body:JSON.stringify({inventory_item_id:i.id,movement_type:'adjust',quantity:delta,notes:'Owner stocktake correction'})});$('#inventory-dialog').close();await refresh();});
 }
 
-async function refresh() {
-  const [health,dash,state,products,inventory] = await Promise.all([
-    api('/api/health'), api('/api/dashboard'), api('/api/state'), api('/api/products'), api('/api/inventory')
-  ]);
-  $('#health').textContent = health.ok ? 'LIVE' : 'OFFLINE';
-  $('#health').className = `health ${health.ok ? 'ok' : ''}`;
-
-  $('#metrics').innerHTML = [
-    ['Products', dash.products],
-    ['Validated revisions', dash.validated],
-    ['Inventory lines', inventory.length],
-    ['Current capabilities', state.capabilities.length]
-  ].map(([k,v])=>`<div class="metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
-
-  $('#products').innerHTML = products.length ? products.map(p=>`<tr>
-    <td class="mono">${esc(p.product_code)}</td><td>${esc(p.name)}</td><td>${esc(p.category||'—')}</td>
-    <td>${p.width_mm == null ? '—' : `${p.width_mm.toFixed(1)} × ${p.height_mm.toFixed(1)} mm`}</td>
-    <td><span class="pill ${esc(p.validation_status)}">${esc(p.validation_status||'—')}</span></td><td>${esc(p.status)}</td>
-  </tr>`).join('') : `<tr><td colspan="6" class="empty">No products ingested yet.</td></tr>`;
-
-  $('#inventory').innerHTML = inventory.length ? inventory.map(i=>`<tr><td>${esc(i.kind)}</td><td>${esc(i.name)}</td><td>${esc(i.quantity_on_hand)} ${esc(i.unit)}</td><td>${money(i.unit_cost,i.currency)}</td><td>${esc(i.location||'—')}</td></tr>`).join('') : `<tr><td colspan="5" class="empty">Inventory is empty. Add only what you actually have.</td></tr>`;
-
-  $('#observations').innerHTML = dash.observations.length ? dash.observations.map(o=>`<div class="observation">
-    <h3>${esc(o.topic)}</h3><p>${esc(o.observation)}</p>
-    ${o.why_valuable ? `<p><strong>Why it matters:</strong> ${esc(o.why_valuable)}</p>`:''}
-    ${(o.direct_evidence||[]).length ? `<details><summary>Direct evidence</summary><ul>${o.direct_evidence.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}
-    ${(o.unknowns||[]).length ? `<details><summary>Unknowns</summary><ul>${o.unknowns.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`:''}
-    ${(o.sources||[]).length ? `<details><summary>Sources</summary><ul>${o.sources.map(s=>`<li><a target="_blank" rel="noopener" href="${esc(s.url)}">${esc(s.title||s.url)}</a></li>`).join('')}</ul></details>`:''}
-    ${o.suggested_test ? `<p><strong>Test:</strong> ${esc(o.suggested_test)}</p>`:''}
-  </div>`).join('') : '<div class="empty">No market research stored yet.</div>';
-
-  $('#capabilities').innerHTML = state.capabilities.map(c=>`<div class="card"><strong>${esc(c.name)}</strong><span>${esc(c.status)}</span></div>`).join('');
-  $('#upgrades').innerHTML = dash.upgrades.length ? dash.upgrades.map(u=>`<div class="card"><strong>${esc(u.trigger)}</strong><p>${esc(u.reason)}</p><ul>${(u.requested_changes||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('') : '<div class="empty">No software evolution requested. MERLIN remains focused on the current setup.</div>';
+async function openProduct(id){const p=await api(`/api/products/${encodeURIComponent(id)}`);const r=p.revisions?.[0];$('#dialog-code').textContent=p.product_code;$('#dialog-name').textContent=p.name;const issues=r?.validation?.issues||[];$('#product-detail').innerHTML=`<div class="product-detail"><div class="detail-grid">
+<div class="detail-item"><span>Product state</span><strong>${esc(label(p.status))}</strong></div><div class="detail-item"><span>Primary material</span><strong>${esc(p.primary_material_name||'Not assigned')}</strong></div><div class="detail-item"><span>Selling price</span><strong>${money(p.selling_price)}</strong></div>
+<div class="detail-item"><span>Production target</span><strong>${p.target_width_mm!=null&&p.target_height_mm!=null?`${num(p.target_width_mm,1)} × ${num(p.target_height_mm,1)} mm`:'Not set'}</strong></div><div class="detail-item"><span>DXF source extent</span><strong>${r?.units_confirmed&&r?.width_mm!=null?`${num(r.width_mm,1)} × ${num(r.height_mm,1)} mm`:`${num(r?.drawing_width_units,2)} × ${num(r?.drawing_height_units,2)} drawing units`}</strong></div><div class="detail-item"><span>DXF units</span><strong>${r?.units_confirmed?esc(r.unit_name||'confirmed'):'Not confirmed'}</strong></div>
+<div class="detail-item"><span>Entities</span><strong>${esc(r?.entity_count??'—')}</strong></div><div class="detail-item"><span>Open endpoints</span><strong>${esc(r?.open_path_count??'—')}</strong></div><div class="detail-item"><span>Machine fit at source scale</span><strong>${r?.fits_machine==null?'Unknown':r.fits_machine?'Fits':'Does not fit'}</strong></div></div>
+<div class="detail-actions"><a class="button-link" target="_blank" href="${API}/api/products/${encodeURIComponent(p.id)}/preview">Open geometry preview</a></div>
+<form id="product-update-form" class="form-card"><div class="form-grid"><label>Target width mm<input id="pd-width" type="number" step="0.1" value="${p.target_width_mm??''}"></label><label>Target height mm<input id="pd-height" type="number" step="0.1" value="${p.target_height_mm??''}"></label><label>Selling price £<input id="pd-price" type="number" step="0.01" value="${p.selling_price??''}"></label><label>Primary material<select id="pd-material"><option value="">Not assigned</option>${cache.inventory.filter(i=>i.kind==='raw_material').map(i=>`<option value="${esc(i.id)}" ${i.id===p.primary_material_inventory_item_id?'selected':''}>${esc(i.name)}${i.thickness_mm!=null?` — ${esc(i.thickness_mm)}mm`:''}</option>`).join('')}</select></label></div><div class="form-actions"><button type="submit">Save product details</button></div></form>
+${r?`<form id="unit-confirm-form" class="form-card"><div class="form-grid"><label>Confirm / change DXF source units<select id="pd-units"><option value="millimeters">Millimetres</option><option value="inches">Inches</option><option value="centimeters">Centimetres</option><option value="meters">Metres</option></select></label></div><div class="form-actions"><button type="submit">Recalculate DXF dimensions</button></div></form>`:''}
+<h3>Geometry review</h3><div class="issue-list">${issues.length?issues.map(i=>`<div class="issue"><strong>${esc(i.code)}</strong> — ${esc(i.message)}</div>`).join(''):'<div class="empty">No parsed issues recorded.</div>'}</div></div>`;
+  $('#product-dialog').showModal();
+  $('#product-update-form')?.addEventListener('submit',async e=>{e.preventDefault();await api(`/api/products/${encodeURIComponent(p.id)}`,{method:'PATCH',headers:jsonHeaders(),body:JSON.stringify({target_width_mm:$('#pd-width').value?Number($('#pd-width').value):null,target_height_mm:$('#pd-height').value?Number($('#pd-height').value):null,selling_price:$('#pd-price').value?Number($('#pd-price').value):null,primary_material_inventory_item_id:$('#pd-material').value||null})});$('#product-dialog').close();await refresh();});
+  $('#unit-confirm-form')?.addEventListener('submit',async e=>{e.preventDefault();await api(`/api/revisions/${encodeURIComponent(r.id)}/units`,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({unit:$('#pd-units').value})});$('#product-dialog').close();await refresh();});
 }
 
-$('#refresh').addEventListener('click', ()=>refresh().catch(e=>alert(e.message)));
+$$('[data-toggle]').forEach(b=>b.addEventListener('click',()=>showForm(b.dataset.toggle)));$$('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).classList.add('hidden')));
+$('#refresh').addEventListener('click',()=>refresh().catch(e=>alert(e.message)));$('#ask-merlin-top').addEventListener('click',openDrawer);$('#merlin-fab').addEventListener('click',openDrawer);$('#close-merlin').addEventListener('click',closeDrawer);$('#drawer-scrim').addEventListener('click',closeDrawer);$('#dialog-close').addEventListener('click',()=>$('#product-dialog').close());$('#inv-dialog-close').addEventListener('click',()=>$('#inventory-dialog').close());
 
-$('#chat-form').addEventListener('submit', async (e)=>{
-  e.preventDefault(); const input=$('#chat-input'); const msg=input.value.trim(); if(!msg)return;
-  chat('user',msg); input.value='';
-  try { const r=await api('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})}); chat('merlin',r.text); await refresh(); }
-  catch(err){ chat('merlin',`ERROR: ${err.message}`); }
-});
+document.addEventListener('change',async e=>{if(e.target.matches('.order-status-select')){try{await api(`/api/orders/${encodeURIComponent(e.target.dataset.orderId)}`,{method:'PATCH',headers:jsonHeaders(),body:JSON.stringify({status:e.target.value})});await refresh();}catch(err){alert(err.message);}}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-product-id]');if(b)openProduct(b.dataset.productId).catch(err=>alert(err.message));const i=e.target.closest('[data-inventory-id]');if(i)openInventory(i.dataset.inventoryId).catch(err=>alert(err.message));});
 
-$('#dxf-form').addEventListener('submit', async (e)=>{
-  e.preventDefault(); const f=$('#dxf-file').files[0]; if(!f)return;
-  const fd=new FormData(); fd.append('file',f); fd.append('name',$('#dxf-name').value); fd.append('category',$('#dxf-category').value); fd.append('subcategory',$('#dxf-subcategory').value); fd.append('language',$('#dxf-language').value); fd.append('legal_status',$('#dxf-legal').value);
-  $('#dxf-result').textContent='Analysing actual DXF geometry…';
-  try { const p=await api('/api/products/upload-dxf',{method:'POST',body:fd}); const r=p.revisions[0]; $('#dxf-result').innerHTML=`<strong>${esc(p.product_code)}</strong><br>${r.width_mm.toFixed(1)} × ${r.height_mm.toFixed(1)} mm<br>${r.entity_count} entities<br>Validation: ${esc(r.validation_status)}<br><a target="_blank" href="${API}/api/products/${encodeURIComponent(p.id)}/preview">Open geometry preview</a>`; await refresh(); }
-  catch(err){ $('#dxf-result').textContent=`ERROR: ${err.message}`; }
-});
+$('#order-form').addEventListener('submit',async e=>{e.preventDefault();const product=$('#order-product').value||null,description=$('#order-description').value.trim()||null;if(!product&&!description)return alert('Select a product or enter an item description.');const qty=Number($('#order-qty').value||1),unitPrice=$('#order-unit-price').value?Number($('#order-unit-price').value):null;const body={external_order_id:$('#order-external').value||null,channel:$('#order-channel').value||null,customer_reference:$('#order-customer').value||null,due_at:$('#order-due').value||null,gross_total:$('#order-total').value?Number($('#order-total').value):(unitPrice!=null?unitPrice*qty:null),status:$('#order-status').value,currency:'GBP',lines:[{product_id:product,description,quantity:qty,unit_price:unitPrice}]};try{await api('/api/orders',{method:'POST',headers:jsonHeaders(),body:JSON.stringify(body)});e.target.reset();$('#order-qty').value=1;e.target.classList.add('hidden');await refresh();}catch(err){alert(err.message);}});
 
-$('#inventory-form').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const body={kind:$('#inv-kind').value,name:$('#inv-name').value,unit:$('#inv-unit').value,quantity_on_hand:Number($('#inv-qty').value||0),unit_cost:$('#inv-cost').value?Number($('#inv-cost').value):null,currency:'GBP'};
-  try { await api('/api/inventory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); e.target.reset(); await refresh(); }
-  catch(err){ alert(err.message); }
-});
+$('#inventory-form').addEventListener('submit',async e=>{e.preventDefault();const body={kind:$('#inv-kind').value,name:$('#inv-name').value,quantity_on_hand:Number($('#inv-qty').value||0),unit:$('#inv-unit').value,unit_cost:$('#inv-cost').value?Number($('#inv-cost').value):null,reorder_point:$('#inv-reorder').value?Number($('#inv-reorder').value):null,location:$('#inv-location').value||null,material_family:$('#inv-material').value||null,material_grade:$('#inv-grade').value||null,form:$('#inv-form').value||null,thickness_mm:$('#inv-thickness').value?Number($('#inv-thickness').value):null,width_mm:$('#inv-width').value?Number($('#inv-width').value):null,height_mm:$('#inv-height').value?Number($('#inv-height').value):null,colour:$('#inv-colour').value||null,currency:'GBP'};try{await api('/api/inventory',{method:'POST',headers:jsonHeaders(),body:JSON.stringify(body)});e.target.reset();$('#inv-qty').value=1;e.target.classList.add('hidden');await refresh();}catch(err){alert(err.message);}});
 
-refresh().catch(err=>{ $('#health').textContent='OFFLINE'; chat('merlin',`Cannot connect to backend: ${err.message}`); });
+$('#expense-form').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/expenses',{method:'POST',headers:jsonHeaders(),body:JSON.stringify({category:$('#expense-category').value,description:$('#expense-description').value,amount:Number($('#expense-amount').value),occurred_at:$('#expense-date').value||null,currency:'GBP'})});e.target.reset();e.target.classList.add('hidden');await refresh();}catch(err){alert(err.message);}});
+
+$('#dxf-form').addEventListener('submit',async e=>{e.preventDefault();const f=$('#dxf-file').files[0];if(!f)return;const fd=new FormData();fd.append('file',f);fd.append('name',$('#dxf-name').value);fd.append('category',$('#dxf-category').value);fd.append('subcategory',$('#dxf-subcategory').value);fd.append('language',$('#dxf-language').value);fd.append('legal_status',$('#dxf-legal').value);if($('#dxf-units').value)fd.append('unit_override',$('#dxf-units').value);if($('#dxf-material').value)fd.append('primary_material_inventory_item_id',$('#dxf-material').value);$('#dxf-result').textContent='Analysing actual DXF geometry…';try{const p=await api('/api/products/upload-dxf',{method:'POST',body:fd});const r=p.revisions[0];const size=r.units_confirmed&&r.width_mm!=null?`${num(r.width_mm,1)} × ${num(r.height_mm,1)} mm`:`${num(r.drawing_width_units,2)} × ${num(r.drawing_height_units,2)} drawing units — physical units not confirmed`;$('#dxf-result').innerHTML=`Created <strong>${esc(p.product_code)}</strong> · ${esc(size)} · ${esc(r.entity_count)} entities · ${esc(label(r.validation_status))}. <a target="_blank" href="${API}/api/products/${encodeURIComponent(p.id)}/preview">Open geometry preview</a>`;e.target.reset();e.target.classList.add('hidden');await refresh();}catch(err){$('#dxf-result').textContent=`ERROR: ${err.message}`;}});
+
+$('#chat-form').addEventListener('submit',async e=>{e.preventDefault();const input=$('#chat-input'),msg=input.value.trim();if(!msg)return;chat('user',msg);input.value='';try{const r=await api('/api/ai/chat',{method:'POST',headers:jsonHeaders(),body:JSON.stringify({message:msg})});chat('merlin',r.text);await refresh();}catch(err){chat('merlin',`ERROR: ${err.message}`);}});
+
+refresh().catch(err=>{$('#health').textContent='OFFLINE';$('#last-refresh').textContent=`Cannot connect: ${err.message}`;});

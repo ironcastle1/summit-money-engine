@@ -127,13 +127,17 @@ function endpointGraph(geometries) {
   return { endpoint_nodes: degree.size, unmatched_endpoint_nodes: oddOrSingle };
 }
 
-export function analyseDxfText(text, machine = null) {
+export function analyseDxfText(text, machine = null, options = {}) {
   const parser = new DxfParser();
   const dxf = parser.parseSync(text);
   if (!dxf) throw new Error('DXF parser returned no document.');
 
-  const units = dxfUnitInfo(dxf);
-  const scale = units.mm_per_unit || 1;
+  const detectedUnits = dxfUnitInfo(dxf);
+  const override = options.unitOverride || null;
+  const overrideMap = { millimeters: 1, mm: 1, inches: 25.4, inch: 25.4, in: 25.4, centimeters: 10, cm: 10, meters: 1000, m: 1000 };
+  const overrideScale = override ? overrideMap[String(override).toLowerCase()] : null;
+  const units = overrideScale ? { code: detectedUnits.code, name: String(override), mm_per_unit: overrideScale, source: 'owner_override' } : { ...detectedUnits, source: detectedUnits.mm_per_unit ? 'dxf_header' : 'unknown' };
+  const scale = units.mm_per_unit;
   const entities = dxf.entities || [];
   const geometries = entities.map(entityGeometry);
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
@@ -156,7 +160,7 @@ export function analyseDxfText(text, machine = null) {
     else addEntityBounds(bounds, g);
     totalLength += g.length || 0;
     if (g.closed) closedPathCount++;
-    if (g.type === 'CIRCLE' && minHole > 0 && g.radius * 2 * scale < minHole) smallFeatures++;
+    if (g.type === 'CIRCLE' && minHole > 0 && scale && g.radius * 2 * scale < minHole) smallFeatures++;
     const k = duplicateKey(entities[i]);
     if (duplicateSeen.has(k)) duplicateCount++;
     duplicateSeen.add(k);
@@ -165,11 +169,11 @@ export function analyseDxfText(text, machine = null) {
   const hasBounds = Number.isFinite(bounds.minX);
   const widthRaw = hasBounds ? bounds.maxX - bounds.minX : 0;
   const heightRaw = hasBounds ? bounds.maxY - bounds.minY : 0;
-  const width = widthRaw * scale;
-  const height = heightRaw * scale;
+  const width = scale ? widthRaw * scale : null;
+  const height = scale ? heightRaw * scale : null;
   const graph = endpointGraph(geometries.filter(g => !g.unsupported));
 
-  const fitsMachine = units.mm_per_unit && machine?.working_width_mm && machine?.working_height_mm
+  const fitsMachine = scale && machine?.working_width_mm && machine?.working_height_mm
     ? ((width <= machine.working_width_mm && height <= machine.working_height_mm) ||
        (height <= machine.working_width_mm && width <= machine.working_height_mm))
     : null;
@@ -180,11 +184,11 @@ export function analyseDxfText(text, machine = null) {
   if (duplicateCount) issues.push({ severity: 'review', code: 'DUPLICATE_GEOMETRY', message: `${duplicateCount} duplicate entities detected.` });
   if (smallFeatures) issues.push({ severity: 'review', code: 'SMALL_HOLES', message: `${smallFeatures} circles fall below the configured minimum hole size.` });
   if (fitsMachine === false) issues.push({ severity: 'fail', code: 'OUTSIDE_MACHINE', message: 'DXF exceeds the active machine envelope in both orientations.' });
-  if (!units.mm_per_unit) issues.push({ severity: 'review', code: 'DXF_UNITS_UNKNOWN', message: 'DXF INSUNITS is unitless or unsupported. Dimensions are shown as drawing units and machine-fit cannot be trusted until units are confirmed.' });
+  if (!scale) issues.push({ severity: 'review', code: 'DXF_UNITS_UNKNOWN', message: 'DXF units are missing or unsupported. MERLIN will show drawing-unit extents only until you confirm the intended units.' });
   if (!machineRules.min_bridge_mm || !machineRules.min_slot_mm || !machineRules.min_hole_mm) {
     issues.push({ severity: 'review', code: 'MACHINE_RULES_UNCALIBRATED', message: 'Minimum bridge/slot/hole rules are not fully calibrated; MERLIN will not invent them.' });
   }
-  issues.push({ severity: 'review', code: 'TOPOLOGY_REVIEW', message: 'Retained-steel island/bridge topology cannot be proven from generic DXF geometry alone in V1; visual/manual review remains required.' });
+  issues.push({ severity: 'review', code: 'TOPOLOGY_REVIEW', message: 'Retained-steel island/bridge topology cannot be proven from generic DXF geometry alone in the current deterministic validator; visual/manual review remains required.' });
 
   const validationStatus = issues.some(i => i.severity === 'fail') ? 'failed' : 'review_required';
 
@@ -192,13 +196,15 @@ export function analyseDxfText(text, machine = null) {
     dxf,
     entities,
     geometries,
-    bounds: hasBounds ? { minX: bounds.minX * scale, minY: bounds.minY * scale, maxX: bounds.maxX * scale, maxY: bounds.maxY * scale } : null,
+    bounds: hasBounds && scale ? { minX: bounds.minX * scale, minY: bounds.minY * scale, maxX: bounds.maxX * scale, maxY: bounds.maxY * scale } : null,
     drawing_bounds: hasBounds ? bounds : null,
     units,
+    drawing_width_units: widthRaw,
+    drawing_height_units: heightRaw,
     width_mm: width,
     height_mm: height,
     entity_count: entities.length,
-    total_cut_length_mm: totalLength * scale,
+    total_cut_length_mm: scale ? totalLength * scale : null,
     pierce_estimate: closedPathCount + Math.ceil(graph.unmatched_endpoint_nodes / 2),
     closed_path_count: closedPathCount,
     open_path_count: graph.unmatched_endpoint_nodes,

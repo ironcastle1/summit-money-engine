@@ -8,12 +8,18 @@ export function openDatabase(dbPath = process.env.MERLIN_DB_PATH || './data/merl
   return db;
 }
 
+function hasColumn(db, table, column) {
+  return db.prepare(`PRAGMA table_info(${table})`).all().some((r) => r.name === column);
+}
+
+function addColumn(db, table, definition) {
+  const column = definition.trim().split(/\s+/)[0];
+  if (!hasColumn(db, table, column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+}
+
 export function migrateDatabase(db) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS meta (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
+    CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
     CREATE TABLE IF NOT EXISTS business_profile (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -228,6 +234,19 @@ export function migrateDatabase(db) {
       notes TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS expenses (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'GBP',
+      occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      supplier_id TEXT REFERENCES suppliers(id),
+      reference_type TEXT,
+      reference_id TEXT,
+      notes TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS research_sources (
       id TEXT PRIMARY KEY,
       url TEXT NOT NULL,
@@ -289,8 +308,37 @@ export function migrateDatabase(db) {
     CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(inventory_item_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_runs_product ON production_runs(product_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_sales_product ON sales_events(product_id, sold_at);
+    CREATE INDEX IF NOT EXISTS idx_orders_status_due ON orders(status, due_at);
     CREATE INDEX IF NOT EXISTS idx_market_created ON market_observations(created_at);
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(occurred_at);
   `);
+
+  // Backward-compatible V2 columns. Existing V1 databases are upgraded in place.
+  addColumn(db, 'inventory_items', 'quantity_reserved REAL NOT NULL DEFAULT 0');
+  addColumn(db, 'inventory_items', 'material_family TEXT');
+  addColumn(db, 'inventory_items', 'material_grade TEXT');
+  addColumn(db, 'inventory_items', 'form TEXT');
+  addColumn(db, 'inventory_items', 'thickness_mm REAL');
+  addColumn(db, 'inventory_items', 'width_mm REAL');
+  addColumn(db, 'inventory_items', 'height_mm REAL');
+  addColumn(db, 'inventory_items', 'length_mm REAL');
+  addColumn(db, 'inventory_items', 'colour TEXT');
+  addColumn(db, 'inventory_items', 'linked_product_id TEXT');
+
+  addColumn(db, 'products', 'primary_material_inventory_item_id TEXT');
+  addColumn(db, 'products', 'target_width_mm REAL');
+  addColumn(db, 'products', 'target_height_mm REAL');
+  addColumn(db, 'products', 'selling_price REAL');
+
+  addColumn(db, 'product_revisions', 'drawing_width_units REAL');
+  addColumn(db, 'product_revisions', 'drawing_height_units REAL');
+  addColumn(db, 'product_revisions', 'unit_code INTEGER');
+  addColumn(db, 'product_revisions', 'unit_name TEXT');
+  addColumn(db, 'product_revisions', 'mm_per_unit REAL');
+  addColumn(db, 'product_revisions', 'units_confirmed INTEGER NOT NULL DEFAULT 0');
+
+  addColumn(db, 'order_lines', 'description TEXT');
+  addColumn(db, 'production_runs', 'material_quantity_consumed REAL');
 
   db.prepare(`INSERT OR IGNORE INTO business_profile (id) VALUES (1)`).run();
 }

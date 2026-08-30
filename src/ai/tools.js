@@ -6,120 +6,33 @@ import { id } from '../util/id.js';
 import { recordSale } from '../services/sales.js';
 import { syncProductSnapshot } from '../products/product-service.js';
 
-export const toolDefinitions = [
-  {
-    type: 'function', name: 'record_memory_fact',
-    description: 'Store an exact durable business fact explicitly supplied by the owner. Never use this for guesses.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        category: { type: 'string' }, fact_key: { type: 'string' }, fact_value: { type: 'string' }
-      }, required: ['category','fact_key','fact_value']
-    }
-  },
-  {
-    type: 'function', name: 'create_inventory_item',
-    description: 'Create a tracked inventory item when the owner provides enough identifying information.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        kind: { type: 'string', enum: ['raw_material','consumable','packaging','finished_product','offcut','hardware','other'] },
-        name: { type: 'string' }, unit: { type: 'string' }, quantity_on_hand: { type: ['number','null'] },
-        unit_cost: { type: ['number','null'] }, currency: { type: ['string','null'] }, location: { type: ['string','null'] },
-        sku: { type: ['string','null'] }
-      }, required: ['kind','name','unit','quantity_on_hand','unit_cost','currency','location','sku']
-    }
-  },
-  {
-    type: 'function', name: 'record_inventory_movement',
-    description: 'Record a purchase, consumption, adjustment, reservation, production, scrap or return for an existing inventory item.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        inventory_item_id: { type: 'string' },
-        movement_type: { type: 'string', enum: ['purchase','consume','adjust','reserve','release','produce','scrap','return'] },
-        quantity: { type: 'number' }, unit_cost: { type: ['number','null'] }, notes: { type: ['string','null'] }
-      }, required: ['inventory_item_id','movement_type','quantity','unit_cost','notes']
-    }
-  },
-  {
-    type: 'function', name: 'record_production_run',
-    description: 'Record observed production timing/results for a product. Only record values supplied or measured by the owner.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        product_id: { type: 'string' }, revision_id: { type: ['string','null'] }, machine_id: { type: ['string','null'] },
-        quantity: { type: ['number','null'] }, cut_seconds: { type: ['number','null'] }, cleanup_seconds: { type: ['number','null'] },
-        finishing_seconds: { type: ['number','null'] }, packaging_seconds: { type: ['number','null'] }, success: { type: ['boolean','null'] },
-        failure_reason: { type: ['string','null'] }, notes: { type: ['string','null'] }
-      },
-      required: ['product_id','revision_id','machine_id','quantity','cut_seconds','cleanup_seconds','finishing_seconds','packaging_seconds','success','failure_reason','notes']
-    }
-  },
-  {
-    type: 'function', name: 'set_product_cost',
-    description: 'Store a dated product cost/price record from known inputs. Leave unknown fields null.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        product_id: { type: 'string' }, material_cost: { type: ['number','null'] }, consumables_cost: { type: ['number','null'] },
-        paint_cost: { type: ['number','null'] }, packaging_cost: { type: ['number','null'] }, marketplace_fees: { type: ['number','null'] },
-        labour_cost: { type: ['number','null'] }, other_variable_cost: { type: ['number','null'] }, selling_price: { type: ['number','null'] },
-        currency: { type: ['string','null'] }, notes: { type: ['string','null'] }
-      }, required: ['product_id','material_cost','consumables_cost','paint_cost','packaging_cost','marketplace_fees','labour_cost','other_variable_cost','selling_price','currency','notes']
-    }
-  },
-  {
-    type: 'function', name: 'record_sale',
-    description: 'Record an actual sale event from owner-supplied or connected sales data. Never invent missing monetary fields.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        product_id: { type: ['string','null'] }, channel: { type: ['string','null'] }, quantity: { type: ['number','null'] },
-        gross_revenue: { type: ['number','null'] }, fees: { type: ['number','null'] }, shipping_income: { type: ['number','null'] },
-        shipping_cost: { type: ['number','null'] }, refunds: { type: ['number','null'] }, currency: { type: ['string','null'] },
-        sold_at: { type: ['string','null'] }, notes: { type: ['string','null'] }
-      }, required: ['product_id','channel','quantity','gross_revenue','fees','shipping_income','shipping_cost','refunds','currency','sold_at','notes']
-    }
-  },
-  {
-    type: 'function', name: 'record_capability_upgrade',
-    description: 'Record a real physical/business capability upgrade explicitly reported by the owner and request any necessary MERLIN software evolution.',
-    parameters: {
-      type: 'object', additionalProperties: false,
-      properties: {
-        capability_name: { type: 'string' }, details: { type: 'object' }, reason: { type: 'string' }, requested_software_changes: { type: 'array', items: { type: 'string' } }
-      }, required: ['capability_name','details','reason','requested_software_changes']
-    }
-  }
+const nullableString={type:['string','null']}, nullableNumber={type:['number','null']};
+export const toolDefinitions=[
+  {type:'function',name:'record_memory_fact',description:'Store an exact durable business fact explicitly supplied by the owner. Never store guesses as facts.',parameters:{type:'object',additionalProperties:false,properties:{category:{type:'string'},fact_key:{type:'string'},fact_value:{type:'string'}},required:['category','fact_key','fact_value']}},
+  {type:'function',name:'create_inventory_item',description:'Create a tracked physical inventory item from owner-supplied facts. Preserve structured material dimensions when supplied; leave unknowns null.',parameters:{type:'object',additionalProperties:false,properties:{kind:{type:'string',enum:['raw_material','consumable','packaging','finished_product','offcut','hardware','other']},name:{type:'string'},unit:{type:'string'},quantity_on_hand:{type:'number'},reorder_point:nullableNumber,unit_cost:nullableNumber,currency:nullableString,location:nullableString,sku:nullableString,material_family:nullableString,material_grade:nullableString,form:nullableString,thickness_mm:nullableNumber,width_mm:nullableNumber,height_mm:nullableNumber,length_mm:nullableNumber,colour:nullableString},required:['kind','name','unit','quantity_on_hand','reorder_point','unit_cost','currency','location','sku','material_family','material_grade','form','thickness_mm','width_mm','height_mm','length_mm','colour']}},
+  {type:'function',name:'record_inventory_movement',description:'Record a physical inventory movement for an existing inventory item.',parameters:{type:'object',additionalProperties:false,properties:{inventory_item_id:{type:'string'},movement_type:{type:'string',enum:['purchase','consume','adjust','reserve','release','produce','scrap','return']},quantity:{type:'number'},unit_cost:nullableNumber,notes:nullableString},required:['inventory_item_id','movement_type','quantity','unit_cost','notes']}},
+  {type:'function',name:'record_order',description:'Record a real customer order explicitly supplied by the owner. Do not invent customer, price, due date, product, or channel.',parameters:{type:'object',additionalProperties:false,properties:{external_order_id:nullableString,channel:nullableString,customer_reference:nullableString,status:{type:'string',enum:['new','confirmed','queued','cutting','deburring','surface_prep','painting','curing','qc','packing','ready']},gross_total:nullableNumber,currency:nullableString,due_at:nullableString,description:nullableString,product_id:nullableString,quantity:{type:'number'},unit_price:nullableNumber,notes:nullableString},required:['external_order_id','channel','customer_reference','status','gross_total','currency','due_at','description','product_id','quantity','unit_price','notes']}},
+  {type:'function',name:'update_order_status',description:'Update the manufacturing/fulfilment stage of an existing order when the owner explicitly reports the change.',parameters:{type:'object',additionalProperties:false,properties:{order_id:{type:'string'},status:{type:'string',enum:['new','confirmed','queued','cutting','deburring','surface_prep','painting','curing','qc','packing','ready','dispatched','cancelled']}},required:['order_id','status']}},
+  {type:'function',name:'record_production_run',description:'Record observed production timing/results for a product. Only record values supplied or measured by the owner.',parameters:{type:'object',additionalProperties:false,properties:{product_id:{type:'string'},revision_id:nullableString,machine_id:nullableString,quantity:nullableNumber,material_inventory_item_id:nullableString,material_quantity_consumed:nullableNumber,cut_seconds:nullableNumber,cleanup_seconds:nullableNumber,finishing_seconds:nullableNumber,packaging_seconds:nullableNumber,success:{type:['boolean','null']},failure_reason:nullableString,notes:nullableString},required:['product_id','revision_id','machine_id','quantity','material_inventory_item_id','material_quantity_consumed','cut_seconds','cleanup_seconds','finishing_seconds','packaging_seconds','success','failure_reason','notes']}},
+  {type:'function',name:'set_product_cost',description:'Store a dated product cost/price record from known inputs. Leave unknown fields null.',parameters:{type:'object',additionalProperties:false,properties:{product_id:{type:'string'},material_cost:nullableNumber,consumables_cost:nullableNumber,paint_cost:nullableNumber,packaging_cost:nullableNumber,marketplace_fees:nullableNumber,labour_cost:nullableNumber,other_variable_cost:nullableNumber,selling_price:nullableNumber,currency:nullableString,notes:nullableString},required:['product_id','material_cost','consumables_cost','paint_cost','packaging_cost','marketplace_fees','labour_cost','other_variable_cost','selling_price','currency','notes']}},
+  {type:'function',name:'record_sale',description:'Record an actual sale event from owner-supplied or connected sales data. Never invent missing monetary fields.',parameters:{type:'object',additionalProperties:false,properties:{product_id:nullableString,channel:nullableString,quantity:nullableNumber,gross_revenue:nullableNumber,fees:nullableNumber,shipping_income:nullableNumber,shipping_cost:nullableNumber,refunds:nullableNumber,currency:nullableString,sold_at:nullableString,notes:nullableString},required:['product_id','channel','quantity','gross_revenue','fees','shipping_income','shipping_cost','refunds','currency','sold_at','notes']}},
+  {type:'function',name:'record_expense',description:'Record a real business expense explicitly reported by the owner.',parameters:{type:'object',additionalProperties:false,properties:{category:{type:'string'},description:{type:'string'},amount:{type:'number'},currency:nullableString,occurred_at:nullableString,notes:nullableString},required:['category','description','amount','currency','occurred_at','notes']}},
+  {type:'function',name:'record_capability_upgrade',description:'Record a real physical/business capability upgrade explicitly reported by the owner and request concrete MERLIN software changes only if needed.',parameters:{type:'object',additionalProperties:false,properties:{capability_name:{type:'string'},details:{type:'object'},reason:{type:'string'},requested_software_changes:{type:'array',items:{type:'string'}}},required:['capability_name','details','reason','requested_software_changes']}}
 ];
 
-export function executeTool(db, name, args) {
-  if (name === 'record_memory_fact') return upsertFact(db, { ...args, source: 'user', confidence: 'direct' });
-  if (name === 'create_inventory_item') return createInventoryItem(db, args);
-  if (name === 'record_inventory_movement') return moveInventory(db, args);
-  if (name === 'record_production_run') { const r=recordProductionRun(db,args); syncProductSnapshot(db,args.product_id); return r; }
-  if (name === 'set_product_cost') {
-    const cid = id('COST');
-    db.prepare(`INSERT INTO product_costs (
-      id,product_id,material_cost,consumables_cost,paint_cost,packaging_cost,marketplace_fees,labour_cost,other_variable_cost,selling_price,currency,notes
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-      cid,args.product_id,args.material_cost,args.consumables_cost,args.paint_cost,args.packaging_cost,args.marketplace_fees,args.labour_cost,args.other_variable_cost,args.selling_price,args.currency||'GBP',args.notes
-    );
-    const result=db.prepare('SELECT * FROM product_costs WHERE id=?').get(cid); syncProductSnapshot(db,args.product_id); return result;
+export function executeTool(db,name,args){
+  if(name==='record_memory_fact')return upsertFact(db,{...args,source:'user',confidence:'direct'});
+  if(name==='create_inventory_item')return createInventoryItem(db,args);
+  if(name==='record_inventory_movement')return moveInventory(db,args);
+  if(name==='record_order'){
+    const oid=id('ORD');const lineId=id('LINE');
+    const tx=db.transaction(()=>{db.prepare(`INSERT INTO orders (id,external_order_id,channel,status,customer_reference,gross_total,currency,due_at,notes) VALUES (?,?,?,?,?,?,?,?,?)`).run(oid,args.external_order_id||null,args.channel||null,args.status||'new',args.customer_reference||null,args.gross_total??null,args.currency||'GBP',args.due_at||null,args.notes||null);db.prepare(`INSERT INTO order_lines (id,order_id,product_id,description,quantity,unit_price,customisation_json) VALUES (?,?,?,?,?,?,?)`).run(lineId,oid,args.product_id||null,args.description||null,Number(args.quantity||1),args.unit_price??null,'{}');});tx();return db.prepare('SELECT * FROM orders WHERE id=?').get(oid);
   }
-  if (name === 'record_sale') { const r=recordSale(db,args); if(args.product_id) syncProductSnapshot(db,args.product_id); return r; }
-  if (name === 'record_capability_upgrade') {
-    const capId = id('CAP');
-    db.prepare('INSERT INTO capabilities (id,name,status,details_json) VALUES (?,?,\'active\',?)').run(capId,args.capability_name,JSON.stringify(args.details||{}));
-    return {
-      capability: db.prepare('SELECT * FROM capabilities WHERE id=?').get(capId),
-      software_upgrade_request: requestUpgrade(db, {
-        trigger: `Physical/business capability added: ${args.capability_name}`,
-        reason: args.reason,
-        requested_changes: args.requested_software_changes
-      })
-    };
-  }
+  if(name==='update_order_status'){const r=db.prepare('UPDATE orders SET status=?,dispatched_at=CASE WHEN ?=\'dispatched\' THEN COALESCE(dispatched_at,CURRENT_TIMESTAMP) ELSE dispatched_at END WHERE id=?').run(args.status,args.status,args.order_id);if(!r.changes)throw new Error('Order not found');return db.prepare('SELECT * FROM orders WHERE id=?').get(args.order_id);}
+  if(name==='record_production_run'){const r=recordProductionRun(db,args);syncProductSnapshot(db,args.product_id);return r;}
+  if(name==='set_product_cost'){const cid=id('COST');db.prepare(`INSERT INTO product_costs (id,product_id,material_cost,consumables_cost,paint_cost,packaging_cost,marketplace_fees,labour_cost,other_variable_cost,selling_price,currency,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(cid,args.product_id,args.material_cost,args.consumables_cost,args.paint_cost,args.packaging_cost,args.marketplace_fees,args.labour_cost,args.other_variable_cost,args.selling_price,args.currency||'GBP',args.notes);const r=db.prepare('SELECT * FROM product_costs WHERE id=?').get(cid);syncProductSnapshot(db,args.product_id);return r;}
+  if(name==='record_sale'){const r=recordSale(db,args);if(args.product_id)syncProductSnapshot(db,args.product_id);return r;}
+  if(name==='record_expense'){const eid=id('EXP');db.prepare(`INSERT INTO expenses (id,category,description,amount,currency,occurred_at,notes) VALUES (?,?,?,?,?,COALESCE(?,CURRENT_TIMESTAMP),?)`).run(eid,args.category,args.description,Number(args.amount),args.currency||'GBP',args.occurred_at||null,args.notes||null);return db.prepare('SELECT * FROM expenses WHERE id=?').get(eid);}
+  if(name==='record_capability_upgrade'){const capId=id('CAP');db.prepare("INSERT INTO capabilities (id,name,status,details_json) VALUES (?,?,'active',?)").run(capId,args.capability_name,JSON.stringify(args.details||{}));return{capability:db.prepare('SELECT * FROM capabilities WHERE id=?').get(capId),software_upgrade_request:requestUpgrade(db,{trigger:`Physical/business capability added: ${args.capability_name}`,reason:args.reason,requested_changes:args.requested_software_changes})};}
   throw new Error(`Unknown tool: ${name}`);
 }

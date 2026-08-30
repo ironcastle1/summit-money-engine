@@ -1,40 +1,11 @@
-# DXF analysis limits
+# DXF validation limits
 
-MERLIN V1 performs deterministic analysis on common entities:
+MERLIN parses actual DXF vector geometry. It does not infer a cut-ready result from an attractive image.
 
-- LINE
-- LWPOLYLINE
-- POLYLINE
-- CIRCLE
-- ARC
+V2 can deterministically record supported entity geometry, drawing extents, DXF unit metadata, converted physical dimensions when units are known, cut-path length for supported entities, obvious duplicate entities, unmatched endpoints, configured small-hole checks, and source-scale table fit.
 
-It calculates/records:
+If units are absent, millimetre dimensions remain null until the owner confirms units.
 
-- bounds
-- width/height when units are known
-- entity count
-- approximate total cut-path length
-- closed primitive/path count
-- unmatched endpoint nodes
-- duplicate entities
-- unsupported entity count
-- configured-too-small circles
-- machine-envelope fit when units are known
+The source file size is not automatically treated as the intended production size. Products have separate target width/height fields.
 
-## What it does not claim
-
-V1 does not prove retained-metal topology for arbitrary artwork. In particular, it does not reliably determine every:
-
-- floating retained island
-- bridge width
-- slot width
-- thermal distortion risk
-- kerf-sensitive weak connection
-- lead-in/lead-out problem
-- torch-height/process-specific issue
-
-This is why new files are normally `review_required`, not automatically `validated`.
-
-## Unit handling
-
-If DXF `$INSUNITS` is missing/unitless/unsupported, MERLIN does not trust the dimension-to-machine comparison. Confirm/export the DXF in known units and re-ingest it.
+Retained-steel topology, bridge adequacy and plasma-specific minimum detail cannot be universally proven from generic DXF geometry with the current validator. MERLIN therefore keeps those designs in review rather than falsely labelling them cut-ready.

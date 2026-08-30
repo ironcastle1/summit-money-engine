@@ -1,29 +1,13 @@
-# Market intelligence policy
+# MERLIN market intelligence policy
 
-MERLIN's research layer exists to answer:
+MERLIN does not use opportunity scores, confidence percentages or invented market-size figures.
 
-> What current evidence is relevant to making more money with the business that actually exists today?
+Every stored market observation should identify:
 
-## Required output
+1. what was actually observed;
+2. the source(s);
+3. why the observation may be relevant to the business that exists now;
+4. important unknowns;
+5. a small validation action where useful.
 
-Every stored observation must distinguish:
-
-1. Observation — what was found.
-2. Direct evidence — specific sourced facts.
-3. Supporting evidence — useful secondary signals.
-4. Why valuable — reasoning tied to current capabilities/costs/catalogue.
-5. Unknowns — what the source data cannot establish.
-6. Suggested test — a small validation action.
-7. Sources — retrievable URLs/metadata where available.
-
-## Forbidden
-
-- fabricated opportunity scores
-- unsupported sales estimates
-- fabricated marketplace demand
-- invented competitor performance
-- invented margin
-- hidden future capability assumptions
-- presenting generic AI speculation as observed market fact
-
-A source can be wrong or incomplete. MERLIN should preserve the distinction between source evidence and inference.
+Current measured business data outranks generic internet advice. Research should focus on revenue opportunities compatible with the active machine, materials, processes and sales operation. Future geographic or factory expansion should not be researched as an active operating topic until the owner records a real business change that makes it relevant.

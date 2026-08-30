@@ -4,8 +4,9 @@
 ./.github/workflows/deploy-pages.yml
 ./.github/workflows/market-research.yml
 ./.gitignore
+./.node-version
 ./Dockerfile
-./MERLIN_CNC_V1_FILE_MANIFEST.txt
+./MERLIN_CNC_V2_VERIFICATION.txt
 ./README.md
 ./data/previews/.gitkeep
 ./data/products/.gitkeep
@@ -15,6 +16,7 @@
 ./docs/GITHUB_IMPLEMENTATION.md
 ./docs/MARKET_INTELLIGENCE_POLICY.md
 ./docs/MIGRATION_FROM_MERLIN_V25.md
+./docs/UPGRADE_TO_V2.md
 ./docs/WINDOWS_SETUP.md
 ./package.json
 ./public/app.js
