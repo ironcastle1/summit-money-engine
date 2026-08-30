@@ -5,18 +5,22 @@ import { ingestDxf, getProduct, listProducts, syncProductSnapshot, updateProduct
 import { createInventoryItem, moveInventory, listInventory, inventoryAlerts, updateInventoryItem, getInventoryItem } from '../inventory/inventory-service.js';
 import { businessSnapshot } from '../services/snapshot.js';
 import { upsertFact } from '../services/memory.js';
-import { chatWithMerlin } from '../ai/chat.js';
-import { runMarketResearch } from '../market/research.js';
+import { chatWithMerlin, listChatMessages } from '../local-ai/agent.js';
+import { localAiStatus, setLocalModel } from '../local-ai/client.js';
+import { runMarketResearch, rawMarketEvidence } from '../market/research.js';
 import { marketResearchStatus } from '../market/scheduler.js';
 import { id } from '../util/id.js';
 import { recordSale, productPerformance } from '../services/sales.js';
 import { recordProductionRun } from '../services/production.js';
+import { currentPriorities } from '../services/priorities.js';
+import { consumeFinishedStockForDispatch } from '../services/orders.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const ORDER_STATUSES = ['new','confirmed','queued','cutting','deburring','surface_prep','painting','curing','qc','packing','ready','dispatched','cancelled'];
 
 function asyncRoute(fn) { return (req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next); }
 function requireAutomationToken(req,res,next) {
+  if(process.env.MERLIN_REQUIRE_AUTOMATION_TOKEN!=='true') return next();
   const configured=process.env.MERLIN_AUTOMATION_TOKEN;
   if(!configured) return res.status(503).json({error:'MERLIN_AUTOMATION_TOKEN not configured'});
   const supplied=req.headers.authorization?.replace(/^Bearer\s+/i,'')||req.headers['x-merlin-token'];
@@ -37,8 +41,9 @@ function orderRows(db, activeOnly=false) {
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'3.0.0',domain:'cnc-business-os',now:new Date().toISOString(),ai_configured:Boolean(process.env.OPENAI_API_KEY),chat_model:process.env.OPENAI_CHAT_MODEL||process.env.OPENAI_MODEL||'gpt-5.6-terra',research_model:process.env.OPENAI_RESEARCH_MODEL||'gpt-5.6-sol',research:marketResearchStatus(db)}));
+  app.get('/api/health',asyncRoute(async(req,res)=>res.json({ok:true,system:'MERLIN',version:'4.0.0',domain:'cnc-business-os-local-ai',now:new Date().toISOString(),local_ai:await localAiStatus(db),research:await marketResearchStatus(db)})));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
+  app.get('/api/priorities',(req,res)=>res.json(currentPriorities(db,req.query.limit||12)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{
     const row=db.prepare("SELECT value_json FROM ui_preferences WHERE preference_key='dashboard_layout'").get();
@@ -81,6 +86,8 @@ export function registerRoutes(app,db){
       events.push({type:'production',id:r.id,created_at:r.created_at,title:`Production run: ${r.product_code}`,detail:`${r.quantity} unit${r.quantity===1?'':'s'} · ${r.success?'success':'failed'}`});
     for(const r of db.prepare(`SELECT s.id,s.gross_revenue,s.currency,s.sold_at created_at,p.product_code FROM sales_events s LEFT JOIN products p ON p.id=s.product_id ORDER BY s.sold_at DESC LIMIT ?`).all(limit))
       events.push({type:'sale',id:r.id,created_at:r.created_at,title:`Sale recorded${r.product_code?`: ${r.product_code}`:''}`,detail:r.gross_revenue==null?'Revenue not recorded':`${r.currency} ${Number(r.gross_revenue).toFixed(2)}`});
+    for(const r of db.prepare(`SELECT id,event_type,created_at,title,detail FROM business_events ORDER BY created_at DESC LIMIT ?`).all(limit))
+      events.push({type:r.event_type,id:r.id,created_at:r.created_at,title:r.title,detail:r.detail||''});
     events.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
     res.json(events.slice(0,limit));
   });
@@ -127,7 +134,8 @@ export function registerRoutes(app,db){
   app.patch('/api/orders/:id',(req,res)=>{
     const c=db.prepare('SELECT * FROM orders WHERE id=?').get(req.params.id);if(!c)return res.status(404).json({error:'Order not found'});const status=req.body.status??c.status;if(!ORDER_STATUSES.includes(status))return res.status(400).json({error:'Invalid order status'});
     db.prepare(`UPDATE orders SET external_order_id=?,channel=?,status=?,customer_reference=?,gross_total=?,currency=?,due_at=?,dispatched_at=?,notes=? WHERE id=?`).run(req.body.external_order_id??c.external_order_id,req.body.channel??c.channel,status,req.body.customer_reference??c.customer_reference,req.body.gross_total===undefined?c.gross_total:(req.body.gross_total==null?null:Number(req.body.gross_total)),req.body.currency??c.currency,req.body.due_at===undefined?c.due_at:req.body.due_at,status==='dispatched'?(req.body.dispatched_at||c.dispatched_at||new Date().toISOString()):(req.body.dispatched_at??c.dispatched_at),req.body.notes??c.notes,c.id);
-    res.json(orderRows(db,false).find(o=>o.id===c.id));
+    let stock_dispatch=[];if(status==='dispatched'&&c.status!=='dispatched')stock_dispatch=consumeFinishedStockForDispatch(db,c.id);
+    const order=orderRows(db,false).find(o=>o.id===c.id);res.json({...order,stock_dispatch});
   });
   app.post('/api/orders/:id/lines',(req,res)=>{
     if(!db.prepare('SELECT id FROM orders WHERE id=?').get(req.params.id))return res.status(404).json({error:'Order not found'});const lineId=id('LINE');db.prepare(`INSERT INTO order_lines (id,order_id,product_id,description,quantity,unit_price,customisation_json) VALUES (?,?,?,?,?,?,?)`).run(lineId,req.params.id,req.body.product_id||null,req.body.description||null,Number(req.body.quantity||1),req.body.unit_price==null?null:Number(req.body.unit_price),JSON.stringify(req.body.customisation||{}));res.status(201).json(db.prepare('SELECT * FROM order_lines WHERE id=?').get(lineId));
@@ -151,14 +159,21 @@ export function registerRoutes(app,db){
   app.post('/api/production-runs',(req,res)=>{const run=recordProductionRun(db,req.body);syncProductSnapshot(db,req.body.product_id);res.status(201).json(run);});
 
   app.get('/api/market/observations',(req,res)=>res.json(db.prepare('SELECT * FROM market_observations ORDER BY created_at DESC LIMIT 100').all().map(o=>enrichObservationSources(db,o))));
-  app.get('/api/market/status',(req,res)=>res.json(marketResearchStatus(db)));
+  app.get('/api/market/status',asyncRoute(async(req,res)=>res.json(await marketResearchStatus(db))));
+  app.get('/api/market/evidence',(req,res)=>res.json(rawMarketEvidence(db,req.query.limit||80)));
+  app.get('/api/market/config',(req,res)=>res.json(db.prepare('SELECT * FROM market_source_config ORDER BY id').all()));
+  app.patch('/api/market/config/:id',(req,res)=>{const c=db.prepare('SELECT * FROM market_source_config WHERE id=?').get(req.params.id);if(!c)return res.status(404).json({error:'Market source not found'});db.prepare('UPDATE market_source_config SET name=?,source_type=?,query=?,enabled=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.name??c.name,req.body.source_type??c.source_type,req.body.query??c.query,req.body.enabled===undefined?c.enabled:(req.body.enabled?1:0),req.body.notes??c.notes,c.id);res.json(db.prepare('SELECT * FROM market_source_config WHERE id=?').get(c.id));});
   app.get('/api/market/sources',(req,res)=>res.json(db.prepare('SELECT * FROM research_sources ORDER BY observed_at DESC LIMIT 300').all()));
-  app.post('/api/market/research',requireAutomationToken,asyncRoute(async(req,res)=>res.json(await runMarketResearch(db,req.body.focus||'current best opportunities for this CNC plasma business'))));
-  app.get('/api/ai/history',(req,res)=>{
-    const limit=Math.min(200,Math.max(1,Number(req.query.limit||80)));
-    const rows=db.prepare("SELECT id,role,content,created_at FROM ai_events WHERE role IN ('user','assistant') ORDER BY created_at DESC LIMIT ?").all(limit).reverse();
-    res.json(rows);
+  app.post('/api/market/research',requireAutomationToken,(req,res,next)=>{
+    const running=db.prepare("SELECT id,started_at FROM market_scan_runs WHERE status='running' AND datetime(started_at)>datetime('now','-2 hours') ORDER BY started_at DESC LIMIT 1").get();
+    if(running)return res.status(202).json({started:false,already_running:true,run_id:running.id});
+    const focus=req.body.focus||null;
+    res.status(202).json({started:true,message:'Market scan started in background.'});
+    runMarketResearch(db,focus).catch(err=>console.error('Manual market scan failed:',err));
   });
-  app.post('/api/ai/chat',asyncRoute(async(req,res)=>{if(!req.body.message?.trim())return res.status(400).json({error:'message required'});res.json(await chatWithMerlin(db,req.body.message.trim()));}));
-  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V3',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
+  app.get('/api/ai/status',asyncRoute(async(req,res)=>res.json(await localAiStatus(db))));
+  app.put('/api/ai/model',asyncRoute(async(req,res)=>res.json(await setLocalModel(db,req.body.model))));
+  app.get('/api/ai/history',(req,res)=>res.json(listChatMessages(db,req.query.thread_id||null,req.query.limit||100)));
+  app.post('/api/ai/chat',asyncRoute(async(req,res)=>{if(!req.body.message?.trim())return res.status(400).json({error:'message required'});res.json(await chatWithMerlin(db,{message:req.body.message.trim(),thread_id:req.body.thread_id||null}));}));
+  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V4',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
 }

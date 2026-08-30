@@ -309,6 +309,84 @@ export function migrateDatabase(db) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+
+    CREATE TABLE IF NOT EXISTS business_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT,
+      reference_type TEXT,
+      reference_id TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS knowledge_documents (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      source_ref TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_threads (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      thread_id TEXT NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tool_name TEXT,
+      tool_payload_json TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS market_scan_runs (
+      id TEXT PRIMARY KEY,
+      focus TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      source_count INTEGER NOT NULL DEFAULT 0,
+      observation_count INTEGER NOT NULL DEFAULT 0,
+      error TEXT,
+      started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS market_source_config (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      url_template TEXT,
+      query TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS collected_market_items (
+      id TEXT PRIMARY KEY,
+      scan_run_id TEXT REFERENCES market_scan_runs(id) ON DELETE SET NULL,
+      source_config_id TEXT REFERENCES market_source_config(id) ON DELETE SET NULL,
+      query TEXT,
+      title TEXT,
+      url TEXT NOT NULL,
+      publisher TEXT,
+      observed_price REAL,
+      currency TEXT,
+      snippet TEXT,
+      published_at TEXT,
+      evidence_type TEXT NOT NULL DEFAULT 'search_result',
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      collected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
     CREATE INDEX IF NOT EXISTS idx_inventory_kind ON inventory_items(kind);
     CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(inventory_item_id, created_at);
@@ -317,6 +395,11 @@ export function migrateDatabase(db) {
     CREATE INDEX IF NOT EXISTS idx_orders_status_due ON orders(status, due_at);
     CREATE INDEX IF NOT EXISTS idx_market_created ON market_observations(created_at);
     CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(occurred_at);
+    CREATE INDEX IF NOT EXISTS idx_business_events_created ON business_events(created_at);
+    CREATE INDEX IF NOT EXISTS idx_knowledge_updated ON knowledge_documents(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_chat_thread_created ON chat_messages(thread_id,created_at);
+    CREATE INDEX IF NOT EXISTS idx_market_items_collected ON collected_market_items(collected_at);
+    CREATE INDEX IF NOT EXISTS idx_market_items_url ON collected_market_items(url);
   `);
 
   // Backward-compatible V2 columns. Existing V1 databases are upgraded in place.

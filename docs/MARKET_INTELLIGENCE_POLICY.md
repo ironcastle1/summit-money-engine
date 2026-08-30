@@ -1,13 +1,19 @@
-# MERLIN market intelligence policy
+# MERLIN Market Intelligence Policy
 
-MERLIN does not use opportunity scores, confidence percentages or invented market-size figures.
+MERLIN is an evidence collector and interpreter, not an opportunity-score generator.
 
-Every stored market observation should identify:
+For every synthesised market observation it should preserve:
 
 1. what was actually observed;
-2. the source(s);
-3. why the observation may be relevant to the business that exists now;
-4. important unknowns;
-5. a small validation action where useful.
+2. why that evidence may be relevant to the current business;
+3. direct evidence statements;
+4. supporting evidence if any;
+5. important unknowns;
+6. a small validation action where appropriate;
+7. source URLs.
 
-Current measured business data outranks generic internet advice. Research should focus on revenue opportunities compatible with the active machine, materials, processes and sales operation. Future geographic or factory expansion should not be researched as an active operating topic until the owner records a real business change that makes it relevant.
+MERLIN must not infer a sales volume, market share, conversion rate, profitability figure or confidence percentage merely because a product appears in search results.
+
+Raw collected evidence is stored separately from local-AI synthesis. If the model cannot interpret the evidence reliably, the raw evidence remains available instead of forcing a conclusion.
+
+Collectors are deliberately throttled and use public pages/feeds. The code does not bypass logins, CAPTCHAs, paywalls or anti-bot controls.

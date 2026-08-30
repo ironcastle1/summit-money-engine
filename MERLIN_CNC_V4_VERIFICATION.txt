@@ -1,0 +1,26 @@
+MERLIN CNC V4 VERIFICATION
+Generated: 2026-08-30T21:08:27Z
+
+Architecture:
+- Paid OpenAI/API model dependency removed.
+- Local AI endpoint architecture implemented.
+- Deterministic business-command parser implemented for common inventory/finance/query actions.
+- Local AI tool system implemented for database reads/writes, production, sales, costs, upgrades and market scans.
+- Public-web market evidence collectors implemented with throttling and robots-aware page enrichment.
+- Raw market evidence remains visible when local AI is unavailable.
+- Dashboard remains drag/reorder + saved layout and keeps AI/orders/inventory/production/market/products/finance directly present.
+
+Verification performed in build environment:
+- JavaScript source files checked with node --check: 37
+- Relative local import path audit: PASS
+- SQLite base schema executed with Python sqlite3: PASS (31 tables)
+- Deterministic local-intent tests: PASS
+- ID/SHA utility tests: PASS
+- Search for OPENAI/openai/gpt-5 in V4 source tree: no matches at verification time.
+- Approximate maintained source/docs/script lines: 2752
+
+Not claimed:
+- npm dependency installation could not be completed in this build environment because external package installation timed out.
+- Therefore dependency-backed integration tests requiring better-sqlite3/dxf-parser/cheerio were not executed here.
+- The included Windows setup installs dependencies on the target PC and CI is configured to run npm install, syntax checks and the full test suite after push.
+- Arbitrary image-to-production-DXF is intentionally NOT enabled.

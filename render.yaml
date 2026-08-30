@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: merlin-cnc-api
+    name: merlin-cnc-remote
     runtime: node
     plan: starter
     buildCommand: npm install
@@ -21,17 +21,9 @@ services:
         value: /var/data/products
       - key: MERLIN_PREVIEW_DIR
         value: /var/data/previews
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_CHAT_MODEL
-        value: gpt-5.6-terra
-      - key: OPENAI_RESEARCH_MODEL
-        value: gpt-5.6-sol
+      - key: MERLIN_LOCAL_AI_URL
+        value: http://127.0.0.1:11434
       - key: MERLIN_AUTO_RESEARCH
         value: true
       - key: MERLIN_RESEARCH_INTERVAL_HOURS
         value: 12
-      - key: MERLIN_AUTOMATION_TOKEN
-        generateValue: true
-      - key: MERLIN_ALLOWED_ORIGINS
-        sync: false
