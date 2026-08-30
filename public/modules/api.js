@@ -1,2 +1,0 @@
-export async function getJSON(url,opts={}){const r=await fetch(url,{cache:'no-store',...opts,headers:{accept:'application/json',...(opts.headers||{})}});if(!r.ok)throw new Error(`${url}: HTTP ${r.status}`);return r.json();}
-export const api={snapshot:()=>getJSON('/api/snapshot'),reference:()=>getJSON('/api/reference'),sources:()=>getJSON('/api/sources'),refresh:()=>getJSON('/api/refresh',{method:'POST'}),country:iso=>getJSON(`/api/country/${encodeURIComponent(iso)}`)};

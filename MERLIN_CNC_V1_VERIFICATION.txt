@@ -1,0 +1,6 @@
+MERLIN CNC V1 verification
+Generated: 2026-08-30T18:58:50Z UTC
+
+Syntax OK: 24 JavaScript files
+
+Dependency-backed runtime tests were not executed in this build container because npm dependency installation did not complete within the available execution window. Run npm install && npm test locally or via included GitHub CI.

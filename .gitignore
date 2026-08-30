@@ -1,5 +1,12 @@
 node_modules/
-runtime/*.json
-screenshots/*.png
-*.log
+.env
+data/*.sqlite
+data/*.sqlite-*
+data/uploads/**/*
+!data/uploads/.gitkeep
+data/previews/**/*
+!data/previews/.gitkeep
 .DS_Store
+npm-debug.log*
+data/products/**/*
+!data/products/.gitkeep

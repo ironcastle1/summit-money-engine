@@ -1,7 +1,55 @@
-import http from 'node:http';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {config} from './src/config.js';import {MerlinService} from './src/service.js';import {json,text} from './src/core/response.js';import {REGIONS} from './src/catalog/regions.js';import {STRATEGIC_NODES} from './src/catalog/strategic-nodes.js';import {STRATEGIC_AREAS} from './src/catalog/strategic-areas.js';import {COUNTRY_PRIORITY_PROFILES} from './src/catalog/country-priority-profiles.js';import {PUBLIC_SIGNAL_INDICATORS} from './src/catalog/public-signal-indicators.js';import {TRANSMISSION_RULES} from './src/catalog/market-transmission.js';
-const here=path.dirname(fileURLToPath(import.meta.url)),publicDir=path.join(here,'public');const service=await new MerlinService().init();
-const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.geojson':'application/geo+json; charset=utf-8','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml'};
-const server=http.createServer(async(req,res)=>{try{const u=new URL(req.url||'/','http://localhost');if(u.pathname.startsWith('/api/'))return api(req,res,u);return serve(req,res,u.pathname);}catch(e){console.error(e);if(!res.headersSent)json(res,500,{error:'internal_error',message:String(e.message||e)});else res.end();}});
-async function api(req,res,u){if(u.pathname==='/api/health')return json(res,200,{ready:true,version:'8.0.0',startedAt:service.startedAt,refreshing:service.refreshing,dataMode:service.snapshot.dataMode,signals:service.snapshot.signals.length,markets:service.snapshot.markets.length,sources:service.sources.length,responded:service.snapshot.sourceCoverage.responded});if(u.pathname==='/api/snapshot')return json(res,200,service.snapshot);if(u.pathname==='/api/reference')return json(res,200,{...service.reference,regions:REGIONS,strategicNodes:STRATEGIC_NODES,strategicAreas:STRATEGIC_AREAS,countryPriorityProfiles:COUNTRY_PRIORITY_PROFILES,indicatorCatalog:PUBLIC_SIGNAL_INDICATORS,transmissionCatalog:TRANSMISSION_RULES});if(u.pathname==='/api/sources')return json(res,200,{refreshing:service.refreshing,coverage:service.snapshot.sourceCoverage,sources:service.snapshot.sourceStatuses});if(u.pathname==='/api/refresh'&&['POST','GET'].includes(req.method)){const s=await service.refresh('api');return json(res,200,{ok:true,generatedAt:s.generatedAt,dataMode:s.dataMode,signals:s.signals.length,markets:s.markets.length,coverage:s.sourceCoverage});}if(u.pathname.startsWith('/api/country/')){const row=service.country(decodeURIComponent(u.pathname.split('/').pop()));return row?json(res,200,row):json(res,404,{error:'country_not_found'});}return json(res,404,{error:'not_found'});}
-async function serve(req,res,p){if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'method_not_allowed'});if(p==='/')p='/index.html';const target=path.normalize(path.join(publicDir,decodeURIComponent(p)));if(!target.startsWith(publicDir))return json(res,403,{error:'forbidden'});try{const st=await fs.stat(target);if(st.isDirectory())return serve(req,res,path.join(p,'index.html'));const body=await fs.readFile(target),ext=path.extname(target);res.writeHead(200,{'content-type':MIME[ext]||'application/octet-stream','content-length':body.length,'cache-control':ext==='.html'?'no-cache':'public,max-age=900','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin','content-security-policy':"default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'"});if(req.method==='HEAD')return res.end();res.end(body);}catch(e){if(e.code==='ENOENT')return text(res,404,'Not found');throw e;}}
-server.listen(config.port,config.host,()=>console.log(JSON.stringify({event:'merlin-ready',port:config.port,version:'8.0.0',mode:service.snapshot.dataMode,signals:service.snapshot.signals.length,sources:service.sources.length})));function shutdown(){server.close(()=>process.exit(0));setTimeout(()=>process.exit(1),4000).unref();}process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ensureDirectories } from './src/services/filesystem.js';
+import { openDatabase, migrateDatabase } from './src/db/database.js';
+import { registerRoutes } from './src/routes/index.js';
+import { seedCurrentBusiness } from './src/db/seed.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+ensureDirectories();
+const db = openDatabase();
+migrateDatabase(db);
+seedCurrentBusiness(db);
+
+const app = express();
+const allowedOrigins = (process.env.MERLIN_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((v) => v.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`Origin not allowed: ${origin}`));
+  }
+}));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+registerRoutes(app, db);
+
+const publicDir = path.resolve(process.env.MERLIN_PUBLIC_DIR || path.join(__dirname, 'public'));
+app.use(express.static(publicDir));
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    code: err.code || 'MERLIN_ERROR'
+  });
+});
+
+const port = Number(process.env.PORT || 3000);
+app.listen(port, () => {
+  console.log(`MERLIN CNC running on http://localhost:${port}`);
+});

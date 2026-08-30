@@ -1,2 +1,0 @@
-import fs from 'node:fs/promises';
-const files=['public/modules/api.js','public/modules/state.js','public/modules/map-engine.js','public/app.js'];let out='';for(const f of files){let s=await fs.readFile(f,'utf8');s=s.replace(/^import[^;]+;\s*/gm,'').replace(/\bexport\s+/g,'');out+=`\n// ${f}\n${s}\n`;}await fs.writeFile(process.argv[2]||'browser-bundle.js',out);console.log(JSON.stringify({bytes:Buffer.byteLength(out)}));

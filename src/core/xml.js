@@ -1,4 +1,0 @@
-const decode=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
-function tag(block,names){for(const n of names){const m=block.match(new RegExp(`<${n}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${n}>`,'i'));if(m)return decode(m[1]);}return'';}
-function link(block){let v=tag(block,['link','guid']);if(/^https?:/i.test(v))return v;const m=block.match(/<link[^>]+href=["']([^"']+)/i);return m?decode(m[1]):v;}
-export function parseFeed(xml){const blocks=[...(xml.match(/<item\b[\s\S]*?<\/item>/gi)||[]),...(xml.match(/<entry\b[\s\S]*?<\/entry>/gi)||[])];return blocks.map(b=>({title:tag(b,['title']),summary:tag(b,['description','summary','content','content:encoded']),url:link(b),publishedAt:tag(b,['pubDate','published','updated','dc:date'])})).filter(x=>x.title&&x.url);}

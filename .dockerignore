@@ -1,3 +1,7 @@
+node_modules
 .git
-screenshots
-runtime/*.json
+.env
+data/*.sqlite
+data/products
+data/uploads
+data/previews
