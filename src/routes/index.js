@@ -7,6 +7,7 @@ import { businessSnapshot } from '../services/snapshot.js';
 import { upsertFact } from '../services/memory.js';
 import { chatWithMerlin } from '../ai/chat.js';
 import { runMarketResearch } from '../market/research.js';
+import { marketResearchStatus } from '../market/scheduler.js';
 import { id } from '../util/id.js';
 import { recordSale, productPerformance } from '../services/sales.js';
 import { recordProductionRun } from '../services/production.js';
@@ -36,8 +37,19 @@ function orderRows(db, activeOnly=false) {
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'2.0.0',domain:'cnc-business-os',now:new Date().toISOString(),ai_configured:Boolean(process.env.OPENAI_API_KEY)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'3.0.0',domain:'cnc-business-os',now:new Date().toISOString(),ai_configured:Boolean(process.env.OPENAI_API_KEY),chat_model:process.env.OPENAI_CHAT_MODEL||process.env.OPENAI_MODEL||'gpt-5.6-terra',research_model:process.env.OPENAI_RESEARCH_MODEL||'gpt-5.6-sol',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
+
+  app.get('/api/preferences/dashboard-layout',(req,res)=>{
+    const row=db.prepare("SELECT value_json FROM ui_preferences WHERE preference_key='dashboard_layout'").get();
+    if(!row)return res.json({order:[],spans:{}});
+    try{return res.json(JSON.parse(row.value_json));}catch{return res.json({order:[],spans:{}});}
+  });
+  app.put('/api/preferences/dashboard-layout',(req,res)=>{
+    const value={order:Array.isArray(req.body.order)?req.body.order:[],spans:req.body.spans&&typeof req.body.spans==='object'?req.body.spans:{}};
+    db.prepare("INSERT INTO ui_preferences (preference_key,value_json) VALUES ('dashboard_layout',?) ON CONFLICT(preference_key) DO UPDATE SET value_json=excluded.value_json,updated_at=CURRENT_TIMESTAMP").run(JSON.stringify(value));
+    res.json(value);
+  });
 
   app.get('/api/dashboard',(req,res)=>{
     const open=db.prepare("SELECT COUNT(*) n,COALESCE(SUM(gross_total),0) value FROM orders WHERE status NOT IN ('dispatched','cancelled')").get();
@@ -139,8 +151,14 @@ export function registerRoutes(app,db){
   app.post('/api/production-runs',(req,res)=>{const run=recordProductionRun(db,req.body);syncProductSnapshot(db,req.body.product_id);res.status(201).json(run);});
 
   app.get('/api/market/observations',(req,res)=>res.json(db.prepare('SELECT * FROM market_observations ORDER BY created_at DESC LIMIT 100').all().map(o=>enrichObservationSources(db,o))));
+  app.get('/api/market/status',(req,res)=>res.json(marketResearchStatus(db)));
   app.get('/api/market/sources',(req,res)=>res.json(db.prepare('SELECT * FROM research_sources ORDER BY observed_at DESC LIMIT 300').all()));
   app.post('/api/market/research',requireAutomationToken,asyncRoute(async(req,res)=>res.json(await runMarketResearch(db,req.body.focus||'current best opportunities for this CNC plasma business'))));
+  app.get('/api/ai/history',(req,res)=>{
+    const limit=Math.min(200,Math.max(1,Number(req.query.limit||80)));
+    const rows=db.prepare("SELECT id,role,content,created_at FROM ai_events WHERE role IN ('user','assistant') ORDER BY created_at DESC LIMIT ?").all(limit).reverse();
+    res.json(rows);
+  });
   app.post('/api/ai/chat',asyncRoute(async(req,res)=>{if(!req.body.message?.trim())return res.status(400).json({error:'message required'});res.json(await chatWithMerlin(db,req.body.message.trim()));}));
-  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V2',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
+  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V3',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
 }

@@ -1,106 +1,114 @@
-# MERLIN CNC Business OS — V2
+# MERLIN CNC V3
 
-MERLIN V2 is the current-stage operating system for the CNC plasma business. It deliberately focuses on the operation that exists now rather than filling the software with speculative future factories or expansion plans.
+MERLIN is the operating system for the CNC plasma business that exists **now**. V3 is an operations-first rebuild of V2 based on the first live-use review.
 
-## What changed in V2
+## V3 changes
 
-The home screen is now an operating dashboard rather than a presentation page. It prioritises:
+- No separate operational tabs: the main dashboard contains the core working areas at once.
+- Ask MERLIN is permanently visible as a dashboard card.
+- Open orders, production queue, raw material, supplies, finished stock, products/DXF upload, market intelligence, finance and activity are all present on the home screen.
+- Dashboard cards can be dragged into any order. Their order is stored in MERLIN's database, not just the browser.
+- Each card can switch between normal and wide layout using its ↔ control.
+- AI chat has read access to structured orders, inventory, products, market evidence and recent activity in addition to controlled write tools.
+- AI chat can use OpenAI live web search for current questions.
+- Market research runs automatically on the backend when configured. It stores sourced observations and never generates opportunity scores.
+- Market research uses current business capabilities only. Future expansion is not pre-populated.
+- Existing V1/V2 SQLite data is migrated in place.
+- Existing DXF conservative validation rules remain. Image-to-production-DXF is still deliberately disabled until a demonstrably reliable pipeline exists.
 
-- open customer orders and due dates
-- production stage / queue
-- raw metal and offcuts
-- consumables, hardware and packaging
-- finished stock with physical / reserved / available quantities
-- low-stock warnings based only on recorded reorder levels
-- recorded monthly revenue and expenses
-- recent production and sales
-- product/DXF registry
-- recent business activity
-- evidence-first market observations
-- MERLIN AI in a drawer rather than occupying the dashboard
+## IMPORTANT: why AI may currently say OFFLINE
 
-No opportunity scores or fabricated confidence numbers are used.
+The code cannot contain your private OpenAI API key. `OPENAI_API_KEY` must be set on the Render backend.
 
-## DXF handling
+Without it:
 
-Each uploaded DXF creates:
+- inventory, orders, products, DXF ingestion, production and finance still work;
+- Ask MERLIN cannot call the OpenAI API;
+- automatic live market research cannot run.
 
-- immutable internal product UUID
-- human product number such as `MER-WALLART-000001`
-- R1 source file
-- geometry-derived SVG preview
-- product folder and `product.json` snapshot
-- parsed geometry facts and validation issues
+With it, the backend uses:
 
-DXF units are handled conservatively. If the file does not establish units, MERLIN records drawing-unit extents and leaves millimetre dimensions blank until the owner confirms the unit. MERLIN also separates **DXF source size** from **production target size**, because a source design may be deliberately resized before cutting.
+- `gpt-5.6-terra` for routine Ask MERLIN conversations by default;
+- `gpt-5.6-sol` for deeper automated market research by default.
 
-MERLIN does not claim arbitrary image-to-production-DXF conversion is reliable. That endpoint remains disabled until a specialised pipeline can meet the cut-ready standard.
+Both can be changed with environment variables.
 
-## Requirements
+## Replace V2 in GitHub Desktop
 
-- Node.js 20.19.5
-- Render or another persistent Node host for the backend
-- persistent storage for SQLite and uploaded product files
-- optional OpenAI API key for Ask MERLIN and web research
-
-The default AI model is `gpt-5.6-terra`. Change `OPENAI_MODEL` if desired.
-
-## Replace the current GitHub `main` with this build
-
-Your old MERLIN is already preserved on the `legacy-v25` branch. Keep that branch.
-
-1. Download and extract the V2 ZIP.
-2. In GitHub Desktop, make sure the current branch is `main`.
-3. `Repository` → `Show in Explorer`.
-4. Copy **everything inside the extracted MERLIN_CNC_V2 folder** into the root of the existing `summit-money-engine` folder and allow Windows to replace matching files.
-5. Do not delete the hidden `.git` folder.
-6. Return to GitHub Desktop.
-7. Commit with `MERLIN CNC V2 operations rebuild`.
+1. Make sure GitHub Desktop is on `main`.
+2. Keep your already-created `legacy-v25` branch untouched.
+3. Extract the **GitHub-root V3 ZIP**.
+4. Copy everything inside it into the local `summit-money-engine` repository folder.
+5. Choose **Replace files in destination**.
+6. GitHub Desktop should show changed files.
+7. Commit as `MERLIN CNC V3 live dashboard rebuild`.
 8. Push origin.
 9. Render should redeploy automatically.
 
-You do not need to delete the whole repository first. This ZIP contains the full active V2 codebase; copying it over the root replaces the files that matter. Old V25 files that are no longer in V2 should already have been removed during the V1 takeover. If any old domain folders are still present, remove them from `main` after confirming they are preserved on `legacy-v25`.
+Do not delete your Render persistent disk. The SQLite database and uploaded product files belong there.
 
-## Persistent data warning
+## Render variables
 
-MERLIN's memory is only durable if the backend has persistent storage. The intended Render paths are:
+Required for AI/research:
 
-- database: `/var/data/merlin.sqlite`
-- products: `/var/data/products`
-- uploads: `/var/data/uploads`
-- previews: `/var/data/previews`
-
-If the current Render service has no persistent disk, data entered into the deployed app can disappear on a redeploy. Fix persistence before relying on MERLIN as the permanent business record.
-
-## Environment variables
-
-Copy `.env.example` to `.env` locally. On Render, configure the same values in the service environment.
-
-```env
-PORT=3000
-MERLIN_DB_PATH=/var/data/merlin.sqlite
-MERLIN_UPLOAD_DIR=/var/data/uploads
-MERLIN_PREVIEW_DIR=/var/data/previews
-MERLIN_PRODUCT_DIR=/var/data/products
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.6-terra
-MERLIN_AUTOMATION_TOKEN=<secret>
-MERLIN_ALLOWED_ORIGINS=
+```text
+OPENAI_API_KEY=your private API key
+OPENAI_CHAT_MODEL=gpt-5.6-terra
+OPENAI_RESEARCH_MODEL=gpt-5.6-sol
+MERLIN_AUTO_RESEARCH=true
+MERLIN_RESEARCH_INTERVAL_HOURS=12
 ```
 
-Never put `OPENAI_API_KEY` in `public/config.js` or commit it to GitHub.
+Existing persistent paths should remain:
 
-## Local run
+```text
+MERLIN_DB_PATH=/var/data/merlin.sqlite
+MERLIN_UPLOAD_DIR=/var/data/uploads
+MERLIN_PRODUCT_DIR=/var/data/products
+MERLIN_PREVIEW_DIR=/var/data/previews
+```
+
+Never put `OPENAI_API_KEY` in `public/config.js`, GitHub Pages JavaScript or a committed `.env` file.
+
+## Market research behaviour
+
+When `OPENAI_API_KEY` exists, MERLIN checks whether its stored research is stale. By default it runs a new evidence cycle every 12 hours. It asks for current product, pricing, supplier, demand and emerging revenue information relevant to the active CNC setup.
+
+MERLIN is explicitly prohibited from generating:
+
+- opportunity scores;
+- confidence percentages;
+- fabricated sales volumes;
+- fabricated demand numbers;
+- guessed machine rules;
+- unsupported market claims.
+
+It stores the observation, why it may matter, unknowns, a small validation action and the actual sources used.
+
+## Dashboard layout memory
+
+Drag a card by the `⋮⋮` handle. MERLIN saves the card order to the SQLite `ui_preferences` table. The `↔` control switches a card between normal and wide width and is also saved.
+
+## DXF workflow
+
+Upload a DXF directly in the Products & DXFs card. MERLIN creates the permanent product ID and revision, stores the original, analyses the actual vector geometry and generates a preview from that geometry. If DXF physical units are unknown, MERLIN does not silently assume millimetres.
+
+## Run locally
 
 ```powershell
+Copy-Item .env.example .env
 npm install
-npm run check
-npm test
+npm run seed
 npm start
 ```
 
 Open `http://localhost:3000`.
 
-## Operating principle
+## Verification
 
-MERLIN stores what is known, shows what needs attention, and leaves unknowns unknown. It evolves when the real business evolves.
+Run:
+
+```powershell
+npm run check
+npm test
+```

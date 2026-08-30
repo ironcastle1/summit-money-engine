@@ -7,6 +7,7 @@ import { ensureDirectories } from './src/services/filesystem.js';
 import { openDatabase, migrateDatabase } from './src/db/database.js';
 import { registerRoutes } from './src/routes/index.js';
 import { seedCurrentBusiness } from './src/db/seed.js';
+import { startMarketResearchScheduler } from './src/market/scheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,4 +53,5 @@ app.use((err, req, res, next) => {
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
   console.log(`MERLIN CNC running on http://localhost:${port}`);
+  startMarketResearchScheduler(db);
 });

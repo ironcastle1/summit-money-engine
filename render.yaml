@@ -12,7 +12,7 @@ services:
       sizeGB: 5
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: 20.19.5
       - key: MERLIN_DB_PATH
         value: /var/data/merlin.sqlite
       - key: MERLIN_UPLOAD_DIR
@@ -23,8 +23,14 @@ services:
         value: /var/data/previews
       - key: OPENAI_API_KEY
         sync: false
-      - key: OPENAI_MODEL
+      - key: OPENAI_CHAT_MODEL
         value: gpt-5.6-terra
+      - key: OPENAI_RESEARCH_MODEL
+        value: gpt-5.6-sol
+      - key: MERLIN_AUTO_RESEARCH
+        value: true
+      - key: MERLIN_RESEARCH_INTERVAL_HOURS
+        value: 12
       - key: MERLIN_AUTOMATION_TOKEN
         generateValue: true
       - key: MERLIN_ALLOWED_ORIGINS

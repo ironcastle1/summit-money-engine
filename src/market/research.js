@@ -1,4 +1,4 @@
-import { openAIClient, defaultModel } from '../ai/openai.js';
+import { openAIClient, researchModel } from '../ai/openai.js';
 import { businessSnapshot } from '../services/snapshot.js';
 import { id } from '../util/id.js';
 
@@ -52,7 +52,7 @@ Return ONLY valid JSON with this exact top-level shape:
 }`;
 
   const response = await client.responses.create({
-    model: defaultModel(),
+    model: researchModel(),
     reasoning: { effort: 'medium' },
     tools: [{ type: 'web_search' }],
     input: prompt
@@ -85,5 +85,7 @@ Return ONLY valid JSON with this exact top-level shape:
     );
     inserted.push(oid);
   }
+  db.prepare(`INSERT INTO meta (key,value) VALUES ('last_market_research_at',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(new Date().toISOString());
+  db.prepare(`INSERT INTO meta (key,value) VALUES ('last_market_research_status','success') ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run();
   return { observations: inserted, sources: citations, model_response_id: response.id };
 }

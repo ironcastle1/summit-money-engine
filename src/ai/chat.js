@@ -1,4 +1,4 @@
-import { openAIClient, defaultModel } from './openai.js';
+import { openAIClient, chatModel } from './openai.js';
 import { merlinSystemPrompt } from './system-prompt.js';
 import { toolDefinitions, executeTool } from './tools.js';
 import { businessSnapshot } from '../services/snapshot.js';
@@ -8,26 +8,37 @@ function logEvent(db, role, content, toolName=null, toolPayload=null) {
   db.prepare('INSERT INTO ai_events (id,role,content,tool_name,tool_payload_json) VALUES (?,?,?,?,?)')
     .run(id('AI'), role, String(content), toolName, toolPayload ? JSON.stringify(toolPayload) : null);
 }
+function collectCitations(value,out=[]){
+  if(!value||typeof value!=='object')return out;
+  if(value.type==='url_citation'&&value.url)out.push({url:value.url,title:value.title||value.url});
+  for(const v of Object.values(value)){if(Array.isArray(v))v.forEach(x=>collectCitations(x,out));else if(v&&typeof v==='object')collectCitations(v,out);}
+  return out;
+}
+function uniqueSources(output){const m=new Map();for(const c of collectCitations(output)){if(!m.has(c.url))m.set(c.url,c);}return [...m.values()];}
 
 export async function chatWithMerlin(db, message) {
   const client = openAIClient();
   const snapshot = businessSnapshot(db);
   logEvent(db, 'user', message);
+  const tools=[{type:'web_search'},...toolDefinitions];
 
   let response = await client.responses.create({
-    model: defaultModel(),
+    model: chatModel(),
     reasoning: { effort: 'medium' },
     instructions: merlinSystemPrompt(snapshot),
     input: message,
-    tools: toolDefinitions
+    tools
   });
 
-  for (let round = 0; round < 8; round++) {
+  const gatheredSources=[];
+  for (let round = 0; round < 10; round++) {
+    gatheredSources.push(...uniqueSources(response.output));
     const calls = (response.output || []).filter(o => o.type === 'function_call');
     if (!calls.length) {
       const text = response.output_text || '';
       logEvent(db, 'assistant', text);
-      return { text, response_id: response.id };
+      const sources=[...new Map(gatheredSources.map(s=>[s.url,s])).values()];
+      return { text, response_id: response.id, sources };
     }
 
     const outputs = [];
@@ -40,12 +51,11 @@ export async function chatWithMerlin(db, message) {
     }
 
     response = await client.responses.create({
-      model: defaultModel(),
+      model: chatModel(),
       previous_response_id: response.id,
       input: outputs,
-      tools: toolDefinitions
+      tools
     });
   }
-
   throw new Error('MERLIN tool loop exceeded safety limit.');
 }
