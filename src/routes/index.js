@@ -1,19 +1,19 @@
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ingestDxf, getProduct, listProducts, syncProductSnapshot, updateProduct, reconfirmRevisionUnits } from '../products/product-service.js';
+import { ingestDxf, addDxfRevision, getProduct, listProducts, syncProductSnapshot, updateProduct, reconfirmRevisionUnits } from '../products/product-service.js';
 import { createInventoryItem, moveInventory, listInventory, inventoryAlerts, updateInventoryItem, getInventoryItem } from '../inventory/inventory-service.js';
 import { businessSnapshot } from '../services/snapshot.js';
 import { upsertFact } from '../services/memory.js';
-import { chatWithMerlin, listChatMessages } from '../local-ai/agent.js';
-import { localAiStatus, setLocalModel } from '../local-ai/client.js';
-import { runMarketResearch, rawMarketEvidence } from '../market/research.js';
+import { runMarketResearch, rawMarketEvidence, opportunityWatch } from '../market/research.js';
 import { marketResearchStatus } from '../market/scheduler.js';
-import { id } from '../util/id.js';
+import { id, sha256 } from '../util/id.js';
 import { recordSale, productPerformance } from '../services/sales.js';
 import { recordProductionRun } from '../services/production.js';
 import { currentPriorities } from '../services/priorities.js';
 import { consumeFinishedStockForDispatch } from '../services/orders.js';
+import { parseAndStoreIntake, commitIntake, listIntake } from '../intake/service.js';
+import { storeProductAssets, listProductAssets } from '../products/asset-service.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const ORDER_STATUSES = ['new','confirmed','queued','cutting','deburring','surface_prep','painting','curing','qc','packing','ready','dispatched','cancelled'];
@@ -41,7 +41,7 @@ function orderRows(db, activeOnly=false) {
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',asyncRoute(async(req,res)=>res.json({ok:true,system:'MERLIN',version:'4.0.0',domain:'cnc-business-os-local-ai',now:new Date().toISOString(),local_ai:await localAiStatus(db),research:await marketResearchStatus(db)})));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'5.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
   app.get('/api/priorities',(req,res)=>res.json(currentPriorities(db,req.query.limit||12)));
 
@@ -105,7 +105,32 @@ export function registerRoutes(app,db){
   app.post('/api/products/upload-dxf',upload.single('file'),(req,res)=>{
     if(!req.file)return res.status(400).json({error:'DXF file required'});
     if(path.extname(req.file.originalname).toLowerCase()!=='.dxf')return res.status(400).json({error:'Only .dxf files are accepted'});
+    const hash=sha256(req.file.buffer);const existing=db.prepare(`SELECT p.id,p.product_code,p.name FROM product_revisions r JOIN products p ON p.id=r.product_id WHERE r.sha256=? ORDER BY r.created_at LIMIT 1`).get(hash);
+    if(existing)return res.status(409).json({error:`This exact DXF is already stored as ${existing.product_code} — ${existing.name}`,existing_product:existing});
     res.status(201).json(ingestDxf(db,{buffer:req.file.buffer,originalname:req.file.originalname,name:req.body.name,category:req.body.category,subcategory:req.body.subcategory,language:req.body.language,legalStatus:req.body.legal_status,unitOverride:req.body.unit_override||null,primaryMaterialId:req.body.primary_material_inventory_item_id||null}));
+  });
+  app.post('/api/products/upload-dxfs',upload.array('files',50),(req,res)=>{
+    if(!req.files?.length)return res.status(400).json({error:'At least one DXF file is required'});
+    const results=[];
+    for(const file of req.files){
+      if(path.extname(file.originalname).toLowerCase()!=='.dxf'){results.push({filename:file.originalname,status:'skipped',reason:'not a DXF'});continue;}
+      const hash=sha256(file.buffer);const existing=db.prepare(`SELECT p.id,p.product_code,p.name FROM product_revisions r JOIN products p ON p.id=r.product_id WHERE r.sha256=? ORDER BY r.created_at LIMIT 1`).get(hash);
+      if(existing){results.push({filename:file.originalname,status:'duplicate',existing_product:existing});continue;}
+      try{const product=ingestDxf(db,{buffer:file.buffer,originalname:file.originalname,name:null,category:req.body.category,subcategory:req.body.subcategory,language:req.body.language,legalStatus:req.body.legal_status,unitOverride:req.body.unit_override||null,primaryMaterialId:req.body.primary_material_inventory_item_id||null});results.push({filename:file.originalname,status:'created',product_id:product.id,product_code:product.product_code,name:product.name});}
+      catch(error){results.push({filename:file.originalname,status:'error',reason:error.message});}
+    }
+    res.status(207).json({results,created:results.filter(r=>r.status==='created').length,duplicates:results.filter(r=>r.status==='duplicate').length,errors:results.filter(r=>r.status==='error').length});
+  });
+  app.post('/api/products/:id/revisions',upload.single('file'),(req,res)=>{
+    if(!req.file)return res.status(400).json({error:'DXF file required'});
+    if(path.extname(req.file.originalname).toLowerCase()!=='.dxf')return res.status(400).json({error:'Only .dxf files are accepted as product revisions'});
+    res.status(201).json(addDxfRevision(db,req.params.id,{buffer:req.file.buffer,originalname:req.file.originalname,unitOverride:req.body.unit_override||null}));
+  });
+  app.get('/api/products/:id/assets',(req,res)=>res.json(listProductAssets(db,req.params.id)));
+  app.get('/api/product-assets/:id/file',(req,res)=>{const a=db.prepare('SELECT * FROM product_assets WHERE id=?').get(req.params.id);if(!a||!a.stored_path||!fs.existsSync(a.stored_path))return res.status(404).end();res.sendFile(path.resolve(a.stored_path));});
+  app.post('/api/products/:id/assets',upload.array('files',20),(req,res)=>{
+    if(!req.files?.length)return res.status(400).json({error:'At least one file is required'});
+    res.status(201).json(storeProductAssets(db,req.params.id,req.files,req.body.kind||null));
   });
   app.post('/api/revisions/:id/units',(req,res)=>{
     if(!['millimeters','inches','centimeters','meters'].includes(req.body.unit))return res.status(400).json({error:'unit must be millimeters, inches, centimeters, or meters'});
@@ -158,8 +183,16 @@ export function registerRoutes(app,db){
   app.post('/api/sales',(req,res)=>{const sale=recordSale(db,req.body);if(req.body.product_id)syncProductSnapshot(db,req.body.product_id);res.status(201).json(sale);});
   app.post('/api/production-runs',(req,res)=>{const run=recordProductionRun(db,req.body);syncProductSnapshot(db,req.body.product_id);res.status(201).json(run);});
 
+  app.post('/api/intake/parse',(req,res)=>{
+    if(!req.body.text?.trim())return res.status(400).json({error:'text required'});
+    res.status(201).json(parseAndStoreIntake(db,req.body.text));
+  });
+  app.post('/api/intake/:id/commit',(req,res)=>res.json(commitIntake(db,req.params.id)));
+  app.get('/api/intake',(req,res)=>res.json(listIntake(db,req.query.limit||50)));
+
   app.get('/api/market/observations',(req,res)=>res.json(db.prepare('SELECT * FROM market_observations ORDER BY created_at DESC LIMIT 100').all().map(o=>enrichObservationSources(db,o))));
-  app.get('/api/market/status',asyncRoute(async(req,res)=>res.json(await marketResearchStatus(db))));
+  app.get('/api/market/status',(req,res)=>res.json(marketResearchStatus(db)));
+  app.get('/api/market/opportunities',(req,res)=>res.json(opportunityWatch(db,req.query.limit||20)));
   app.get('/api/market/evidence',(req,res)=>res.json(rawMarketEvidence(db,req.query.limit||80)));
   app.get('/api/market/config',(req,res)=>res.json(db.prepare('SELECT * FROM market_source_config ORDER BY id').all()));
   app.patch('/api/market/config/:id',(req,res)=>{const c=db.prepare('SELECT * FROM market_source_config WHERE id=?').get(req.params.id);if(!c)return res.status(404).json({error:'Market source not found'});db.prepare('UPDATE market_source_config SET name=?,source_type=?,query=?,enabled=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.name??c.name,req.body.source_type??c.source_type,req.body.query??c.query,req.body.enabled===undefined?c.enabled:(req.body.enabled?1:0),req.body.notes??c.notes,c.id);res.json(db.prepare('SELECT * FROM market_source_config WHERE id=?').get(c.id));});
@@ -171,9 +204,5 @@ export function registerRoutes(app,db){
     res.status(202).json({started:true,message:'Market scan started in background.'});
     runMarketResearch(db,focus).catch(err=>console.error('Manual market scan failed:',err));
   });
-  app.get('/api/ai/status',asyncRoute(async(req,res)=>res.json(await localAiStatus(db))));
-  app.put('/api/ai/model',asyncRoute(async(req,res)=>res.json(await setLocalModel(db,req.body.model))));
-  app.get('/api/ai/history',(req,res)=>res.json(listChatMessages(db,req.query.thread_id||null,req.query.limit||100)));
-  app.post('/api/ai/chat',asyncRoute(async(req,res)=>{if(!req.body.message?.trim())return res.status(400).json({error:'message required'});res.json(await chatWithMerlin(db,{message:req.body.message.trim(),thread_id:req.body.thread_id||null}));}));
-  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V4',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
+  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V5',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
 }

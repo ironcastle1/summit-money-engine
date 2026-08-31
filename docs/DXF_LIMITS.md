@@ -1,11 +1,17 @@
-# DXF validation limits
+# DXF validation limits — MERLIN V5
 
-MERLIN parses actual DXF vector geometry. It does not infer a cut-ready result from an attractive image.
+MERLIN can deterministically inspect supported vector entities and report factual geometry information. Unitless files remain unitless until the owner confirms their intended units.
 
-V2 can deterministically record supported entity geometry, drawing extents, DXF unit metadata, converted physical dimensions when units are known, cut-path length for supported entities, obvious duplicate entities, unmatched endpoints, configured small-hole checks, and source-scale table fit.
+Current validator can record, where supported:
 
-If units are absent, millimetre dimensions remain null until the owner confirms units.
+- drawing extents;
+- DXF unit metadata;
+- physical dimensions when unit conversion is established;
+- entity count;
+- closed/open path counts;
+- cut-path length;
+- obvious duplicate entities;
+- unsupported entity count;
+- source-scale fit inside the currently recorded table envelope.
 
-The source file size is not automatically treated as the intended production size. Products have separate target width/height fields.
-
-Retained-steel topology, bridge adequacy and plasma-specific minimum detail cannot be universally proven from generic DXF geometry with the current validator. MERLIN therefore keeps those designs in review rather than falsely labelling them cut-ready.
+The validator does not claim to prove retained-steel topology for every arbitrary artwork. Minimum bridge/hole/slot rules remain unset until calibrated from actual machine results. A visually good preview is not automatically a production-ready file.

@@ -31,7 +31,6 @@ app.use((err, req, res, next) => { console.error(err); if (res.headersSent) retu
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
-  console.log(`MERLIN CNC V4 running on http://localhost:${port}`);
-  console.log(`Local AI endpoint: ${process.env.MERLIN_LOCAL_AI_URL || 'http://127.0.0.1:11434'}`);
+  console.log(`MERLIN CNC V5 running on http://localhost:${port}`);
   startMarketResearchScheduler(db);
 });

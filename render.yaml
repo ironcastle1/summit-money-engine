@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: merlin-cnc-remote
+    name: merlin-cnc
     runtime: node
     plan: starter
     buildCommand: npm install
@@ -21,9 +21,9 @@ services:
         value: /var/data/products
       - key: MERLIN_PREVIEW_DIR
         value: /var/data/previews
-      - key: MERLIN_LOCAL_AI_URL
-        value: http://127.0.0.1:11434
       - key: MERLIN_AUTO_RESEARCH
         value: true
       - key: MERLIN_RESEARCH_INTERVAL_HOURS
         value: 12
+      - key: MERLIN_RESEARCH_USER_AGENT
+        value: MERLIN-CNC-Research/5.0

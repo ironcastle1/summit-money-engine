@@ -78,7 +78,23 @@ export function seedCurrentBusiness(db) {
     ['MSRC-021','Broad UK emerging search trends','trends','United Kingdom daily trends'],
     ['MSRC-022','Home decor trend reporting','news','home decor trends UK emerging'],
     ['MSRC-023','Garden decor trend reporting','news','garden decor trends UK emerging'],
-    ['MSRC-024','Personalised gift trend reporting','news','personalised gifts trends UK']
+    ['MSRC-024','Personalised gift trend reporting','news','personalised gifts trends UK'],
+    ['MSRC-025','Metal address plaques','search','metal address plaque personalised UK steel'],
+    ['MSRC-026','Pet memorial metal signs','search','metal pet memorial sign garden UK'],
+    ['MSRC-027','Metal garden stakes','search','decorative metal garden stakes UK handmade'],
+    ['MSRC-028','Metal plant supports','search','decorative steel plant support trellis UK'],
+    ['MSRC-029','Decorative shelf brackets','search','decorative steel shelf brackets UK handmade'],
+    ['MSRC-030','Metal bookends','search','decorative steel bookends UK handmade'],
+    ['MSRC-031','Workshop and garage signs','search','personalised metal garage workshop sign UK'],
+    ['MSRC-032','Hospitality metal signage','search','custom metal restaurant cafe sign UK'],
+    ['MSRC-033','Holiday-let address signage','search','holiday cottage metal house sign UK personalised'],
+    ['MSRC-034','Gothic home decor trend','news','gothic home decor trend UK'],
+    ['MSRC-035','Dark academia decor trend','news','dark academia home decor trend UK'],
+    ['MSRC-036','Traditional interior decor trend','news','traditional interior design decor trend UK'],
+    ['MSRC-037','Garden ornament trend','news','garden ornament decor trend UK'],
+    ['MSRC-038','Personalised wedding signage','search','personalised metal wedding sign UK'],
+    ['MSRC-039','Metal fire pit products','search','flat pack steel fire pit UK decorative'],
+    ['MSRC-040','Small business signage demand','news','small business signage shopfront hospitality UK trends']
   ];
   const sourceInsert = db.prepare(`INSERT OR IGNORE INTO market_source_config (id,name,source_type,query,enabled,notes) VALUES (?,?,?,?,1,?)`);
   for (const [sid,name,type,query] of marketQueries) sourceInsert.run(sid,name,type,query,'Current-stage research seed. Edit or disable from MERLIN as the catalogue evolves.');

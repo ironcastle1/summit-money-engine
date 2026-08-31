@@ -8,8 +8,8 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brandblock"><div class="brand">MERLIN</div><div class="subtitle">CNC BUSINESS OS · LOCAL</div></div>
-  <div class="top-status"><span id="health" class="status-pill">STARTING</span><span id="ai-pill" class="status-pill">LOCAL AI</span><span id="market-pill" class="status-pill">MARKET</span></div>
+  <div class="brandblock"><div class="brand">MERLIN</div><div class="subtitle">CNC BUSINESS OPERATING SYSTEM</div></div>
+  <div class="top-status"><span id="health" class="status-pill">STARTING</span><span id="input-pill" class="status-pill">INPUT</span><span id="market-pill" class="status-pill">MARKET</span></div>
   <button id="refresh" class="secondary compact">Refresh</button>
 </header>
 <div id="system-banner" class="system-banner hidden"></div>
@@ -18,11 +18,11 @@
   <div class="dashboard-note">Drag ⋮⋮ to move any section. Use ↔ to change its width. MERLIN saves the layout.</div>
 
   <section id="dashboard-grid" class="dashboard-grid">
-    <article class="widget span-2" data-widget-id="ai" data-span="2">
-      <header class="widget-head"><span class="drag-handle">⋮⋮</span><div><h2>Ask MERLIN</h2><p>Local AI + permanent business memory. No paid AI API.</p></div><button class="span-toggle secondary compact">↔</button></header>
-      <div class="ai-control-row"><div id="ai-status" class="inline-status"></div><label class="model-control">Model<select id="ai-model"></select></label></div>
-      <div id="chat-log" class="chat-log"></div>
-      <form id="chat-form" class="chat-form"><textarea id="chat-input" rows="3" placeholder="Tell MERLIN what changed, ask what is in stock, what needs doing, or ask it to research the current market..."></textarea><button type="submit">Send</button></form>
+    <article class="widget span-2" data-widget-id="intake" data-span="2">
+      <header class="widget-head"><span class="drag-handle">⋮⋮</span><div><h2>Tell MERLIN</h2><p>Write a concrete business fact once. MERLIN parses it, shows exactly what it understood, then files it into the correct records when you confirm.</p></div><button class="span-toggle secondary compact">↔</button></header>
+      <form id="intake-form" class="intake-form"><textarea id="intake-input" rows="3" placeholder="Examples: Bought 5 sheets of 2mm cold-reduced steel 500×500mm for £110 delivered.  |  Sold MER-WALLART-000001 for £65 on Etsy.  |  Cut 2 of MER-WALLART-000001; cutting 14 min, cleanup 8 min."></textarea><button type="submit">Parse</button></form>
+      <div id="intake-preview"><div class="empty">Nothing is written until you confirm a parsed statement. MERLIN leaves uncertain fields blank instead of guessing.</div></div>
+      <details class="intake-history"><summary>Recent Tell MERLIN entries</summary><div id="intake-history"></div></details>
     </article>
 
     <article class="widget span-2" data-widget-id="priorities" data-span="2">
@@ -60,7 +60,7 @@
     </article>
 
     <article class="widget span-2" data-widget-id="market" data-span="2">
-      <header class="widget-head"><span class="drag-handle">⋮⋮</span><div><h2>Market Intelligence</h2><p>Current public evidence. Facts, reasons and unknowns — never scores.</p></div><div class="head-actions"><button id="market-scan" class="secondary compact">Scan now</button><button class="span-toggle secondary compact">↔</button></div></header>
+      <header class="widget-head"><span class="drag-handle">⋮⋮</span><div><h2>Market Opportunity Watch</h2><p>Automated public-web collection for products, prices, suppliers and emerging opportunities relevant to the current table. No fabricated scores.</p></div><div class="head-actions"><input id="market-focus" class="compact-input" placeholder="Optional scan focus" /><button id="market-scan" class="secondary compact">Scan now</button><button class="span-toggle secondary compact">↔</button></div></header>
       <div id="research-status" class="inline-status"></div>
       <div id="observations" class="observations"></div>
       <details class="raw-evidence"><summary>Latest raw evidence collected</summary><div id="market-evidence" class="evidence-list"></div></details>
@@ -68,7 +68,7 @@
 
     <article class="widget span-2" data-widget-id="products" data-span="2">
       <header class="widget-head"><span class="drag-handle">⋮⋮</span><div><h2>Products & DXFs</h2><p>Permanent IDs, revisions, geometry checks and production details.</p></div><button class="span-toggle secondary compact">↔</button></header>
-      <form id="dxf-form" class="quick-form dxf-form"><div class="form-grid"><label>DXF<input type="file" id="dxf-file" accept=".dxf" required /></label><label>Name<input id="dxf-name" /></label><label>Category<input id="dxf-category" /></label><label>Subcategory<input id="dxf-subcategory" /></label><label>Language<input id="dxf-language" /></label><label>Material<select id="dxf-material"><option value="">Not assigned</option></select></label><label>DXF units<select id="dxf-units"><option value="">Use file / unknown</option><option value="millimeters">Millimetres</option><option value="inches">Inches</option><option value="centimeters">Centimetres</option><option value="meters">Metres</option></select></label><label>Rights<select id="dxf-legal"><option value="review_required">Rights not established</option><option value="original">Original</option><option value="licensed">Commercial licence</option><option value="public_domain">Public domain</option></select></label></div><button type="submit">Upload & analyse DXF</button><div id="dxf-result" class="result"></div></form>
+      <form id="dxf-form" class="quick-form dxf-form"><div class="form-grid"><label>DXF file(s)<input type="file" id="dxf-file" accept=".dxf" multiple required /></label><label>Name<input id="dxf-name" /></label><label>Category<input id="dxf-category" /></label><label>Subcategory<input id="dxf-subcategory" /></label><label>Language<input id="dxf-language" /></label><label>Material<select id="dxf-material"><option value="">Not assigned</option></select></label><label>DXF units<select id="dxf-units"><option value="">Use file / unknown</option><option value="millimeters">Millimetres</option><option value="inches">Inches</option><option value="centimeters">Centimetres</option><option value="meters">Metres</option></select></label><label>Rights<select id="dxf-legal"><option value="review_required">Rights not established</option><option value="original">Original</option><option value="licensed">Commercial licence</option><option value="public_domain">Public domain</option></select></label></div><button type="submit">Upload & analyse DXF(s)</button><div id="dxf-result" class="result"></div></form>
       <div class="table-wrap"><table><thead><tr><th>ID</th><th>Product</th><th>Category</th><th>Material</th><th>Production size</th><th>DXF state</th><th>Product state</th><th>Price</th></tr></thead><tbody id="products-body"></tbody></table></div>
     </article>
 

@@ -1,19 +1,18 @@
-# MERLIN Market Intelligence Policy
+# Market intelligence policy — MERLIN V5
 
-MERLIN is an evidence collector and interpreter, not an opportunity-score generator.
+MERLIN gathers public evidence and must distinguish evidence from conclusions.
 
-For every synthesised market observation it should preserve:
+Hard rules:
 
-1. what was actually observed;
-2. why that evidence may be relevant to the current business;
-3. direct evidence statements;
-4. supporting evidence if any;
-5. important unknowns;
-6. a small validation action where appropriate;
-7. source URLs.
+- no artificial opportunity score;
+- no invented confidence percentage;
+- no statement that a product is a bestseller unless the cited source actually establishes that label;
+- no inference that search presence equals sales;
+- no claim of profitability without the business's own cost/sales inputs;
+- no recommendation that assumes machinery/processes not currently recorded as available;
+- keep source URL and collection time;
+- show unknowns explicitly.
 
-MERLIN must not infer a sales volume, market share, conversion rate, profitability figure or confidence percentage merely because a product appears in search results.
+The default research job watches current-stage categories including house numbers, personalised signs, monograms, multilingual metal décor, garden products, functional plasma-cut products, wall art, input suppliers and broader relevant décor/gift reporting.
 
-Raw collected evidence is stored separately from local-AI synthesis. If the model cannot interpret the evidence reliably, the raw evidence remains available instead of forcing a conclusion.
-
-Collectors are deliberately throttled and use public pages/feeds. The code does not bypass logins, CAPTCHAs, paywalls or anti-bot controls.
+Raw evidence is retained separately from the deterministic summaries.

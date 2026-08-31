@@ -294,14 +294,6 @@ export function migrateDatabase(db) {
       resolved_at TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS ai_events (
-      id TEXT PRIMARY KEY,
-      role TEXT NOT NULL,
-      content TEXT NOT NULL,
-      tool_name TEXT,
-      tool_payload_json TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
 
     CREATE TABLE IF NOT EXISTS ui_preferences (
       preference_key TEXT PRIMARY KEY,
@@ -330,20 +322,30 @@ export function migrateDatabase(db) {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS chat_threads (
+
+    CREATE TABLE IF NOT EXISTS intake_records (
       id TEXT PRIMARY KEY,
-      title TEXT,
+      raw_text TEXT NOT NULL,
+      action TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('ready','needs_input','committed','discarded')) DEFAULT 'needs_input',
+      parsed_json TEXT NOT NULL DEFAULT '{}',
+      missing_json TEXT NOT NULL DEFAULT '[]',
+      notes_json TEXT NOT NULL DEFAULT '[]',
+      result_json TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      committed_at TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS chat_messages (
+    CREATE TABLE IF NOT EXISTS product_assets (
       id TEXT PRIMARY KEY,
-      thread_id TEXT NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
-      role TEXT NOT NULL,
-      content TEXT NOT NULL,
-      tool_name TEXT,
-      tool_payload_json TEXT,
+      product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      revision_id TEXT REFERENCES product_revisions(id) ON DELETE SET NULL,
+      asset_kind TEXT NOT NULL,
+      original_filename TEXT NOT NULL,
+      stored_path TEXT NOT NULL,
+      sha256 TEXT NOT NULL,
+      mime_type TEXT,
+      size_bytes INTEGER,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -397,9 +399,10 @@ export function migrateDatabase(db) {
     CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(occurred_at);
     CREATE INDEX IF NOT EXISTS idx_business_events_created ON business_events(created_at);
     CREATE INDEX IF NOT EXISTS idx_knowledge_updated ON knowledge_documents(updated_at);
-    CREATE INDEX IF NOT EXISTS idx_chat_thread_created ON chat_messages(thread_id,created_at);
     CREATE INDEX IF NOT EXISTS idx_market_items_collected ON collected_market_items(collected_at);
     CREATE INDEX IF NOT EXISTS idx_market_items_url ON collected_market_items(url);
+    CREATE INDEX IF NOT EXISTS idx_intake_created ON intake_records(created_at);
+    CREATE INDEX IF NOT EXISTS idx_assets_product ON product_assets(product_id,created_at);
   `);
 
   // Backward-compatible V2 columns. Existing V1 databases are upgraded in place.

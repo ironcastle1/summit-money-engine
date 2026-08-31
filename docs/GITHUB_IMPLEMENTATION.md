@@ -1,14 +1,19 @@
-# GitHub implementation
+# GitHub / Render implementation — MERLIN V5
 
-GitHub is the source-code home for MERLIN V4. It is not the AI computer.
+MERLIN V5 is a normal Node web application. GitHub stores the code; Render can run the live service. No AI service is required.
 
-1. Preserve any legacy branch you want to keep.
-2. On `main`, copy the contents of the V4 GitHub-root ZIP directly into the repository root.
-3. Replace same-named source files.
-4. Do not delete `.git`.
-5. Commit in GitHub Desktop.
+## Upgrade existing `main`
+
+1. Make sure the legacy system is preserved on a separate branch if required.
+2. Extract the V5 GitHub-root ZIP.
+3. Copy every file/folder from the extracted root into the existing repository root.
+4. Replace files when Windows asks.
+5. Commit: `MERLIN CNC V5 deterministic business OS`.
 6. Push `main`.
-7. Run `SETUP_MERLIN.bat` locally once.
-8. Use `START_MERLIN.bat` for the AI-enabled system.
+7. Let Render redeploy.
 
-A connected Render service may still redeploy the repository. Treat that as an optional remote/non-AI deployment unless you deliberately provide it its own model server. The private AI-enabled instance is `http://localhost:3000` on the Windows machine.
+Do not copy the V5 folder as a nested folder inside the repository.
+
+## Persistent data on Render
+
+The repo contains `render.yaml` for a persistent disk mounted at `/var/data`. Existing Render services created manually should be checked to ensure the same paths are configured. Without persistent storage, SQLite/product uploads can disappear during replacement deployments.

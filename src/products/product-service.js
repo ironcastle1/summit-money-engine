@@ -15,7 +15,7 @@ function nextProductCode(db, category = 'GEN') {
 
 function makeProductFolders(productCode) {
   const root = path.resolve(process.env.MERLIN_PRODUCT_DIR || './data/products', productCode);
-  for (const dir of ['master','revisions','previews','photos','listings','production','costing']) {
+  for (const dir of ['master','revisions','previews','photos','listings','production','costing','documents','assets']) {
     fs.mkdirSync(path.join(root, dir), { recursive: true });
   }
   return root;
@@ -81,6 +81,44 @@ export function ingestDxf(db, { buffer, originalname, name, category, subcategor
   return getProduct(db, productId);
 }
 
+
+export function addDxfRevision(db, productId, { buffer, originalname, unitOverride = null }) {
+  const product = db.prepare('SELECT * FROM products WHERE id=?').get(productId);
+  if (!product) throw Object.assign(new Error('Product not found'), { status: 404 });
+  const machine = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY created_at LIMIT 1').get();
+  const text = buffer.toString('utf8');
+  const analysis = analyseDxfText(text, machine, { unitOverride });
+  const next = Number(db.prepare('SELECT COALESCE(MAX(revision_number),0)+1 n FROM product_revisions WHERE product_id=?').get(productId).n || 1);
+  const revisionId = id('REV');
+  const root = makeProductFolders(product.product_code);
+  const storedName = `R${next}_${safeFilename(originalname)}`;
+  const storedPath = path.join(root, 'revisions', storedName);
+  fs.writeFileSync(storedPath, buffer);
+  const previewPath = path.join(root, 'previews', `${product.product_code}_R${next}.svg`);
+  fs.writeFileSync(previewPath, renderSvg(analysis));
+  const unitsConfirmed = Boolean(analysis.units.mm_per_unit);
+  const tx = db.transaction(() => {
+    db.prepare(`INSERT INTO product_revisions (
+      id,product_id,revision_number,original_filename,stored_path,sha256,width_mm,height_mm,
+      drawing_width_units,drawing_height_units,unit_code,unit_name,mm_per_unit,units_confirmed,
+      entity_count,total_cut_length_mm,pierce_estimate,closed_path_count,open_path_count,small_feature_count,
+      duplicate_entity_count,unsupported_entity_count,fits_machine,validation_status,validation_json,preview_path
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      revisionId, productId, next, originalname, storedPath, sha256(buffer), analysis.width_mm, analysis.height_mm,
+      analysis.drawing_width_units, analysis.drawing_height_units, analysis.units.code, analysis.units.name,
+      analysis.units.mm_per_unit, Number(unitsConfirmed), analysis.entity_count, analysis.total_cut_length_mm,
+      analysis.pierce_estimate, analysis.closed_path_count, analysis.open_path_count, analysis.small_feature_count,
+      analysis.duplicate_entity_count, analysis.unsupported_entity_count,
+      analysis.fits_machine == null ? null : Number(analysis.fits_machine), analysis.validation_status,
+      JSON.stringify({ issues: analysis.issues, bounds: analysis.bounds, drawing_bounds: analysis.drawing_bounds, units: analysis.units }), previewPath
+    );
+    db.prepare('UPDATE products SET active_revision_id=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(revisionId,'imported',productId);
+  });
+  tx();
+  syncProductSnapshot(db, productId);
+  return getProduct(db, productId);
+}
+
 export function reconfirmRevisionUnits(db, revisionId, unitOverride) {
   const rev = db.prepare('SELECT * FROM product_revisions WHERE id=?').get(revisionId);
   if (!rev) return null;
@@ -136,7 +174,8 @@ export function getProduct(db, productId) {
   const sales = db.prepare('SELECT * FROM sales_events WHERE product_id=? ORDER BY sold_at DESC LIMIT 100').all(productId);
   const bom = db.prepare(`SELECT b.*,i.name inventory_name,i.unit inventory_unit,i.unit_cost inventory_unit_cost
     FROM product_bom b JOIN inventory_items i ON i.id=b.inventory_item_id WHERE b.product_id=? ORDER BY i.name`).all(productId);
-  return { ...product, revisions, costs, production, sales, bom };
+  const assets = db.prepare('SELECT * FROM product_assets WHERE product_id=? ORDER BY created_at DESC').all(productId);
+  return { ...product, revisions, costs, production, sales, bom, assets };
 }
 
 export function listProducts(db) {

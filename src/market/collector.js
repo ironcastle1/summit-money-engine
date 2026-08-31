@@ -4,6 +4,9 @@ import { enrichPublicPage } from './connectors/page.js';
 import { currentUkTrends } from './connectors/google-trends.js';
 import { id } from '../util/id.js';
 
+const TREND_RELEVANCE = /\b(home|decor|interior|garden|wedding|gift|metal|steel|sign|house|address|gothic|medieval|arabic|wall|art|plant|shelf|garage|workshop|barber|cafe|restaurant|pet|memorial|traditional|industrial|monogram|furniture|kitchen)\b/i;
+function relevantTrend(item){const related=(item.raw_trend?.news||[]).map(n=>n.title).join(' ');return TREND_RELEVANCE.test(`${item.title||''} ${item.snippet||''} ${related}`);}
+
 export async function collectMarketEvidence(db, scanRunId, focus = null) {
   let configs = db.prepare('SELECT * FROM market_source_config WHERE enabled=1 ORDER BY id').all();
   if (focus) configs = [{ id: null, name: 'Owner requested scan', source_type: 'search', query: focus }];
@@ -19,6 +22,7 @@ export async function collectMarketEvidence(db, scanRunId, focus = null) {
     try { items = cfg.source_type === 'trends' ? await currentUkTrends(Math.max(maxResults,20)) : cfg.source_type === 'news' ? await searchNews(q,maxResults) : await searchWeb(q,maxResults); }
     catch (error) { items = [{ title: `Collection failed for ${q}`, url: `merlin://collector-error/${encodeURIComponent(q)}`, snippet: error.message, publisher: 'MERLIN collector', evidence_type: 'collector_error' }]; }
     for (let item of items) {
+      if (cfg.source_type === 'trends' && !relevantTrend(item)) continue;
       const key = String(item.url || '').replace(/\/$/,''); if (seen.has(key)) continue; seen.add(key);
       if (enrich && /^https?:/i.test(item.url) && !['news_rss','trend_feed'].includes(item.evidence_type)) item = await enrichPublicPage(item);
       const iid = id('MKT');

@@ -1,162 +1,225 @@
-# MERLIN CNC V4 — Private Local-AI Business Operating System
+# MERLIN CNC V5 — Deterministic CNC Business Operating System
 
-MERLIN V4 is a local-first operating system for the current CNC plasma business. It keeps the existing product/DXF, orders, inventory, production, finance and evidence systems, but removes paid AI APIs entirely.
+MERLIN V5 is a practical operating system for the current CNC plasma business. It has **no chatbot, no local language model, no OpenAI integration, no API-token bill and no model download**.
 
-## The important change
+The system is built around four jobs:
 
-MERLIN no longer calls OpenAI or any other paid language-model API. The assistant runs against a local model on your own Windows computer through a local model runtime. There is no per-message or per-token bill.
+1. **Tell MERLIN** — type a concrete business statement once; MERLIN parses it with deterministic rules, shows exactly what it understood, and only writes it after confirmation.
+2. **Business operations** — orders, production, inventory, finished stock, finance and activity history.
+3. **Product/DXF registry** — every DXF receives a permanent MER product number and its own product folder; revisions, previews, photos and documents stay attached to that product.
+4. **Market opportunity watch** — scheduled public-web collectors gather current product, price, supplier and trend evidence. MERLIN produces factual evidence summaries without invented opportunity scores.
 
-The model is only one component. MERLIN's durable knowledge lives in SQLite and the product/DXF folders. Costs, inventory, orders, measured production times, sales, research evidence and business facts remain structured records even if the AI is stopped.
+## Quick installation
 
-## Fastest Windows setup
+### Existing GitHub/Render installation
 
-After copying this repository into your GitHub working folder:
+1. Preserve the old branch if you want it.
+2. Extract the V5 GitHub-root ZIP.
+3. Copy **the contents** directly into the existing repository root and replace existing files.
+4. Commit and push to `main`.
+5. Render redeploys automatically if connected to the repository.
+6. Keep a persistent Render disk mounted at `/var/data` with the environment variables in `render.yaml` so the SQLite database and uploaded product files survive redeploys.
 
-1. Commit/push it as normal.
-2. In File Explorer, double-click `SETUP_MERLIN.bat` **once**.
-3. The script installs Node if necessary, installs the local AI runtime if necessary, installs MERLIN dependencies, selects a model according to RAM, downloads it once, creates `.env`, seeds the database and checks the code.
-4. Afterwards use `START_MERLIN.bat`.
-5. MERLIN opens at `http://localhost:3000`.
+No API key is required.
 
-The first local model download can be several GB. That is a one-time download, not token billing.
+### Run on Windows instead
 
-If you want MERLIN and its market watcher to start automatically whenever Windows starts, double-click `ENABLE_MERLIN_STARTUP.bat` after setup.
+1. Install Node.js 20 if it is not already installed.
+2. Double-click `SETUP_MERLIN.bat` once.
+3. Double-click `START_MERLIN.bat` whenever you want MERLIN running.
+4. Open `http://localhost:3000`.
 
-## Local model selection
+## Tell MERLIN
 
-The setup script reads installed RAM and chooses a conservative **base model**:
+The intake console is not a chatbot. It is a structured parser.
 
-- up to 8 GB: `qwen2.5:1.5b`
-- over 8 GB through 16 GB: `qwen2.5:3b`
-- over 16 GB: `qwen2.5:7b`
+Examples:
 
-It then creates a local custom model profile named **`merlin-cnc`** from `config/Modelfile.template`. That profile bakes in MERLIN's evidence discipline, current-stage rule and CNC-business role. The database/tools remain the authoritative memory. You can still switch to another locally installed compatible model from the dashboard if desired. A larger base model can reason better but uses more memory and runs more slowly on CPU-only machines.
-
-## Architecture
-
-```
-Browser dashboard (localhost)
-        |
-Node/Express MERLIN backend
-        |
-        +-- SQLite business database
-        +-- product/DXF file store
-        +-- deterministic DXF analysis
-        +-- inventory/orders/production/finance
-        +-- public-web market collectors
-        +-- durable memory/event history
-        +-- local AI agent
-                 |
-                 +-- local model runtime at 127.0.0.1:11434
+```text
+Bought 5 sheets of 2mm cold-reduced steel 500x500mm for £110 delivered
 ```
 
-GitHub remains source control and backup for the code. The primary AI-enabled deployment is the local Windows machine because a private local model cannot run inside a static GitHub Page and a normal Render web service cannot access a model that is running privately on your PC.
+MERLIN extracts:
 
-## Dashboard
+- action: raw-material purchase
+- quantity: 5 sheets
+- thickness: 2 mm
+- width/height: 500 × 500 mm
+- total purchase cost: £110
+- unit cost: £22/sheet
 
-The main dashboard shows the operational features directly:
+It shows those fields before recording them.
 
-- local MERLIN chat;
-- open orders;
-- production queue;
-- raw metal/offcuts;
-- supplies and consumables;
-- finished stock;
-- market intelligence and raw evidence;
-- products/DXFs;
-- finance;
-- recent activity.
+Other supported statements include:
 
-Every major card can be dragged into a different position. Card width can be changed with the `↔` button. Layout is saved in the database.
-
-## Local AI behaviour
-
-MERLIN has tools that can read the live database and, when your message explicitly reports a change, write exact business records. Common structured commands also have a deterministic parser before the model is used. This reduces the chance that a small local model mishandles simple updates.
-
-Example:
-
-`add 5 sheets 2.0mm mild steel 500 x 500 cost £24.95 each`
-
-can be interpreted directly as an inventory record without asking a language model to invent fields.
-
-The AI is instructed never to invent:
-
-- opportunity scores;
-- demand estimates;
-- margins;
-- machine limits;
-- production times;
-- product performance;
-- future expansion state.
-
-## Market intelligence
-
-MERLIN V4 collects public evidence itself. The default current-stage collectors use:
-
-- public web-search result pages;
-- Google News RSS;
-- public pages linked from results where retrieval succeeds.
-
-The collector stores source URL, title, publisher, snippet, observed date and any price that can be read from the public page. The local model then interprets that stored evidence into factual observations, reasons it may matter to the current business, unknowns and a possible validation test.
-
-Raw evidence remains visible even if the local model is offline or fails to return valid JSON.
-
-Default scans run every 12 hours while MERLIN is running. `ENABLE_MERLIN_STARTUP.bat` is provided if you want the watcher running whenever the PC is on.
-
-The collector is intentionally rate-limited. It does not contain account-login automation, CAPTCHA bypassing or aggressive anti-bot evasion.
-
-## DXF system
-
-DXF upload still creates:
-
-- immutable internal product ID;
-- human MER product code;
-- revision record;
-- SHA-256 file hash;
-- stored master DXF;
-- geometry-derived SVG preview;
-- dimension/entity/open-path analysis;
-- product folder and JSON snapshot.
-
-Unknown DXF units stay unknown until confirmed. MERLIN does not silently interpret arbitrary drawing units as millimetres.
-
-Arbitrary image-to-production-DXF conversion remains disabled. MERLIN will not pretend that a general image can automatically be converted to a safe plasma-ready design until a deterministic topology/bridge/feature validation pipeline is proven on the real machine.
-
-## Data
-
-Default paths:
-
-- database: `data/merlin.sqlite`
-- DXF uploads: `data/uploads/`
-- product records: `data/products/`
-- previews: `data/previews/`
-
-These paths are ignored by Git where appropriate. Back up the `data` directory separately; it is the live business state.
-
-## Commands
-
+```text
+Bought 50 standoffs for £22.50
+I have 8 plasma electrodes left
+Spent £13.50 on black paint
+Sold MER-WALLART-000001 for £65 on Etsy
+New order for MER-WALLART-000001, qty 2, £60 each, due 2026-09-05
+Cut 2 of MER-WALLART-000001; cutting 14 min, cleanup 8 min
+Set MER-WALLART-000001 selling price £75
+Note: black paint takes longer to cure when the garage is cold
 ```
+
+If a statement is ambiguous, MERLIN does **not** guess. It marks the missing field and does not write the record.
+
+## Product IDs and files
+
+A new DXF creates a permanent product such as:
+
+```text
+MER-WALLART-000001
+```
+
+with a folder such as:
+
+```text
+data/products/MER-WALLART-000001/
+├── master/
+├── revisions/
+├── previews/
+├── photos/
+├── listings/
+├── production/
+├── costing/
+├── documents/
+├── assets/
+└── product.json
+```
+
+The product ID does not change when the product name changes.
+
+From the product detail window you can:
+
+- add a new DXF revision;
+- confirm DXF units;
+- attach photographs;
+- attach listing copy/documents;
+- attach production/costing files;
+- record the BOM;
+- record production runs;
+- set material, physical target size and selling price.
+
+Non-DXF product files are stored in the correct product folder and recorded in the `product_assets` table.
+
+## DXF discipline
+
+MERLIN uses deterministic DXF parsing for supported entity types. It records source units, extents, entity count, open paths, cut length where calculable, obvious duplicates and source-scale machine fit when units are known.
+
+It does **not** call arbitrary image-to-DXF conversion production-ready. That endpoint remains disabled until a pipeline can prove a better outcome rate and CNC topology safety.
+
+It also does not invent minimum bridge/hole/slot limits before those rules have been calibrated from real cuts on the actual machine.
+
+## Inventory
+
+Inventory distinguishes:
+
+- raw material;
+- offcuts;
+- consumables;
+- hardware;
+- packaging;
+- finished products;
+- other tracked items.
+
+Each item can hold quantity on hand, reserved quantity, available quantity, reorder point, unit cost, supplier, location and material dimensions/attributes.
+
+Inventory changes are written to an immutable movement ledger. Production can consume material/BOM inputs and create finished stock. Dispatch can consume finished stock.
+
+## Orders and production
+
+Order stages currently include:
+
+```text
+new
+confirmed
+queued
+cutting
+deburring
+surface_prep
+painting
+curing
+qc
+packing
+ready
+dispatched
+cancelled
+```
+
+The dashboard shows open orders and the production queue immediately.
+
+## Market Opportunity Watch
+
+MERLIN's research layer does not ask a language model what is trending.
+
+Scheduled collectors gather current public evidence using configured search/news/trend sources. The database stores:
+
+- query;
+- title;
+- source URL;
+- publisher;
+- snippet;
+- observed public price when parsable;
+- publication date when available;
+- collection time.
+
+V5 then groups that evidence deterministically and reports:
+
+- how many current results were collected;
+- how many distinct domains were represented;
+- whether direct price evidence was present and its observed range;
+- any dated recent sources;
+- why the monitored category is relevant to the **current** business;
+- explicit unknowns;
+- source links;
+- a small validation action.
+
+Search presence is never presented as proof of sales. No fabricated percentages, confidence ratings or opportunity scores are generated.
+
+The opportunity panel is ordered transparently: observations with direct price evidence first, then multi-domain evidence, then recency. That ordering is not an invented profitability score.
+
+## Current-stage doctrine
+
+MERLIN models the business that exists now. The seeded state contains the current CrossFire/Razorweld operation and current product strategy. It does not fill the operating dashboard with hypothetical Prague, Gulf, multi-factory or future-machine assumptions.
+
+When the physical business changes, update the capability/machine state and then extend MERLIN around the new reality.
+
+## Data storage
+
+Default local paths:
+
+```text
+data/merlin.sqlite
+data/products/
+data/uploads/
+data/previews/
+```
+
+Render should use:
+
+```text
+MERLIN_DB_PATH=/var/data/merlin.sqlite
+MERLIN_PRODUCT_DIR=/var/data/products
+MERLIN_UPLOAD_DIR=/var/data/uploads
+MERLIN_PREVIEW_DIR=/var/data/previews
+```
+
+and a persistent disk mounted at `/var/data`.
+
+## Security
+
+V5 contains no AI secret/API key. If the deployment is made publicly accessible, add authentication before entering customer-identifying or commercially sensitive information. The current application is intended as an owner-operated internal business system.
+
+## Tests
+
+Run:
+
+```bash
 npm install
-npm run seed
 npm run check
 npm test
-npm start
 ```
 
-Windows convenience:
-
-```
-SETUP_MERLIN.bat
-START_MERLIN.bat
-ENABLE_MERLIN_STARTUP.bat
-```
-
-## Render / remote deployment
-
-Render can still run the non-AI MERLIN backend if desired, but V4 is intentionally local-first. A Render instance cannot reach the private model at `127.0.0.1` on your home PC. Do not expect the local AI badge to be online on Render unless you intentionally deploy a separate model server, which is outside the current-stage architecture.
-
-## Migration from V3
-
-V4 migrations are additive. Existing V1/V2/V3 SQLite data can be upgraded in place. Do not delete your database simply to install V4.
-
-New V4 tables add chat threads/messages, market scan evidence, market source configuration, durable business events and knowledge documents.
+GitHub Actions runs the same syntax/test workflow on pushes and pull requests.
