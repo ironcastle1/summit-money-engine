@@ -389,6 +389,154 @@ export function migrateDatabase(db) {
       collected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+
+    CREATE TABLE IF NOT EXISTS prospect_scans (
+      id TEXT PRIMARY KEY,
+      location_query TEXT NOT NULL,
+      country_code TEXT,
+      latitude REAL,
+      longitude REAL,
+      radius_km REAL,
+      category TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      result_count INTEGER NOT NULL DEFAULT 0,
+      created_count INTEGER NOT NULL DEFAULT 0,
+      updated_count INTEGER NOT NULL DEFAULT 0,
+      enriched_count INTEGER NOT NULL DEFAULT 0,
+      error TEXT,
+      started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS prospects (
+      id TEXT PRIMARY KEY,
+      business_name TEXT NOT NULL,
+      category TEXT,
+      address TEXT,
+      town TEXT,
+      postcode TEXT,
+      country TEXT,
+      country_code TEXT,
+      latitude REAL,
+      longitude REAL,
+      distance_km REAL,
+      website TEXT,
+      email TEXT,
+      email_type TEXT,
+      phone TEXT,
+      source TEXT NOT NULL DEFAULT 'manual',
+      source_external_id TEXT,
+      company_number TEXT,
+      legal_form TEXT,
+      compliance_status TEXT NOT NULL DEFAULT 'unknown_review',
+      contact_status TEXT NOT NULL DEFAULT 'not_contacted',
+      last_contacted_at TEXT,
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      scan_id TEXT REFERENCES prospect_scans(id) ON DELETE SET NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(source, source_external_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS outreach_events (
+      id TEXT PRIMARY KEY,
+      prospect_id TEXT NOT NULL REFERENCES prospects(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL,
+      channel TEXT,
+      subject TEXT,
+      pitch_body TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS outreach_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      subject_template TEXT NOT NULL,
+      body_template TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS store_connections (
+      platform TEXT PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'not_connected',
+      mode TEXT,
+      shop_name TEXT,
+      last_synced_at TEXT,
+      config_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS store_import_runs (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      filename TEXT,
+      row_count INTEGER NOT NULL DEFAULT 0,
+      created_count INTEGER NOT NULL DEFAULT 0,
+      duplicate_count INTEGER NOT NULL DEFAULT 0,
+      unmatched_count INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL,
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS store_transactions (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      external_id TEXT NOT NULL,
+      product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+      product_code_raw TEXT,
+      title TEXT,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      gross_revenue REAL,
+      fees REAL NOT NULL DEFAULT 0,
+      shipping_cost REAL NOT NULL DEFAULT 0,
+      refunds REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'GBP',
+      sold_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      sale_event_id TEXT REFERENCES sales_events(id) ON DELETE SET NULL,
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(platform, external_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ad_metrics (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      date TEXT NOT NULL,
+      campaign TEXT,
+      spend REAL NOT NULL DEFAULT 0,
+      impressions INTEGER NOT NULL DEFAULT 0,
+      clicks INTEGER NOT NULL DEFAULT 0,
+      attributed_orders INTEGER NOT NULL DEFAULT 0,
+      attributed_revenue REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'GBP',
+      raw_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS market_product_ideas (
+      id TEXT PRIMARY KEY,
+      observation_id TEXT REFERENCES market_observations(id) ON DELETE SET NULL,
+      topic TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'watching',
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_prospects_status ON prospects(contact_status, compliance_status);
+    CREATE INDEX IF NOT EXISTS idx_prospects_geo ON prospects(country_code,town,postcode);
+    CREATE INDEX IF NOT EXISTS idx_outreach_events_prospect ON outreach_events(prospect_id,created_at);
+    CREATE INDEX IF NOT EXISTS idx_store_transactions_sold ON store_transactions(platform,sold_at);
+    CREATE INDEX IF NOT EXISTS idx_ad_metrics_platform_date ON ad_metrics(platform,date);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_market_product_ideas_observation ON market_product_ideas(observation_id) WHERE observation_id IS NOT NULL;
+
     CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
     CREATE INDEX IF NOT EXISTS idx_inventory_kind ON inventory_items(kind);
     CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(inventory_item_id, created_at);
@@ -432,14 +580,27 @@ export function migrateDatabase(db) {
   addColumn(db, 'order_lines', 'description TEXT');
   addColumn(db, 'production_runs', 'material_quantity_consumed REAL');
 
+  // V7 market dimensions and evidence-management fields.
+  addColumn(db, 'market_source_config', 'region TEXT');
+  addColumn(db, 'market_source_config', 'country_code TEXT');
+  addColumn(db, 'market_source_config', 'category TEXT');
+  addColumn(db, 'collected_market_items', 'region TEXT');
+  addColumn(db, 'collected_market_items', 'category TEXT');
+  addColumn(db, 'market_observations', 'region TEXT');
+  addColumn(db, 'market_observations', 'category TEXT');
+  addColumn(db, 'market_observations', "watch_status TEXT NOT NULL DEFAULT 'new'");
+
+
   db.prepare(`INSERT OR IGNORE INTO business_profile (id) VALUES (1)`).run();
 
-  // V6 simplifies the dashboard around products, inventory, market evidence and completed performance.
-  // Reset only older layout schemas once; user changes made in V6 remain persistent.
+  // V7 introduces growth tooling and a dedicated layout editor. Existing business data remains untouched.
   const layoutVersion = db.prepare("SELECT value FROM meta WHERE key='dashboard_layout_version'").get()?.value;
-  if (layoutVersion !== '6') {
-    const defaultLayout = { order:['products','inventory','market','intake','performance','finance','activity'], spans:{products:2,inventory:2,market:2,intake:2,performance:2,finance:1,activity:1} };
+  if (layoutVersion !== '7') {
+    const defaultLayout = { order:['products','market','outreach','inventory','performance','stores','intake','finance','activity'], spans:{products:2,market:2,outreach:2,inventory:2,performance:2,stores:2,intake:2,finance:1,activity:1}, hidden:[] };
     db.prepare("INSERT INTO ui_preferences (preference_key,value_json) VALUES ('dashboard_layout',?) ON CONFLICT(preference_key) DO UPDATE SET value_json=excluded.value_json,updated_at=CURRENT_TIMESTAMP").run(JSON.stringify(defaultLayout));
-    db.prepare("INSERT INTO meta (key,value) VALUES ('dashboard_layout_version','6') ON CONFLICT(key) DO UPDATE SET value=excluded.value").run();
+    db.prepare("INSERT INTO meta (key,value) VALUES ('dashboard_layout_version','7') ON CONFLICT(key) DO UPDATE SET value=excluded.value").run();
   }
+
+  db.prepare(`INSERT OR IGNORE INTO outreach_templates (id,name,subject_template,body_template) VALUES ('OTPL-DEFAULT','Default business sign pitch','Custom steel signage for {{business}}','Hi,\\n\\nI manufacture custom CNC-cut steel signs and wall pieces in Devon. I came across {{business}} and thought a custom steel business sign, logo panel or wall piece could suit your premises.\\n\\nI can work from an existing logo or simple brief and produce a clean steel sign sized for the space. If useful, I can send a straightforward concept and price.\\n\\nRegards,\\nAlessandro\\nMERLIN CNC\\n\\nIf you would prefer not to receive further messages, just let me know.')`).run();
+
 }

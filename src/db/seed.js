@@ -99,4 +99,24 @@ export function seedCurrentBusiness(db) {
   const sourceInsert = db.prepare(`INSERT OR IGNORE INTO market_source_config (id,name,source_type,query,enabled,notes) VALUES (?,?,?,?,1,?)`);
   for (const [sid,name,type,query] of marketQueries) sourceInsert.run(sid,name,type,query,'Current-stage research seed. Edit or disable from MERLIN as the catalogue evolves.');
 
+  // V7 global radar: broad, rotating evidence coverage rather than a single UK trend query.
+  const globalRegions = [
+    ['GB','United Kingdom'],['IE','Ireland'],['US','United States'],['CA','Canada'],['MX','Mexico'],['BR','Brazil'],['AR','Argentina'],
+    ['AU','Australia'],['NZ','New Zealand'],['DE','Germany'],['FR','France'],['IT','Italy'],['ES','Spain'],['PT','Portugal'],['NL','Netherlands'],
+    ['BE','Belgium'],['AT','Austria'],['CH','Switzerland'],['PL','Poland'],['CZ','Czech Republic'],['HU','Hungary'],['RO','Romania'],['BG','Bulgaria'],
+    ['GR','Greece'],['HR','Croatia'],['RS','Serbia'],['BA','Bosnia and Herzegovina'],['SE','Sweden'],['NO','Norway'],['DK','Denmark'],['FI','Finland'],
+    ['TR','Turkey'],['AE','United Arab Emirates'],['SA','Saudi Arabia'],['QA','Qatar'],['KW','Kuwait'],['BH','Bahrain'],['OM','Oman'],['JO','Jordan'],['EG','Egypt'],
+    ['ZA','South Africa'],['IN','India'],['JP','Japan'],['KR','South Korea'],['SG','Singapore'],['MY','Malaysia'],['ID','Indonesia'],['PH','Philippines'],
+    ['TH','Thailand'],['VN','Vietnam']
+  ];
+  const globalFamilies = [
+    ['numbers','metal house numbers address plaque'],['business-signs','custom metal business sign logo wall sign'],['personalised','personalised metal name monogram family sign'],['wall-art','metal wall art steel home decor'],['garden','metal garden sign stake ornament'],['hospitality','restaurant cafe hotel custom metal signage'],['wedding','personalised metal wedding sign'],['functional','decorative steel brackets bookends workshop products']
+  ];
+  let seq=1000;
+  for(const [cc,region] of globalRegions){for(const [cat,phrase] of globalFamilies){
+    const id=`GMSRC-${String(seq++).padStart(4,'0')}`;
+    const query=`${phrase} ${region}`;
+    try{db.prepare(`INSERT OR IGNORE INTO market_source_config (id,name,source_type,query,enabled,notes,region,country_code,category) VALUES (?,?,?,?,1,?,?,?,?)`).run(id,`${region} — ${cat}`,'search',query,'V7 global rotating product radar',region,cc,cat);}catch{}
+  }}
+
 }

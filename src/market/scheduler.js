@@ -10,6 +10,6 @@ async function maybeRun(db){
   if(process.env.MERLIN_AUTO_RESEARCH==='false')return;
   if(db.prepare("SELECT id FROM market_scan_runs WHERE status='running' AND datetime(started_at)>datetime('now','-2 hours') ORDER BY started_at DESC LIMIT 1").get())return;
   const hours=Math.max(1,Number(process.env.MERLIN_RESEARCH_INTERVAL_HOURS||12));const last=meta(db,'last_market_research_at');if(last&&Date.now()-new Date(last).getTime()<hours*3600000)return;
-  try{setMeta(db,'last_market_research_status','running');await runMarketResearch(db,null);setMeta(db,'last_market_research_error','');}catch(err){console.error('MERLIN market research failed:',err);setMeta(db,'last_market_research_status','failed');setMeta(db,'last_market_research_error',err?.message||String(err));}
+  try{setMeta(db,'last_market_research_status','running');await runMarketResearch(db,{});setMeta(db,'last_market_research_error','');}catch(err){console.error('MERLIN market research failed:',err);setMeta(db,'last_market_research_status','failed');setMeta(db,'last_market_research_error',err?.message||String(err));}
 }
 export function startMarketResearchScheduler(db){if(process.env.MERLIN_AUTO_RESEARCH==='false')return;setTimeout(()=>maybeRun(db),15000).unref?.();const ms=Math.max(1,Number(process.env.MERLIN_RESEARCH_INTERVAL_HOURS||12))*3600000;const timer=setInterval(()=>maybeRun(db),ms);timer.unref?.();}

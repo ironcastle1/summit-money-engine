@@ -1,9 +1,9 @@
 {
   "name": "merlin-cnc",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "private": true,
   "type": "module",
-  "description": "MERLIN - product-centred CNC business operating system with deterministic intake, short product IDs, unified inventory, DXF analysis and market collectors",
+  "description": "MERLIN - product-centred CNC growth operating system with global market radar, business outreach, store imports, sales analytics, deterministic intake and DXF/inventory control",
   "engines": {
     "node": "20.19.5"
   },

@@ -5,8 +5,8 @@
 .node-version
 BACKUP_MERLIN.bat
 Dockerfile
-MERLIN_CNC_V6_FILE_MANIFEST.txt
-MERLIN_CNC_V6_VERIFICATION.txt
+MERLIN_CNC_V7_FILE_MANIFEST.txt
+MERLIN_CNC_V7_VERIFICATION.txt
 README.md
 SETUP_MERLIN.bat
 START_MERLIN.bat
@@ -16,8 +16,11 @@ data/uploads/.gitkeep
 docs/DATA_MODEL.md
 docs/DXF_LIMITS.md
 docs/GITHUB_IMPLEMENTATION.md
+docs/GLOBAL_MARKET_RADAR.md
 docs/MARKET_INTELLIGENCE_POLICY.md
 docs/MIGRATION_FROM_MERLIN_V25.md
+docs/OUTREACH.md
+docs/STORE_CONNECTIONS.md
 docs/WINDOWS_SETUP.md
 package.json
 public/app.js
@@ -47,6 +50,10 @@ src/market/connectors/page.js
 src/market/connectors/robots.js
 src/market/research.js
 src/market/scheduler.js
+src/outreach/connectors/companies-house.js
+src/outreach/connectors/enrich.js
+src/outreach/connectors/osm.js
+src/outreach/outreach-service.js
 src/products/asset-service.js
 src/products/product-service.js
 src/routes/index.js
@@ -56,9 +63,12 @@ src/services/production.js
 src/services/sales.js
 src/services/snapshot.js
 src/services/upgrades.js
+src/stores/csv.js
+src/stores/store-service.js
 src/util/id.js
 tests/dxf.test.js
 tests/id.test.js
 tests/intake.test.js
 tests/inventory.test.js
 tests/product-code.test.js
+tests/store-csv.test.js

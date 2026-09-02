@@ -1,128 +1,115 @@
-# MERLIN CNC V6 — Product-Centred CNC Business Operating System
+# MERLIN CNC V7 — Growth Operating System
 
-MERLIN V6 is the current-stage operating system for the CNC plasma business. It is deliberately centred on the information that matters now: **products, DXFs, inventory, market evidence, completed sales/performance, finance and business history**.
+MERLIN V7 keeps the V6 product/DXF, inventory, completed-sales, finance and deterministic-input core, then adds the systems intended to help the business **find revenue rather than merely record it**.
 
-There is no chatbot, no OpenAI API, no local language model and no token billing. `Tell MERLIN` is a deterministic intake parser: it extracts concrete fields, shows them to the owner, and writes nothing until the owner confirms the parsed record.
+There is still no chatbot, no OpenAI API and no paid language-model dependency. `Tell MERLIN` remains deterministic: parse → show fields → owner confirms → write.
 
-## What changed in V6
+## V7 in one page
 
-- Open-order and production-queue UI removed. Customer platforms remain the place where live orders are fulfilled.
-- Completed sales are recorded after fulfilment for performance tracking.
-- Product IDs are short workshop codes such as `JOK-001`, `NAP-002` and `MHN-003`.
-- Existing long V5 product codes are migrated automatically on startup without changing their internal UUIDs.
-- Every DXF upload creates one permanent product row and one immutable internal product ID.
-- New DXFs can be added as revisions to an existing product rather than creating duplicates.
-- Product table shows all products together with short ID, title, category, material, production size, active revision, deterministic DXF findings, average cut time, units sold and revenue.
-- `Analyse selected` and `Analyse all DXFs` re-run deterministic analysis from the stored source files.
-- Vague `Review Required` badges are removed from the product table. MERLIN shows only concrete findings such as `Units unknown`, `4 open endpoints`, `2 unsupported entities`, `duplicate geometry`, or `exceeds table envelope`.
-- Metal, consumables, hardware, packaging, finished stock and offcuts are combined in a single Inventory section with view toggles.
-- Dashboard sections use pointer-based drag reordering and save the resulting order in SQLite.
-- Market intelligence remains evidence-first and score-free.
+### Products / DXFs
+- Short workshop IDs such as `JOK-001`.
+- Every uploaded DXF becomes one permanent product line.
+- Bulk DXF upload, revision history, actual geometry preview and deterministic checks.
+- `Analyse selected` / `Analyse all DXFs`.
+- Product-level material, target size, selling price, measured production times and sales performance.
+- `Fit proportionally to current table` calculates a safe proportional production target from the actual active machine envelope. It **does not alter the source DXF**; use the calculated scale in Fusion/CAD before cutting.
 
-## GitHub / Render upgrade
+### Dashboard layout editor
+Dragging is no longer required. Press **Edit layout** and each section has:
+- Top
+- Up
+- Down
+- Bottom
+- Half / Full width
+- Visible / hidden
 
-1. Preserve any branch you want to keep.
-2. Extract the V6 GitHub-root ZIP.
-3. Copy the **contents** into the root of the existing `summit-money-engine` repository.
-4. Replace matching files.
-5. Commit to `main`, for example: `MERLIN CNC V6 product-centred rebuild`.
-6. Push origin. Render can redeploy automatically.
+The saved layout lives in SQLite and survives refresh/redeploy when the database is persistent.
 
-Do not place the extracted V6 folder inside the repository as an extra nested directory. `package.json`, `server.js`, `public/`, `src/`, etc. should remain at repository root.
+### Global Market Radar
+V7 seeds a rotating research matrix across 50 country/market groups spanning the UK and Ireland, North and South America, Europe, the Gulf/Middle East, Africa, South Asia, East Asia, Southeast Asia and Oceania. The matrix is intentionally broad while each individual scan remains rate-limited and rotating.
 
-## Existing data
+Product families include:
+- house numbers/address plaques;
+- custom business signs/logo panels;
+- personalised names/monograms;
+- wall art;
+- garden products;
+- hospitality signage;
+- wedding products;
+- functional/decorative steel products.
 
-V6 migrates an existing MERLIN SQLite database in place. It does not require deleting the database. Products continue to use their immutable internal UUIDs even when the visible workshop code changes from an old long form such as `MER-WALLART-000001` to a short form such as `JOK-001`.
+MERLIN rotates through the source matrix instead of hammering every public source at once. Manual scans can filter by region/category or use a specific focus. `Deep scan` expands the number of queries for that run.
 
-The old orders tables remain in the database for backward data preservation, but V6 does not expose an open-order workflow in the main application.
+The radar reports:
+- number of current public results collected;
+- distinct source domains;
+- parseable observed prices and original currencies when found;
+- recent dated evidence where available;
+- cited examples;
+- why the category may matter to the current table;
+- explicit unknowns;
+- a suggested validation action.
 
-## Main workflow
+It does **not** create opportunity scores or claim that search presence equals sales.
 
-### 1. Upload DXFs
+### Business Outreach
+The outreach system is owner-controlled prospecting, not an automatic spam sender.
 
-Upload one or many `.dxf` files in Products. A new file becomes a new product line unless its SHA-256 hash exactly matches a DXF already stored.
+A scan takes:
+- location/postcode;
+- radius;
+- business category;
+- country;
+- enrichment limit.
 
-Example:
+The scanner uses public OpenStreetMap data through Nominatim/Overpass to find businesses geographically. When websites are available, MERLIN can retrieve public contact pages and extract contact emails/phones. If no website is present it can use public web-search evidence to find a plausible official site when the name match is sufficiently strong.
 
-```text
-JOK-001  Joker
-NAP-002  Napoleon
-MHN-003  Modern House Numbers
-```
+For UK prospects, optional Companies House enrichment can confirm corporate entities when `COMPANIES_HOUSE_API_KEY` is configured. If MERLIN cannot establish the legal form it leaves the prospect as **Review before email** rather than assuming cold-email permission.
 
-The short code is visible and writable in the workshop. The database still holds a separate immutable UUID internally.
+Each prospect stores:
+- business name/type;
+- location and distance;
+- website;
+- email and whether the address looks generic/named;
+- phone;
+- company number/legal form when verified;
+- compliance status;
+- contact status;
+- outreach history.
 
-### 2. Review product analysis
+The prospect dialog creates a deterministic custom-business-sign pitch with buttons to copy it, open a mailto draft and record contacted/replied/quoted/won/lost/do-not-contact states. MERLIN never sends the message automatically.
 
-MERLIN analyses actual vector geometry. It can report deterministic facts such as:
+A daily metric tracks progress against a default **50 contacted businesses/day** target.
 
-- drawing extents;
-- confirmed physical dimensions when units are known;
-- entity count;
-- unmatched/open endpoints;
-- duplicate entities;
-- unsupported entity types;
-- whether confirmed dimensions fit the active table envelope;
-- approximate cut length and pierce information where deterministically available.
+### Etsy / eBay / direct sales
+V7 has two integration levels:
 
-It does **not** claim that generic DXF topology alone proves retained steel, bridge integrity or complete plasma cuttability.
+1. **CSV import — works immediately**
+   - Etsy CSV
+   - eBay CSV
+   - flexible header normalisation
+   - duplicate external transaction detection
+   - automatic product mapping when a MERLIN product code appears in SKU/title
+   - unmatched transactions remain visible in the central sales ledger rather than being discarded.
 
-### 3. Record stock
+2. **Optional direct API sync**
+   - Etsy sync activates when `ETSY_KEYSTRING`, `ETSY_SHARED_SECRET`, `ETSY_SHOP_ID` and `ETSY_ACCESS_TOKEN` are configured.
+   - eBay sync activates when `EBAY_ACCESS_TOKEN` is configured.
+   - credentials are intentionally **not** included in source control.
 
-Use the unified Inventory section or Tell MERLIN.
+CSV import remains the simpler fallback if API credentials/OAuth are not worth the setup yet.
 
-Example:
+### Performance graphs
+V7 adds native browser charts (no charting dependency):
+- revenue over time;
+- revenue by channel;
+- product performance table;
+- advertising spend / attributed revenue / ROAS / CTR summaries.
 
-```text
-Bought 5 sheets of 2mm cold-reduced steel 500 x 500mm for £110
-```
+Ad data can be recorded manually now and can later be expanded with marketplace-specific reporting imports.
 
-MERLIN parses the statement and presents the extracted quantity, thickness, dimensions and costs before recording it.
-
-### 4. Record completed production data
-
-Open a product and record measured cutting, cleanup, finishing and packaging times after a real run. These measurements feed product performance rather than relying on estimates.
-
-Tell MERLIN also accepts examples such as:
-
-```text
-Cut JOK-001; cutting 14 min, cleanup 8 min
-```
-
-### 5. Record completed sales
-
-V6 deliberately does not require you to log an order before fulfilling it. After the sale is completed, record it against the product:
-
-```text
-Sold JOK-001 for £65 on Etsy
-```
-
-The Products and Sales & Product Performance tables then update units sold and revenue.
-
-## Product files
-
-A product folder is organised under:
-
-```text
-data/products/JOK-001/
-  master/
-  revisions/
-  previews/
-  photos/
-  listings/
-  production/
-  costing/
-  documents/
-  assets/
-  product.json
-```
-
-The visible code can be corrected from the product record. MERLIN attempts to move the product folder and update stored paths when a code changes. The immutable UUID remains unchanged.
-
-## Inventory views
-
-One Inventory section supports:
-
+### Inventory
+One switchable ledger:
 - All
 - Metal
 - Consumables
@@ -132,53 +119,46 @@ One Inventory section supports:
 - Offcuts
 - Other
 
-Each record can carry quantity, unit, cost, reorder point, dimensions/specification and location.
+### Tell MERLIN
+Still deterministic, not conversational AI. It accepts concrete business facts such as purchases, completed sales, production timings, stocktakes, prices, expenses and notes.
 
-## Market intelligence
+## Upgrade from V6
+1. Extract the V7 GitHub-root ZIP.
+2. Copy its **contents** into the root of the existing `summit-money-engine` repository.
+3. Replace matching files.
+4. Do **not** delete your persistent `merlin.sqlite` database or Render disk.
+5. Commit, for example: `MERLIN CNC V7 growth systems`.
+6. Push `main` and allow Render to redeploy.
 
-MERLIN’s collectors gather public web evidence for monitored current-stage product and procurement topics. Evidence summaries state:
+V7 migrates the existing database in place and adds the prospecting, store, advertising and market-dimension tables/columns.
 
-- what was actually collected;
-- why it may be relevant to the present CNC operation;
-- what the evidence does not establish;
-- source links;
-- a possible small validation action.
+## Important Render persistence
+For real use, continue to use a persistent disk for:
+- SQLite database;
+- product folders;
+- DXFs;
+- previews;
+- uploaded product assets.
 
-No opportunity scores, confidence percentages or fabricated sales estimates are generated.
+The included `render.yaml` expects `/var/data`.
 
-## Tell MERLIN
+## Optional environment variables
+See `.env.example`. No third-party key is required for the basic MERLIN business system, DXF tools, CSV store import, deterministic intake or most market research.
 
-Tell MERLIN is not a chatbot. It recognises supported concrete business statements. It can currently process categories including:
+Optional keys unlock:
+- Companies House verification;
+- direct Etsy API sync;
+- direct eBay API sync.
 
-- metal purchases;
-- supply/consumable purchases;
-- stocktakes for recognised supplies;
-- expenses;
-- completed sales;
-- completed production runs;
-- product selling-price changes;
-- explicit business notes.
+## Public-data etiquette
+The outreach and research subsystems deliberately use rate-limited requests and do not auto-send email. Public services can rate-limit or change. For high-volume commercial prospecting, eventually move discovery/enrichment onto a dedicated licensed provider rather than abusing free community infrastructure.
 
-An open-order statement is deliberately rejected with an explanation that V6 records completed sale/production history instead.
-
-## Local development
-
-```powershell
-npm install
-npm run seed
-npm start
-```
-
-Then open:
-
-```text
-http://localhost:3000
-```
-
-## Persistence on Render
-
-SQLite and product files require persistent storage. Configure `MERLIN_DB_PATH` and `MERLIN_DATA_DIR` / `MERLIN_PRODUCT_DIR` to point to a persistent Render disk if the service is hosted there. Do not rely on an ephemeral filesystem for real business records.
-
-## Security
-
-MERLIN contains business records and potentially commercially sensitive files. If exposed beyond the owner’s private use, add authentication and appropriate access controls before storing customer-identifying information.
+## Safety / evidence policy
+MERLIN must:
+- never invent a sales figure, conversion rate or confidence score;
+- keep unknowns unknown;
+- distinguish collected evidence from inference;
+- never label a DXF production-ready merely because it renders;
+- never auto-email prospects;
+- preserve a do-not-contact state;
+- avoid assuming future machinery/capability before the owner actually adds it.

@@ -5,13 +5,15 @@ import { ingestDxf, addDxfRevision, getProduct, listProducts, syncProductSnapsho
 import { createInventoryItem, moveInventory, listInventory, inventoryAlerts, updateInventoryItem, getInventoryItem } from '../inventory/inventory-service.js';
 import { businessSnapshot } from '../services/snapshot.js';
 import { upsertFact } from '../services/memory.js';
-import { runMarketResearch, rawMarketEvidence, opportunityWatch } from '../market/research.js';
+import { runMarketResearch, rawMarketEvidence, opportunityWatch, marketCoverage } from '../market/research.js';
 import { marketResearchStatus } from '../market/scheduler.js';
 import { id, sha256 } from '../util/id.js';
 import { recordSale, productPerformance } from '../services/sales.js';
 import { recordProductionRun } from '../services/production.js';
 import { parseAndStoreIntake, commitIntake, listIntake } from '../intake/service.js';
 import { storeProductAssets, listProductAssets } from '../products/asset-service.js';
+import { runProspectScan, enrichProspect, enrichProspectsBatch, listProspects, getProspect, outreachStats, createPitch, recordOutreachEvent, companiesHouseConfigured } from '../outreach/outreach-service.js';
+import { importStoreCsv, storeStatus, syncEtsy, syncEbay, analytics, recordAdMetric } from '../stores/store-service.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -32,16 +34,16 @@ function enrichObservationSources(db,o){
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'6.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'7.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{
     const row=db.prepare("SELECT value_json FROM ui_preferences WHERE preference_key='dashboard_layout'").get();
-    if(!row)return res.json({order:[],spans:{}});
-    try{return res.json(JSON.parse(row.value_json));}catch{return res.json({order:[],spans:{}});}
+    if(!row)return res.json({order:[],spans:{},hidden:[]});
+    try{return res.json(JSON.parse(row.value_json));}catch{return res.json({order:[],spans:{},hidden:[]});}
   });
   app.put('/api/preferences/dashboard-layout',(req,res)=>{
-    const value={order:Array.isArray(req.body.order)?req.body.order:[],spans:req.body.spans&&typeof req.body.spans==='object'?req.body.spans:{}};
+    const value={order:Array.isArray(req.body.order)?req.body.order:[],spans:req.body.spans&&typeof req.body.spans==='object'?req.body.spans:{},hidden:Array.isArray(req.body.hidden)?req.body.hidden:[]};
     db.prepare("INSERT INTO ui_preferences (preference_key,value_json) VALUES ('dashboard_layout',?) ON CONFLICT(preference_key) DO UPDATE SET value_json=excluded.value_json,updated_at=CURRENT_TIMESTAMP").run(JSON.stringify(value));
     res.json(value);
   });
@@ -163,7 +165,9 @@ export function registerRoutes(app,db){
 
   app.get('/api/market/observations',(req,res)=>res.json(db.prepare('SELECT * FROM market_observations ORDER BY created_at DESC LIMIT 100').all().map(o=>enrichObservationSources(db,o))));
   app.get('/api/market/status',(req,res)=>res.json(marketResearchStatus(db)));
-  app.get('/api/market/opportunities',(req,res)=>res.json(opportunityWatch(db,req.query.limit||20)));
+  app.get('/api/market/opportunities',(req,res)=>res.json(opportunityWatch(db,{limit:req.query.limit||40,region:req.query.region||null,category:req.query.category||null,status:req.query.status||null})));
+  app.get('/api/market/coverage',(req,res)=>res.json(marketCoverage(db)));
+  app.patch('/api/market/observations/:id',(req,res)=>{const row=db.prepare('SELECT * FROM market_observations WHERE id=?').get(req.params.id);if(!row)return res.status(404).json({error:'Observation not found'});const status=req.body.watch_status||row.watch_status;db.prepare('UPDATE market_observations SET watch_status=? WHERE id=?').run(status,row.id);if(status==='watching')db.prepare('INSERT OR IGNORE INTO market_product_ideas (id,observation_id,topic,status,notes) VALUES (?,?,?,?,?)').run(id('IDEA'),row.id,row.topic,'watching',req.body.notes||null);res.json({...row,watch_status:status});});
   app.get('/api/market/evidence',(req,res)=>res.json(rawMarketEvidence(db,req.query.limit||80)));
   app.get('/api/market/config',(req,res)=>res.json(db.prepare('SELECT * FROM market_source_config ORDER BY id').all()));
   app.patch('/api/market/config/:id',(req,res)=>{const c=db.prepare('SELECT * FROM market_source_config WHERE id=?').get(req.params.id);if(!c)return res.status(404).json({error:'Market source not found'});db.prepare('UPDATE market_source_config SET name=?,source_type=?,query=?,enabled=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.name??c.name,req.body.source_type??c.source_type,req.body.query??c.query,req.body.enabled===undefined?c.enabled:(req.body.enabled?1:0),req.body.notes??c.notes,c.id);res.json(db.prepare('SELECT * FROM market_source_config WHERE id=?').get(c.id));});
@@ -171,9 +175,30 @@ export function registerRoutes(app,db){
   app.post('/api/market/research',requireAutomationToken,(req,res,next)=>{
     const running=db.prepare("SELECT id,started_at FROM market_scan_runs WHERE status='running' AND datetime(started_at)>datetime('now','-2 hours') ORDER BY started_at DESC LIMIT 1").get();
     if(running)return res.status(202).json({started:false,already_running:true,run_id:running.id});
-    const focus=req.body.focus||null;
-    res.status(202).json({started:true,message:'Market scan started in background.'});
-    runMarketResearch(db,focus).catch(err=>console.error('Manual market scan failed:',err));
+    const options={focus:req.body.focus||null,region:req.body.region||null,category:req.body.category||null,deep:Boolean(req.body.deep)};
+    res.status(202).json({started:true,message:'Market scan started in background.',options});
+    runMarketResearch(db,options).catch(err=>console.error('Manual market scan failed:',err));
   });
-  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V6',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
+
+  // Business Outreach — prospect discovery, enrichment and owner-controlled pitching. MERLIN never auto-sends cold mail.
+  app.get('/api/outreach/status',(req,res)=>res.json({...outreachStats(db),companies_house_configured:companiesHouseConfigured()}));
+  app.get('/api/outreach/prospects',(req,res)=>res.json(listProspects(db,{status:req.query.status||null,category:req.query.category||null,country_code:req.query.country_code||null,search:req.query.search||null,limit:req.query.limit||600})));
+  app.get('/api/outreach/prospects/:id',(req,res)=>{const p=getProspect(db,req.params.id);if(!p)return res.status(404).json({error:'Prospect not found'});res.json(p);});
+  app.patch('/api/outreach/prospects/:id',(req,res)=>{const p=getProspect(db,req.params.id);if(!p)return res.status(404).json({error:'Prospect not found'});const allowed=['compliance_status','contact_status','email','phone','website','notes'];const vals={};for(const k of allowed)vals[k]=req.body[k]===undefined?p[k]:req.body[k];db.prepare(`UPDATE prospects SET compliance_status=?,contact_status=?,email=?,phone=?,website=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).run(vals.compliance_status,vals.contact_status,vals.email||null,vals.phone||null,vals.website||null,vals.notes||null,p.id);res.json(getProspect(db,p.id));});
+  app.post('/api/outreach/scan',asyncRoute(async(req,res)=>{const result=await runProspectScan(db,req.body);res.status(201).json({...result,enrichment_started:result.enrich_requested>0});if(result.enrich_requested>0)enrichProspectsBatch(db,result.prospect_ids,{limit:result.enrich_requested,scanId:result.scan_id}).catch(err=>console.error('Prospect enrichment failed:',err));}));
+  app.post('/api/outreach/prospects/:id/enrich',asyncRoute(async(req,res)=>res.json(await enrichProspect(db,req.params.id,{companies_house:req.body?.companies_house!==false}))));
+  app.post('/api/outreach/prospects/:id/pitch',(req,res)=>{const p=getProspect(db,req.params.id);if(!p)return res.status(404).json({error:'Prospect not found'});res.json(createPitch(p,req.body||{}));});
+  app.post('/api/outreach/prospects/:id/events',(req,res)=>res.status(201).json(recordOutreachEvent(db,req.params.id,req.body||{})));
+  app.get('/api/outreach/scans',(req,res)=>res.json(db.prepare('SELECT * FROM prospect_scans ORDER BY started_at DESC LIMIT 50').all()));
+
+  // Store and performance connections. CSV works immediately; API sync activates only when owner credentials are configured.
+  app.get('/api/stores',(req,res)=>res.json(storeStatus(db)));
+  app.post('/api/stores/:platform/import-csv',upload.single('file'),(req,res)=>{if(!req.file)return res.status(400).json({error:'CSV file required'});if(!['etsy','ebay','direct'].includes(req.params.platform))return res.status(400).json({error:'Unsupported platform'});res.status(201).json(importStoreCsv(db,req.params.platform,req.file.buffer,req.file.originalname));});
+  app.post('/api/stores/etsy/sync',asyncRoute(async(req,res)=>res.json(await syncEtsy(db))));
+  app.post('/api/stores/ebay/sync',asyncRoute(async(req,res)=>res.json(await syncEbay(db))));
+  app.get('/api/analytics',(req,res)=>res.json(analytics(db,{days:req.query.days||365})));
+  app.post('/api/ads',(req,res)=>res.status(201).json(recordAdMetric(db,req.body||{})));
+  app.get('/api/store-imports',(req,res)=>res.json(db.prepare('SELECT * FROM store_import_runs ORDER BY created_at DESC LIMIT 100').all()));
+
+  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V7',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
 }

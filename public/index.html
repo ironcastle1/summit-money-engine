@@ -10,17 +10,16 @@
 <header class="topbar">
   <div class="brandblock"><div class="brand">MERLIN</div><div class="subtitle">CNC BUSINESS OPERATING SYSTEM</div></div>
   <div class="top-status"><span id="health" class="status-pill">STARTING</span><span id="input-pill" class="status-pill">INPUT</span><span id="market-pill" class="status-pill">MARKET</span></div>
-  <button id="reset-layout" class="secondary compact">Reset layout</button>
+  <button id="edit-layout" class="secondary compact">Edit layout</button>
   <button id="refresh" class="secondary compact">Refresh</button>
 </header>
 <div id="system-banner" class="system-banner hidden"></div>
 <main>
   <section id="metrics" class="metrics"></section>
-  <div class="dashboard-note">Grab <strong>⋮⋮</strong> and drag a section into a new position. Use ↔ to change its width. The layout is saved automatically.</div>
-
   <section id="dashboard-grid" class="dashboard-grid">
-    <article class="widget span-2" data-widget-id="products" data-span="2">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Products</h2><p>Every uploaded DXF becomes one permanent product line with a short workshop code.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+
+    <article class="widget span-2" data-widget-id="products" data-span="2" data-title="Products">
+      <header class="widget-head"><span class="section-mark">PRODUCTS</span><div><h2>Products</h2><p>Every DXF is a permanent product line with a short workshop ID and complete production history.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
       <form id="dxf-form" class="quick-form dxf-form">
         <div class="form-grid upload-grid">
           <label>DXF file(s)<input type="file" id="dxf-file" accept=".dxf" multiple required /></label>
@@ -43,57 +42,85 @@
       <div class="table-wrap product-table-wrap"><table class="product-table"><thead><tr><th><input id="select-all-products" type="checkbox" /></th><th>ID</th><th>Product</th><th>Category</th><th>Material</th><th>Production size</th><th>Rev</th><th>DXF check</th><th>Avg cut</th><th>Sold</th><th>Revenue</th></tr></thead><tbody id="products-body"></tbody></table></div>
     </article>
 
-    <article class="widget span-2" data-widget-id="inventory" data-span="2">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Inventory</h2><p>Metal, offcuts, consumables, hardware, packaging and finished stock in one place.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
-      <div id="inventory-tabs" class="toggle-row">
-        <button class="inventory-filter active" data-kind="all" type="button">All</button><button class="inventory-filter" data-kind="metal" type="button">Metal</button><button class="inventory-filter" data-kind="consumable" type="button">Consumables</button><button class="inventory-filter" data-kind="hardware" type="button">Hardware</button><button class="inventory-filter" data-kind="packaging" type="button">Packaging</button><button class="inventory-filter" data-kind="finished_product" type="button">Finished</button><button class="inventory-filter" data-kind="offcut" type="button">Offcuts</button><button class="inventory-filter" data-kind="other" type="button">Other</button>
+    <article class="widget span-2" data-widget-id="market" data-span="2" data-title="Global Market Radar">
+      <header class="widget-head"><span class="section-mark">RADAR</span><div><h2>Global Market Radar</h2><p>Worldwide public product evidence, grouped into useful product families. Search presence is never presented as proof of sales.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <div class="market-controls">
+        <select id="market-region"><option>Worldwide</option></select>
+        <select id="market-category"><option value="all">All product families</option></select>
+        <input id="market-focus" class="compact-input" placeholder="Optional focus e.g. gothic house numbers" />
+        <label class="check"><input id="market-deep" type="checkbox" /> Deep scan</label>
+        <button id="market-scan" type="button">Scan market</button>
       </div>
+      <div id="market-coverage" class="coverage-strip"></div>
+      <div id="research-status" class="inline-status"></div>
+      <div id="observations" class="opportunity-grid"></div>
+      <details class="raw-evidence"><summary>Raw evidence from scans</summary><div id="market-evidence" class="evidence-list"></div></details>
+    </article>
+
+    <article class="widget span-2" data-widget-id="outreach" data-span="2" data-title="Business Outreach">
+      <header class="widget-head"><span class="section-mark">OUTREACH</span><div><h2>Business Outreach</h2><p>Find businesses geographically, compile public contact details, prepare pitches and track outreach. MERLIN does not auto-send cold email.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <div id="outreach-stats" class="mini-metrics"></div>
+      <form id="prospect-scan-form" class="scan-form">
+        <label>Location / postcode<input id="prospect-location" value="Paignton, Devon" required /></label>
+        <label>Radius<select id="prospect-radius"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option></select></label>
+        <label>Business type<select id="prospect-category"><option value="all">All useful businesses</option><option value="restaurants">Restaurants / cafés / pubs</option><option value="hospitality">Hospitality</option><option value="gyms">Gyms</option><option value="barbers">Barbers / hairdressers</option><option value="retail">Retail</option><option value="professional">Professional offices</option><option value="automotive">Automotive</option><option value="trades">Trades</option></select></label>
+        <label>Country<select id="prospect-country"><option value="gb">United Kingdom</option><option value="ie">Ireland</option><option value="fr">France</option><option value="de">Germany</option><option value="es">Spain</option><option value="it">Italy</option><option value="nl">Netherlands</option><option value="cz">Czech Republic</option><option value="tr">Turkey</option><option value="ae">UAE</option><option value="sa">Saudi Arabia</option><option value="qa">Qatar</option></select></label>
+        <label>Enrich first<input id="prospect-enrich" type="number" min="0" max="100" value="35" /></label>
+        <button type="submit">Scan businesses</button>
+      </form>
+      <div id="prospect-scan-status" class="inline-status hidden"></div>
+      <div class="section-toolbar"><input id="prospect-search" class="toolbar-input" placeholder="Search business, town, postcode or email" /><select id="prospect-status"><option value="">All contact states</option><option value="not_contacted">Not contacted</option><option value="contacted">Contacted</option><option value="replied">Replied</option><option value="quoted">Quoted</option><option value="won">Won</option><option value="lost">Lost</option><option value="do_not_contact">Do not contact</option></select><button id="prospect-refresh" class="secondary">Refresh prospects</button></div>
+      <div class="table-wrap prospect-table-wrap"><table><thead><tr><th>Business</th><th>Type</th><th>Town</th><th>Distance</th><th>Email</th><th>Website</th><th>Compliance</th><th>Status</th><th></th></tr></thead><tbody id="prospects-body"></tbody></table></div>
+    </article>
+
+    <article class="widget span-2" data-widget-id="inventory" data-span="2" data-title="Inventory">
+      <header class="widget-head"><span class="section-mark">STOCK</span><div><h2>Inventory</h2><p>Metal, offcuts, consumables, hardware, packaging and finished stock in one ledger.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <div id="inventory-tabs" class="toggle-row"><button class="inventory-filter active" data-kind="all" type="button">All</button><button class="inventory-filter" data-kind="metal" type="button">Metal</button><button class="inventory-filter" data-kind="consumable" type="button">Consumables</button><button class="inventory-filter" data-kind="hardware" type="button">Hardware</button><button class="inventory-filter" data-kind="packaging" type="button">Packaging</button><button class="inventory-filter" data-kind="finished_product" type="button">Finished</button><button class="inventory-filter" data-kind="offcut" type="button">Offcuts</button><button class="inventory-filter" data-kind="other" type="button">Other</button></div>
       <div id="low-stock" class="alert-list"></div>
       <div class="table-wrap"><table><thead><tr><th>Item</th><th>Type</th><th>Specification</th><th>On hand</th><th>Unit cost</th><th>Stock value</th><th>Reorder</th></tr></thead><tbody id="inventory-body"></tbody></table></div>
-      <form id="inventory-form" class="quick-form">
-        <h3>Add inventory</h3>
-        <div class="form-grid compact-grid">
-          <label>Type<select id="inv-kind"><option value="raw_material">Metal / raw material</option><option value="consumable">Consumable</option><option value="hardware">Hardware</option><option value="packaging">Packaging</option><option value="finished_product">Finished stock</option><option value="offcut">Offcut</option><option value="other">Other</option></select></label>
-          <label>Name<input id="inv-name" required /></label><label>Qty<input id="inv-qty" type="number" step="any" value="1" /></label><label>Unit<input id="inv-unit" value="sheet" /></label><label>Cost each £<input id="inv-cost" type="number" step="0.01" /></label><label>Reorder at<input id="inv-reorder" type="number" step="any" /></label><label>Thickness mm<input id="inv-thickness" type="number" step="0.01" /></label><label>Width mm<input id="inv-width" type="number" step="0.1" /></label><label>Height mm<input id="inv-height" type="number" step="0.1" /></label><label>Location<input id="inv-location" /></label>
-        </div><button type="submit">Add inventory</button>
-      </form>
+      <form id="inventory-form" class="quick-form"><h3>Add inventory</h3><div class="form-grid compact-grid"><label>Type<select id="inv-kind"><option value="raw_material">Metal / raw material</option><option value="consumable">Consumable</option><option value="hardware">Hardware</option><option value="packaging">Packaging</option><option value="finished_product">Finished stock</option><option value="offcut">Offcut</option><option value="other">Other</option></select></label><label>Name<input id="inv-name" required /></label><label>Qty<input id="inv-qty" type="number" step="any" value="1" /></label><label>Unit<input id="inv-unit" value="sheet" /></label><label>Cost each £<input id="inv-cost" type="number" step="0.01" /></label><label>Reorder at<input id="inv-reorder" type="number" step="any" /></label><label>Thickness mm<input id="inv-thickness" type="number" step="0.01" /></label><label>Width mm<input id="inv-width" type="number" step="0.1" /></label><label>Height mm<input id="inv-height" type="number" step="0.1" /></label><label>Location<input id="inv-location" /></label></div><button type="submit">Add inventory</button></form>
     </article>
 
-    <article class="widget span-2" data-widget-id="market" data-span="2">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Market Opportunities</h2><p>Current public evidence relevant to products your present table could potentially make. No fabricated scores.</p></div><div class="head-actions"><input id="market-focus" class="compact-input" placeholder="Optional scan focus" /><button id="market-scan" class="secondary compact" type="button">Scan now</button><button class="span-toggle secondary compact" type="button">↔</button></div></header>
-      <div id="research-status" class="inline-status"></div>
-      <div id="observations" class="observations"></div>
-      <details class="raw-evidence"><summary>Raw evidence from latest scans</summary><div id="market-evidence" class="evidence-list"></div></details>
-    </article>
-
-    <article class="widget span-2" data-widget-id="intake" data-span="2">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Tell MERLIN</h2><p>Enter a completed business fact. MERLIN parses it, shows the fields it found, and writes nothing until you confirm.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
-      <form id="intake-form" class="intake-form"><textarea id="intake-input" rows="3" placeholder="Examples: Bought 5 sheets of 2mm cold-reduced steel 500×500mm for £110. | Sold JOK-001 for £65 on Etsy. | Cut JOK-001; cutting 14 min, cleanup 8 min."></textarea><button type="submit">Parse</button></form>
-      <div id="intake-preview"><div class="empty">Nothing is written until you confirm it.</div></div>
-      <details class="intake-history"><summary>Recent entries</summary><div id="intake-history"></div></details>
-    </article>
-
-    <article class="widget span-2" data-widget-id="performance" data-span="2">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Sales & Product Performance</h2><p>Completed sales only. No open-order ledger.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+    <article class="widget span-2" data-widget-id="performance" data-span="2" data-title="Sales & Performance">
+      <header class="widget-head"><span class="section-mark">PERFORMANCE</span><div><h2>Sales & Performance</h2><p>Completed sales, channel comparisons and product performance.</p></div><div class="head-actions"><select id="analytics-days"><option value="30">30 days</option><option value="90">90 days</option><option value="365" selected>12 months</option><option value="1095">3 years</option></select><button class="span-toggle secondary compact" type="button">↔</button></div></header>
+      <div class="chart-grid"><div class="chart-card"><h3>Revenue over time</h3><div id="revenue-chart"></div></div><div class="chart-card"><h3>Revenue by channel</h3><div id="channel-chart"></div></div><div class="chart-card"><h3>Advertising</h3><div id="ad-chart"></div></div></div>
       <div class="table-wrap"><table><thead><tr><th>ID</th><th>Product</th><th>Units sold</th><th>Revenue</th><th>Avg cut</th><th>Avg cleanup</th></tr></thead><tbody id="performance-body"></tbody></table></div>
       <form id="sale-form" class="quick-form"><h3>Record completed sale</h3><div class="form-grid compact-grid"><label>Product<select id="sale-product"><option value="">Select product</option></select></label><label>Channel<input id="sale-channel" placeholder="Etsy, eBay, direct…" /></label><label>Qty<input id="sale-qty" type="number" min="1" value="1" /></label><label>Gross revenue £<input id="sale-revenue" type="number" step="0.01" required /></label><label>Fees £<input id="sale-fees" type="number" step="0.01" /></label><label>Shipping cost £<input id="sale-shipping" type="number" step="0.01" /></label><label>Refunds £<input id="sale-refunds" type="number" step="0.01" /></label></div><button type="submit">Record sale</button><span id="sale-result" class="result"></span></form>
     </article>
 
-    <article class="widget" data-widget-id="finance" data-span="1">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Finance</h2><p>Recorded money only.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+    <article class="widget span-2" data-widget-id="stores" data-span="2" data-title="Store Connections">
+      <header class="widget-head"><span class="section-mark">STORES</span><div><h2>Store Connections</h2><p>Bring Etsy, eBay and direct sales into one performance ledger. CSV import works immediately; optional API sync activates when credentials are configured.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <div id="store-status" class="store-grid"></div>
+      <div class="store-imports">
+        <form class="store-import-form" data-platform="etsy"><strong>Etsy CSV</strong><input type="file" accept=".csv,text/csv" required /><button type="submit">Import Etsy CSV</button></form>
+        <form class="store-import-form" data-platform="ebay"><strong>eBay CSV</strong><input type="file" accept=".csv,text/csv" required /><button type="submit">Import eBay CSV</button></form>
+      </div>
+      <div id="store-result" class="inline-status hidden"></div>
+      <form id="ad-form" class="quick-form"><h3>Record ad data (when not imported automatically)</h3><div class="form-grid compact-grid"><label>Platform<input id="ad-platform" placeholder="Etsy / eBay" required /></label><label>Date<input id="ad-date" type="date" /></label><label>Spend £<input id="ad-spend" type="number" step="0.01" /></label><label>Impressions<input id="ad-impressions" type="number" /></label><label>Clicks<input id="ad-clicks" type="number" /></label><label>Orders<input id="ad-orders" type="number" /></label><label>Attributed revenue £<input id="ad-revenue" type="number" step="0.01" /></label></div><button type="submit">Record ad data</button></form>
+    </article>
+
+    <article class="widget span-2" data-widget-id="intake" data-span="2" data-title="Tell MERLIN">
+      <header class="widget-head"><span class="section-mark">INPUT</span><div><h2>Tell MERLIN</h2><p>Enter a completed business fact. MERLIN parses, shows the fields and writes nothing until you confirm.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <form id="intake-form" class="intake-form"><textarea id="intake-input" rows="3" placeholder="Bought 5 sheets of 2mm steel 500×500mm for £110. | Sold JOK-001 for £65 on Etsy. | Cut JOK-001; cutting 14 min, cleanup 8 min."></textarea><button type="submit">Parse</button></form>
+      <div id="intake-preview"><div class="empty">Nothing is written until you confirm it.</div></div><details class="intake-history"><summary>Recent entries</summary><div id="intake-history"></div></details>
+    </article>
+
+    <article class="widget" data-widget-id="finance" data-span="1" data-title="Finance">
+      <header class="widget-head"><span class="section-mark">£</span><div><h2>Finance</h2><p>Recorded money only.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
       <div id="finance-summary" class="finance-summary"></div>
       <form id="expense-form" class="quick-form"><h3>Record expense</h3><div class="form-grid compact-grid"><label>Category<input id="expense-category" required /></label><label>Description<input id="expense-description" required /></label><label>Amount £<input id="expense-amount" type="number" step="0.01" required /></label><label>Date<input id="expense-date" type="date" /></label></div><button type="submit">Record expense</button></form>
     </article>
 
-    <article class="widget" data-widget-id="activity" data-span="1">
-      <header class="widget-head"><button class="drag-handle" type="button" title="Drag section">⋮⋮</button><div><h2>Activity</h2><p>Recent changes and completed events.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
-      <div id="activity-list" class="activity-list"></div>
+    <article class="widget" data-widget-id="activity" data-span="1" data-title="Activity">
+      <header class="widget-head"><span class="section-mark">LOG</span><div><h2>Activity</h2><p>Recent changes and completed events.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header><div id="activity-list" class="activity-list"></div>
     </article>
   </section>
 </main>
 
+<dialog id="layout-dialog" class="dialog layout-dialog"><div class="dialog-head"><div><strong>Edit dashboard layout</strong><span>Move sections without dragging or scrolling. Changes save when you press Save layout.</span></div><button id="layout-close" type="button">×</button></div><div class="dialog-body"><div id="layout-editor"></div><div class="dialog-actions"><button id="layout-default" class="secondary">Default layout</button><button id="layout-save">Save layout</button></div></div></dialog>
 <dialog id="product-dialog" class="dialog"><div class="dialog-head"><div><strong id="dialog-code"></strong><span id="dialog-name"></span></div><button id="dialog-close" type="button">×</button></div><div id="product-detail" class="dialog-body"></div></dialog>
 <dialog id="inventory-dialog" class="dialog"><div class="dialog-head"><div><strong id="inv-dialog-name"></strong><span>Inventory record</span></div><button id="inv-dialog-close" type="button">×</button></div><div id="inventory-detail" class="dialog-body"></div></dialog>
+<dialog id="prospect-dialog" class="dialog"><div class="dialog-head"><div><strong id="prospect-dialog-name"></strong><span id="prospect-dialog-sub"></span></div><button id="prospect-dialog-close" type="button">×</button></div><div id="prospect-detail" class="dialog-body"></div></dialog>
 <script src="./config.js"></script><script src="./app.js"></script>
 </body>
 </html>
