@@ -35,7 +35,7 @@ function enrichObservationSources(db,o){
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'8.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'8.0.2',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{

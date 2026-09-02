@@ -1,0 +1,15 @@
+MERLIN CNC V8.0.2 FULL REPOSITORY VERIFICATION
+
+This package is a complete repository replacement, not a patch.
+It includes the entire application source tree, public dashboard, scripts, tests, docs, GitHub workflow, Render config, Dockerfile, Windows helpers, and data directory placeholders.
+
+Checks completed before packaging:
+- All JavaScript files: syntax PASS
+- Dependency import audit: PASS
+- dxf-parser present in package.json: YES
+- cheerio present in package.json: YES
+- image-to-DXF dependencies present: sharp, potrace, svg-path-parser
+- package is GitHub-root layout: YES
+
+Runtime note:
+Full npm installation/runtime tests could not be repeated in the artifact environment because external npm access timed out. Render/GitHub will install dependencies from package.json during deployment.
