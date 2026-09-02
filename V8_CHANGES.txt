@@ -1,0 +1,28 @@
+MERLIN CNC Business OS V8
+
+Main additions in this build:
+
+1) Image -> DXF pipeline
+- New Products panel form: upload an image and generate a traced product line.
+- Backend route: POST /api/design/from-image
+- Uses a single-piece silhouette-first workflow so the output is more workshop-friendly.
+- Stores the original image as a product asset.
+- Generates a DXF revision and a trace preview SVG in the product folder.
+- Scales geometry to the active machine envelope.
+
+Important behaviour:
+- The generator aims at one connected outer silhouette plus internal holes only.
+- This is safer for plasma cutting than blindly tracing every disconnected detail.
+- Artistic fidelity depends on source image quality. Clean silhouettes work best.
+
+2) Plainer Global Market Radar
+- Opportunity cards now use simpler wording.
+- Evidence selection prefers more diverse sources and deprioritises marketplace-only clutter.
+- Cards show non-marketplace source count and site diversity.
+
+3) Better business-scan failure messages
+- Geographic prospect scan now returns clearer messages when OpenStreetMap / Overpass cannot be reached.
+
+Install / upgrade notes:
+- New runtime dependencies were added: sharp, potrace, svg-path-parser.
+- Run npm install after deploying this version.

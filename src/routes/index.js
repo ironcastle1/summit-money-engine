@@ -14,6 +14,7 @@ import { parseAndStoreIntake, commitIntake, listIntake } from '../intake/service
 import { storeProductAssets, listProductAssets } from '../products/asset-service.js';
 import { runProspectScan, enrichProspect, enrichProspectsBatch, listProspects, getProspect, outreachStats, createPitch, recordOutreachEvent, companiesHouseConfigured } from '../outreach/outreach-service.js';
 import { importStoreCsv, storeStatus, syncEtsy, syncEbay, analytics, recordAdMetric } from '../stores/store-service.js';
+import { createProductFromImage } from '../design/image-to-dxf.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -34,7 +35,7 @@ function enrichObservationSources(db,o){
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'7.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'8.0.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{
@@ -200,5 +201,19 @@ export function registerRoutes(app,db){
   app.post('/api/ads',(req,res)=>res.status(201).json(recordAdMetric(db,req.body||{})));
   app.get('/api/store-imports',(req,res)=>res.json(db.prepare('SELECT * FROM store_import_runs ORDER BY created_at DESC LIMIT 100').all()));
 
-  app.post('/api/design/from-image',upload.single('file'),(req,res)=>res.status(501).json({error:'Not enabled in MERLIN V7',reason:'MERLIN does not claim arbitrary image-to-production-DXF reliability. Enable only after a validated vision + vector + topology + CNC-check pipeline demonstrably meets your cut-ready standard.'}));
+  app.post('/api/design/from-image',upload.single('file'),asyncRoute(async(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'Image file required'});
+    const product=await createProductFromImage(db,{
+      file:req.file,
+      name:req.body.name||null,
+      category:req.body.category||null,
+      legalStatus:req.body.legal_status||'review_required',
+      primaryMaterialId:req.body.primary_material_inventory_item_id||null,
+      target_width_mm:req.body.target_width_mm?Number(req.body.target_width_mm):null,
+      target_height_mm:req.body.target_height_mm?Number(req.body.target_height_mm):null,
+      mode:req.body.mode||'silhouette',
+      detail:req.body.detail||'medium'
+    });
+    res.status(201).json(product);
+  }));
 }

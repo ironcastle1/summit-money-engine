@@ -10,7 +10,7 @@
 <header class="topbar">
   <div class="brandblock"><div class="brand">MERLIN</div><div class="subtitle">CNC BUSINESS OPERATING SYSTEM</div></div>
   <div class="top-status"><span id="health" class="status-pill">STARTING</span><span id="input-pill" class="status-pill">INPUT</span><span id="market-pill" class="status-pill">MARKET</span></div>
-  <button id="edit-layout" class="secondary compact">Edit layout</button>
+  <button id="edit-layout" class="secondary compact">Arrange dashboard</button>
   <button id="refresh" class="secondary compact">Refresh</button>
 </header>
 <div id="system-banner" class="system-banner hidden"></div>
@@ -31,6 +31,21 @@
         </div>
         <button type="submit">Upload DXF(s)</button><span id="dxf-result" class="result"></span>
       </form>
+      <form id="image-dxf-form" class="quick-form dxf-form">
+        <h3>Generate DXF from image</h3>
+        <div class="form-grid upload-grid">
+          <label>Image<input type="file" id="image-file" accept="image/*" required /></label>
+          <label>Product name<input id="image-name" placeholder="Napoleon silhouette, horse profile…" /></label>
+          <label>Category<input id="image-category" placeholder="wall art, sign, memorial…" value="wall art" /></label>
+          <label>Material<select id="image-material"><option value="">Not assigned</option></select></label>
+          <label>Mode<select id="image-mode"><option value="silhouette" selected>Single-piece silhouette</option><option value="detail">More detail / riskier</option></select></label>
+          <label>Trace detail<select id="image-detail"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></label>
+          <label>Max width mm<input id="image-width" type="number" step="0.1" placeholder="Optional" /></label>
+          <label>Max height mm<input id="image-height" type="number" step="0.1" placeholder="Optional" /></label>
+          <label>Rights<select id="image-legal"><option value="review_required">Rights not established</option><option value="original">Original</option><option value="licensed">Commercial licence</option><option value="public_domain">Public domain</option></select></label>
+        </div>
+        <button type="submit">Generate product from image</button><span id="image-result" class="result"></span>
+      </form>
       <div class="section-toolbar">
         <input id="product-search" class="toolbar-input" placeholder="Search ID, title, category or material" />
         <select id="product-category-filter"><option value="">All categories</option></select>
@@ -43,7 +58,7 @@
     </article>
 
     <article class="widget span-2" data-widget-id="market" data-span="2" data-title="Global Market Radar">
-      <header class="widget-head"><span class="section-mark">RADAR</span><div><h2>Global Market Radar</h2><p>Worldwide public product evidence, grouped into useful product families. Search presence is never presented as proof of sales.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <header class="widget-head"><span class="section-mark">RADAR</span><div><h2>Global Market Radar</h2><p>Plain-English product opportunity notes from public web evidence. Search presence is not treated as proof of sales.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
       <div class="market-controls">
         <select id="market-region"><option>Worldwide</option></select>
         <select id="market-category"><option value="all">All product families</option></select>
@@ -58,7 +73,7 @@
     </article>
 
     <article class="widget span-2" data-widget-id="outreach" data-span="2" data-title="Business Outreach">
-      <header class="widget-head"><span class="section-mark">OUTREACH</span><div><h2>Business Outreach</h2><p>Find businesses geographically, compile public contact details, prepare pitches and track outreach. MERLIN does not auto-send cold email.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <header class="widget-head"><span class="section-mark">OUTREACH</span><div><h2>Business Outreach</h2><p>Find businesses in an area, gather public contact details, draft simple pitches and track who you have contacted. MERLIN does not auto-send cold email.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
       <div id="outreach-stats" class="mini-metrics"></div>
       <form id="prospect-scan-form" class="scan-form">
         <label>Location / postcode<input id="prospect-location" value="Paignton, Devon" required /></label>

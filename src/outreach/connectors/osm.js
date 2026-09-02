@@ -32,19 +32,35 @@ export async function geocodePlace(query,countryCode='gb'){
   const params=new URLSearchParams({q:query,format:'jsonv2',limit:'1',addressdetails:'1'});
   if(countryCode)params.set('countrycodes',countryCode.toLowerCase());
   const email=process.env.MERLIN_NOMINATIM_EMAIL;if(email)params.set('email',email);
-  const {text}=await respectfulFetch(`${NOMINATIM}?${params}`,{headers:{accept:'application/json'},minHostGapMs:1200});
-  const rows=JSON.parse(text);if(!rows.length)throw new Error(`Could not geocode ${query}`);
-  return {lat:Number(rows[0].lat),lon:Number(rows[0].lon),display_name:rows[0].display_name,address:rows[0].address||{}};
+  try{
+    const {text}=await respectfulFetch(`${NOMINATIM}?${params}`,{headers:{accept:'application/json'},minHostGapMs:1200});
+    const rows=JSON.parse(text);
+    if(!rows.length)throw new Error('no results');
+    return {lat:Number(rows[0].lat),lon:Number(rows[0].lon),display_name:rows[0].display_name,address:rows[0].address||{}};
+  }catch(error){
+    throw new Error(`Could not find that location on OpenStreetMap. Try a clearer town, city or postcode. (${error.message||'geocoding failed'})`);
+  }
 }
 
 export async function scanBusinessesAround({lat,lon,radiusMeters=10000,category='all',limit=500}){
   const r=Math.max(250,Math.min(50000,Number(radiusMeters)||10000));
   const tags=CATEGORY_TAGS[category]||CATEGORY_TAGS.all;
   const parts=[];
-  for(const [key,rx] of tags){const k=escapeRegex(key),v=escapeRegex(rx);for(const type of ['node','way','relation'])parts.push(`${type}(around:${r},${lat},${lon})["${k}"~"${v}"]["name"];`);}
+  for(const [key,rx] of tags){
+    const k=escapeRegex(key),v=escapeRegex(rx);
+    for(const type of ['node','way','relation']) parts.push(`${type}(around:${r},${lat},${lon})["${k}"~"${v}"]["name"];`);
+  }
   const query=`[out:json][timeout:45];(${parts.join('')});out center tags;`;
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),65000);let text;
-  try{const response=await fetch(OVERPASS,{method:'POST',signal:controller.signal,headers:{'content-type':'application/x-www-form-urlencoded','user-agent':process.env.MERLIN_RESEARCH_USER_AGENT||'MERLIN-CNC/7.0',accept:'application/json'},body:new URLSearchParams({data:query})});if(!response.ok)throw new Error(`Overpass ${response.status}`);text=await response.text();}finally{clearTimeout(timer);}
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),65000);
+  let text;
+  try{
+    const response=await fetch(OVERPASS,{method:'POST',signal:controller.signal,headers:{'content-type':'application/x-www-form-urlencoded','user-agent':process.env.MERLIN_RESEARCH_USER_AGENT||'MERLIN-CNC/8.0',accept:'application/json'},body:new URLSearchParams({data:query})});
+    if(!response.ok)throw new Error(`directory source returned ${response.status}`);
+    text=await response.text();
+  }catch(error){
+    throw new Error(`Business scan could not reach the public map directory right now. Try again shortly or reduce the radius. (${error.message||'network error'})`);
+  }finally{clearTimeout(timer);}
   const data=JSON.parse(text);const rows=[];const seen=new Set();
   for(const e of data.elements||[]){
     const t=e.tags||{};const name=t.name?.trim();if(!name)continue;
