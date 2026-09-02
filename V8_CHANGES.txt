@@ -26,3 +26,4 @@ Important behaviour:
 Install / upgrade notes:
 - New runtime dependencies were added: sharp, potrace, svg-path-parser.
 - Run npm install after deploying this version.
+V8.0.1 packaging fix: restored dxf-parser and cheerio dependencies required by existing DXF and market modules.
