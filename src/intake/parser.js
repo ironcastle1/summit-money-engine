@@ -14,7 +14,7 @@ function compactText(s) { return String(s || '').trim().replace(/\s+/g, ' '); }
 function extractQty(text, words = 'sheets?|plates?|items?|units?|pcs?|pieces?|boxes?|cans?|tins?|packs?|discs?|electrodes?|nozzles?|tips?|shields?|standoffs?|screws?') {
   const m = text.match(new RegExp(`\\b${NUMBER}\\s*(?:x\\s*)?(?:${words})\\b`, 'i'));
   if (m) return n(m[1]);
-  const of = text.match(/\b(\d+(?:\.\d+)?)\s+of\s+(?:MER-[A-Z0-9]+-\d{6}|the\s+product|this\s+product)/i);
+  const of = text.match(/\b(\d+(?:\.\d+)?)\s+of\s+(?:[A-Z0-9]{2,5}-\d{3}|MER-[A-Z0-9]+-\d{6}|the\s+product|this\s+product)/i);
   if (of) return n(of[1]);
   const x = text.match(/\bqty\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
   return x ? n(x[1]) : null;
@@ -70,7 +70,7 @@ function parseDueDate(text) {
   return null;
 }
 function productRef(text) {
-  const code = text.match(/\b(MER-[A-Z0-9]+-\d{6})\b/i);
+  const code = text.match(/\b([A-Z0-9]{2,5}-\d{3}|MER-[A-Z0-9]+-\d{6})\b/i);
   if (code) return { product_code: code[1].toUpperCase(), product_name:null };
   const named = text.match(/(?:product|item|design)\s+["']?([^,"'£]+?)["']?(?=\s+(?:for|qty|quantity|on|at|due|took|used)\b|$)/i);
   return { product_code:null, product_name:named ? compactText(named[1]) : null };
@@ -163,16 +163,11 @@ export function parseIntakeText(text) {
     }, ref.product_code||ref.product_name?[]:['product_reference'], ['MERLIN will require an exact product match before linking the sale.']);
   }
 
-  // New customer order.
+  // MERLIN V6 deliberately does not maintain an open-order ledger. Completed work is recorded as sales/production history.
   if (/\b(new order|order for|customer order|ordered)\b/.test(lower)) {
-    const ref=productRef(raw); const qty=extractQty(raw,'items?|units?|pcs?|pieces?') ?? 1;
-    const each = raw.match(/(?:£|at\s*£)\s*(\d+(?:\.\d+)?)\s*(?:each|per\s+unit)/i);
-    const total = raw.match(/(?:total|for)\s*£\s*(\d+(?:\.\d+)?)/i);
-    const customer = first(/customer\s*[:=]?\s*([^,;]+)/i,raw);
-    const description = !ref.product_code && !ref.product_name ? first(/order\s+(?:for\s+)?([^,;£]+)/i,raw) : null;
-    const fields={...ref,description:description?compactText(description):null,quantity:qty,unit_price:each?n(each[1]):null,gross_total:total?n(total[1]):(each?n(each[1])*qty:null),channel:channel(raw),customer_reference:customer?compactText(customer):null,due_at:parseDueDate(raw),currency:'GBP',source_text:raw};
-    const missing=[]; if(!fields.product_code&&!fields.product_name&&!fields.description)missing.push('product_or_description');
-    return result('order','Create customer order',fields,missing);
+    return result('unsupported','Open orders are not logged in MERLIN V6',{source_text:raw},['completed_sale_or_production_record'],[
+      'Fulfil the order in the sales platform. After completion, record the sale and any measured production data against the short product code.'
+    ]);
   }
 
   // Production record.
@@ -195,7 +190,7 @@ export function parseIntakeText(text) {
   }
 
   return result('unsupported','Statement not recognised', {source_text:raw}, ['supported_statement_type'], [
-    'Nothing has been written. Use a concrete statement about stock, a purchase, expense, order, sale, production run, product price, or business note.'
+    'Nothing has been written. Use a concrete statement about stock, a purchase, expense, completed sale, production run, product price, or business note.'
   ]);
 }
 

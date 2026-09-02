@@ -433,4 +433,13 @@ export function migrateDatabase(db) {
   addColumn(db, 'production_runs', 'material_quantity_consumed REAL');
 
   db.prepare(`INSERT OR IGNORE INTO business_profile (id) VALUES (1)`).run();
+
+  // V6 simplifies the dashboard around products, inventory, market evidence and completed performance.
+  // Reset only older layout schemas once; user changes made in V6 remain persistent.
+  const layoutVersion = db.prepare("SELECT value FROM meta WHERE key='dashboard_layout_version'").get()?.value;
+  if (layoutVersion !== '6') {
+    const defaultLayout = { order:['products','inventory','market','intake','performance','finance','activity'], spans:{products:2,inventory:2,market:2,intake:2,performance:2,finance:1,activity:1} };
+    db.prepare("INSERT INTO ui_preferences (preference_key,value_json) VALUES ('dashboard_layout',?) ON CONFLICT(preference_key) DO UPDATE SET value_json=excluded.value_json,updated_at=CURRENT_TIMESTAMP").run(JSON.stringify(defaultLayout));
+    db.prepare("INSERT INTO meta (key,value) VALUES ('dashboard_layout_version','6') ON CONFLICT(key) DO UPDATE SET value=excluded.value").run();
+  }
 }

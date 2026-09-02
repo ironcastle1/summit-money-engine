@@ -13,8 +13,8 @@ function exactProduct(db, fields){
   if(fields.product_name){
     const rows=db.prepare('SELECT * FROM products WHERE lower(name)=lower(?) ORDER BY created_at DESC').all(fields.product_name);
     if(rows.length===1)return {product:rows[0],ambiguity:null};
-    if(rows.length>1)return {product:null,ambiguity:`More than one product is named ${fields.product_name}; use the MER product code.`};
-    return {product:null,ambiguity:`No exact product name match exists for ${fields.product_name}; use the MER product code.`};
+    if(rows.length>1)return {product:null,ambiguity:`More than one product is named ${fields.product_name}; use the short product code.`};
+    return {product:null,ambiguity:`No exact product name match exists for ${fields.product_name}; use the short product code.`};
   }
   return {product:null,ambiguity:'No product reference was supplied.'};
 }
@@ -47,7 +47,7 @@ export function parseAndStoreIntake(db,text){
   const raw=normaliseIntakeText(text);const parsed=parseIntakeText(raw);const intakeId=saveDraft(db,raw,parsed);
   // Resolve exact product references before presenting the draft.
   let resolution={};
-  if(['sale','order','production_run','product_price'].includes(parsed.action)&&(parsed.fields.product_code||parsed.fields.product_name)){
+  if(['sale','production_run','product_price'].includes(parsed.action)&&(parsed.fields.product_code||parsed.fields.product_name)){
     const r=exactProduct(db,parsed.fields);resolution.product=r.product?{id:r.product.id,product_code:r.product.product_code,name:r.product.name}:null;
     if(r.ambiguity){parsed.can_commit=false;parsed.missing_fields=[...new Set([...(parsed.missing_fields||[]),'exact_product_match'])];parsed.notes=[...(parsed.notes||[]),r.ambiguity];}
     else parsed.fields.product_id=r.product.id;
@@ -88,7 +88,7 @@ export function commitIntake(db,intakeId){
       const moved=moveInventory(db,{inventory_item_id:item.id,movement_type:'purchase',quantity:Number(f.quantity||0),unit_cost:f.unit_cost,reference_type:'intake',reference_id:intakeId,notes:`Tell MERLIN purchase: ${f.source_text}`});
       item=moved.item;
       const purchase=recordPurchaseTables(db,item,f);
-      result={type:'inventory',item_id:item.id,purchase_id:purchase.purchase_id,expense_id:purchase.expense_id,name:item.name,quantity_added:Number(f.quantity||0),quantity_on_hand:item.quantity_on_hand,unit:item.unit,unit_cost:item.unit_cost};
+      result={type:'inventory',item_id:item.id,purchase_id:purchase||null,name:item.name,quantity_added:Number(f.quantity||0),quantity_on_hand:item.quantity_on_hand,unit:item.unit,unit_cost:item.unit_cost};
       event(db,'inventory',`Stock added: ${item.name}`,`+${Number(f.quantity||0)} ${item.unit} · ${item.quantity_on_hand} now on hand${item.unit_cost==null?'':` · £${Number(item.unit_cost).toFixed(2)} each`}`,'inventory_item',item.id);
     } else if(row.action==='inventory_stocktake'){
       const r=exactInventory(db,f.inventory_name);if(!r.item)throw Object.assign(new Error(r.ambiguity),{status:409});
@@ -102,10 +102,6 @@ export function commitIntake(db,intakeId){
     } else if(row.action==='sale'){
       const sale=recordSale(db,{product_id:f.product_id,channel:f.channel,quantity:f.quantity,gross_revenue:f.gross_revenue,currency:f.currency||'GBP',notes:`Tell MERLIN: ${f.source_text}`});syncProductSnapshot(db,f.product_id);
       result={type:'sale',sale_id:sale.id,product_id:f.product_id,gross_revenue:f.gross_revenue};event(db,'sale','Sale recorded',`£${Number(f.gross_revenue).toFixed(2)}`,'sale',sale.id);
-    } else if(row.action==='order'){
-      const oid=id('ORD');db.prepare('INSERT INTO orders (id,channel,status,customer_reference,gross_total,currency,due_at,notes) VALUES (?,?,?,?,?,?,?,?)').run(oid,f.channel||null,'new',f.customer_reference||null,f.gross_total==null?null:Number(f.gross_total),f.currency||'GBP',f.due_at||null,`Tell MERLIN: ${f.source_text}`);
-      db.prepare('INSERT INTO order_lines (id,order_id,product_id,description,quantity,unit_price,customisation_json) VALUES (?,?,?,?,?,?,?)').run(id('LINE'),oid,f.product_id||null,f.description||null,Number(f.quantity||1),f.unit_price==null?null:Number(f.unit_price),'{}');
-      result={type:'order',order_id:oid,product_id:f.product_id||null,quantity:f.quantity};event(db,'order','Customer order recorded',f.source_text,'order',oid);
     } else if(row.action==='production_run'){
       const run=recordProductionRun(db,{product_id:f.product_id,quantity:f.quantity,cut_seconds:f.cut_seconds,cleanup_seconds:f.cleanup_seconds,finishing_seconds:f.finishing_seconds,packaging_seconds:f.packaging_seconds,success:f.success,notes:`Tell MERLIN: ${f.source_text}`});syncProductSnapshot(db,f.product_id);
       result={type:'production_run',run_id:run.id,product_id:f.product_id,quantity:f.quantity};event(db,'production','Production run recorded',f.source_text,'production_run',run.id);

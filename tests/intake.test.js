@@ -31,7 +31,7 @@ test('unknown statement is not silently written',()=>{
 });
 
 test('production command recognises quantity and measured times',()=>{
-  const r=parseIntakeText('Cut 2 of MER-WALLART-000001; cutting 14 min, cleanup 8 min');
+  const r=parseIntakeText('Cut 2 of JOK-001; cutting 14 min, cleanup 8 min');
   assert.equal(r.action,'production_run');
   assert.equal(r.fields.quantity,2);
   assert.equal(r.fields.cut_seconds,840);
@@ -47,4 +47,11 @@ test('ready intake commits raw material to inventory',()=>{
   const row=db.prepare("SELECT * FROM inventory_items WHERE kind='raw_material'").get();
   assert.equal(row.quantity_on_hand,2);
   assert.equal(row.unit_cost,20);
+});
+
+
+test('open order statements are deliberately not committed in V6',()=>{
+  const r=parseIntakeText('New order for JOK-001 qty 1 due tomorrow');
+  assert.equal(r.action,'unsupported');
+  assert.equal(r.can_commit,false);
 });

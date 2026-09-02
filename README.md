@@ -1,225 +1,184 @@
-# MERLIN CNC V5 — Deterministic CNC Business Operating System
+# MERLIN CNC V6 — Product-Centred CNC Business Operating System
 
-MERLIN V5 is a practical operating system for the current CNC plasma business. It has **no chatbot, no local language model, no OpenAI integration, no API-token bill and no model download**.
+MERLIN V6 is the current-stage operating system for the CNC plasma business. It is deliberately centred on the information that matters now: **products, DXFs, inventory, market evidence, completed sales/performance, finance and business history**.
 
-The system is built around four jobs:
+There is no chatbot, no OpenAI API, no local language model and no token billing. `Tell MERLIN` is a deterministic intake parser: it extracts concrete fields, shows them to the owner, and writes nothing until the owner confirms the parsed record.
 
-1. **Tell MERLIN** — type a concrete business statement once; MERLIN parses it with deterministic rules, shows exactly what it understood, and only writes it after confirmation.
-2. **Business operations** — orders, production, inventory, finished stock, finance and activity history.
-3. **Product/DXF registry** — every DXF receives a permanent MER product number and its own product folder; revisions, previews, photos and documents stay attached to that product.
-4. **Market opportunity watch** — scheduled public-web collectors gather current product, price, supplier and trend evidence. MERLIN produces factual evidence summaries without invented opportunity scores.
+## What changed in V6
 
-## Quick installation
+- Open-order and production-queue UI removed. Customer platforms remain the place where live orders are fulfilled.
+- Completed sales are recorded after fulfilment for performance tracking.
+- Product IDs are short workshop codes such as `JOK-001`, `NAP-002` and `MHN-003`.
+- Existing long V5 product codes are migrated automatically on startup without changing their internal UUIDs.
+- Every DXF upload creates one permanent product row and one immutable internal product ID.
+- New DXFs can be added as revisions to an existing product rather than creating duplicates.
+- Product table shows all products together with short ID, title, category, material, production size, active revision, deterministic DXF findings, average cut time, units sold and revenue.
+- `Analyse selected` and `Analyse all DXFs` re-run deterministic analysis from the stored source files.
+- Vague `Review Required` badges are removed from the product table. MERLIN shows only concrete findings such as `Units unknown`, `4 open endpoints`, `2 unsupported entities`, `duplicate geometry`, or `exceeds table envelope`.
+- Metal, consumables, hardware, packaging, finished stock and offcuts are combined in a single Inventory section with view toggles.
+- Dashboard sections use pointer-based drag reordering and save the resulting order in SQLite.
+- Market intelligence remains evidence-first and score-free.
 
-### Existing GitHub/Render installation
+## GitHub / Render upgrade
 
-1. Preserve the old branch if you want it.
-2. Extract the V5 GitHub-root ZIP.
-3. Copy **the contents** directly into the existing repository root and replace existing files.
-4. Commit and push to `main`.
-5. Render redeploys automatically if connected to the repository.
-6. Keep a persistent Render disk mounted at `/var/data` with the environment variables in `render.yaml` so the SQLite database and uploaded product files survive redeploys.
+1. Preserve any branch you want to keep.
+2. Extract the V6 GitHub-root ZIP.
+3. Copy the **contents** into the root of the existing `summit-money-engine` repository.
+4. Replace matching files.
+5. Commit to `main`, for example: `MERLIN CNC V6 product-centred rebuild`.
+6. Push origin. Render can redeploy automatically.
 
-No API key is required.
+Do not place the extracted V6 folder inside the repository as an extra nested directory. `package.json`, `server.js`, `public/`, `src/`, etc. should remain at repository root.
 
-### Run on Windows instead
+## Existing data
 
-1. Install Node.js 20 if it is not already installed.
-2. Double-click `SETUP_MERLIN.bat` once.
-3. Double-click `START_MERLIN.bat` whenever you want MERLIN running.
-4. Open `http://localhost:3000`.
+V6 migrates an existing MERLIN SQLite database in place. It does not require deleting the database. Products continue to use their immutable internal UUIDs even when the visible workshop code changes from an old long form such as `MER-WALLART-000001` to a short form such as `JOK-001`.
+
+The old orders tables remain in the database for backward data preservation, but V6 does not expose an open-order workflow in the main application.
+
+## Main workflow
+
+### 1. Upload DXFs
+
+Upload one or many `.dxf` files in Products. A new file becomes a new product line unless its SHA-256 hash exactly matches a DXF already stored.
+
+Example:
+
+```text
+JOK-001  Joker
+NAP-002  Napoleon
+MHN-003  Modern House Numbers
+```
+
+The short code is visible and writable in the workshop. The database still holds a separate immutable UUID internally.
+
+### 2. Review product analysis
+
+MERLIN analyses actual vector geometry. It can report deterministic facts such as:
+
+- drawing extents;
+- confirmed physical dimensions when units are known;
+- entity count;
+- unmatched/open endpoints;
+- duplicate entities;
+- unsupported entity types;
+- whether confirmed dimensions fit the active table envelope;
+- approximate cut length and pierce information where deterministically available.
+
+It does **not** claim that generic DXF topology alone proves retained steel, bridge integrity or complete plasma cuttability.
+
+### 3. Record stock
+
+Use the unified Inventory section or Tell MERLIN.
+
+Example:
+
+```text
+Bought 5 sheets of 2mm cold-reduced steel 500 x 500mm for £110
+```
+
+MERLIN parses the statement and presents the extracted quantity, thickness, dimensions and costs before recording it.
+
+### 4. Record completed production data
+
+Open a product and record measured cutting, cleanup, finishing and packaging times after a real run. These measurements feed product performance rather than relying on estimates.
+
+Tell MERLIN also accepts examples such as:
+
+```text
+Cut JOK-001; cutting 14 min, cleanup 8 min
+```
+
+### 5. Record completed sales
+
+V6 deliberately does not require you to log an order before fulfilling it. After the sale is completed, record it against the product:
+
+```text
+Sold JOK-001 for £65 on Etsy
+```
+
+The Products and Sales & Product Performance tables then update units sold and revenue.
+
+## Product files
+
+A product folder is organised under:
+
+```text
+data/products/JOK-001/
+  master/
+  revisions/
+  previews/
+  photos/
+  listings/
+  production/
+  costing/
+  documents/
+  assets/
+  product.json
+```
+
+The visible code can be corrected from the product record. MERLIN attempts to move the product folder and update stored paths when a code changes. The immutable UUID remains unchanged.
+
+## Inventory views
+
+One Inventory section supports:
+
+- All
+- Metal
+- Consumables
+- Hardware
+- Packaging
+- Finished
+- Offcuts
+- Other
+
+Each record can carry quantity, unit, cost, reorder point, dimensions/specification and location.
+
+## Market intelligence
+
+MERLIN’s collectors gather public web evidence for monitored current-stage product and procurement topics. Evidence summaries state:
+
+- what was actually collected;
+- why it may be relevant to the present CNC operation;
+- what the evidence does not establish;
+- source links;
+- a possible small validation action.
+
+No opportunity scores, confidence percentages or fabricated sales estimates are generated.
 
 ## Tell MERLIN
 
-The intake console is not a chatbot. It is a structured parser.
+Tell MERLIN is not a chatbot. It recognises supported concrete business statements. It can currently process categories including:
 
-Examples:
+- metal purchases;
+- supply/consumable purchases;
+- stocktakes for recognised supplies;
+- expenses;
+- completed sales;
+- completed production runs;
+- product selling-price changes;
+- explicit business notes.
 
-```text
-Bought 5 sheets of 2mm cold-reduced steel 500x500mm for £110 delivered
+An open-order statement is deliberately rejected with an explanation that V6 records completed sale/production history instead.
+
+## Local development
+
+```powershell
+npm install
+npm run seed
+npm start
 ```
 
-MERLIN extracts:
-
-- action: raw-material purchase
-- quantity: 5 sheets
-- thickness: 2 mm
-- width/height: 500 × 500 mm
-- total purchase cost: £110
-- unit cost: £22/sheet
-
-It shows those fields before recording them.
-
-Other supported statements include:
+Then open:
 
 ```text
-Bought 50 standoffs for £22.50
-I have 8 plasma electrodes left
-Spent £13.50 on black paint
-Sold MER-WALLART-000001 for £65 on Etsy
-New order for MER-WALLART-000001, qty 2, £60 each, due 2026-09-05
-Cut 2 of MER-WALLART-000001; cutting 14 min, cleanup 8 min
-Set MER-WALLART-000001 selling price £75
-Note: black paint takes longer to cure when the garage is cold
+http://localhost:3000
 ```
 
-If a statement is ambiguous, MERLIN does **not** guess. It marks the missing field and does not write the record.
+## Persistence on Render
 
-## Product IDs and files
-
-A new DXF creates a permanent product such as:
-
-```text
-MER-WALLART-000001
-```
-
-with a folder such as:
-
-```text
-data/products/MER-WALLART-000001/
-├── master/
-├── revisions/
-├── previews/
-├── photos/
-├── listings/
-├── production/
-├── costing/
-├── documents/
-├── assets/
-└── product.json
-```
-
-The product ID does not change when the product name changes.
-
-From the product detail window you can:
-
-- add a new DXF revision;
-- confirm DXF units;
-- attach photographs;
-- attach listing copy/documents;
-- attach production/costing files;
-- record the BOM;
-- record production runs;
-- set material, physical target size and selling price.
-
-Non-DXF product files are stored in the correct product folder and recorded in the `product_assets` table.
-
-## DXF discipline
-
-MERLIN uses deterministic DXF parsing for supported entity types. It records source units, extents, entity count, open paths, cut length where calculable, obvious duplicates and source-scale machine fit when units are known.
-
-It does **not** call arbitrary image-to-DXF conversion production-ready. That endpoint remains disabled until a pipeline can prove a better outcome rate and CNC topology safety.
-
-It also does not invent minimum bridge/hole/slot limits before those rules have been calibrated from real cuts on the actual machine.
-
-## Inventory
-
-Inventory distinguishes:
-
-- raw material;
-- offcuts;
-- consumables;
-- hardware;
-- packaging;
-- finished products;
-- other tracked items.
-
-Each item can hold quantity on hand, reserved quantity, available quantity, reorder point, unit cost, supplier, location and material dimensions/attributes.
-
-Inventory changes are written to an immutable movement ledger. Production can consume material/BOM inputs and create finished stock. Dispatch can consume finished stock.
-
-## Orders and production
-
-Order stages currently include:
-
-```text
-new
-confirmed
-queued
-cutting
-deburring
-surface_prep
-painting
-curing
-qc
-packing
-ready
-dispatched
-cancelled
-```
-
-The dashboard shows open orders and the production queue immediately.
-
-## Market Opportunity Watch
-
-MERLIN's research layer does not ask a language model what is trending.
-
-Scheduled collectors gather current public evidence using configured search/news/trend sources. The database stores:
-
-- query;
-- title;
-- source URL;
-- publisher;
-- snippet;
-- observed public price when parsable;
-- publication date when available;
-- collection time.
-
-V5 then groups that evidence deterministically and reports:
-
-- how many current results were collected;
-- how many distinct domains were represented;
-- whether direct price evidence was present and its observed range;
-- any dated recent sources;
-- why the monitored category is relevant to the **current** business;
-- explicit unknowns;
-- source links;
-- a small validation action.
-
-Search presence is never presented as proof of sales. No fabricated percentages, confidence ratings or opportunity scores are generated.
-
-The opportunity panel is ordered transparently: observations with direct price evidence first, then multi-domain evidence, then recency. That ordering is not an invented profitability score.
-
-## Current-stage doctrine
-
-MERLIN models the business that exists now. The seeded state contains the current CrossFire/Razorweld operation and current product strategy. It does not fill the operating dashboard with hypothetical Prague, Gulf, multi-factory or future-machine assumptions.
-
-When the physical business changes, update the capability/machine state and then extend MERLIN around the new reality.
-
-## Data storage
-
-Default local paths:
-
-```text
-data/merlin.sqlite
-data/products/
-data/uploads/
-data/previews/
-```
-
-Render should use:
-
-```text
-MERLIN_DB_PATH=/var/data/merlin.sqlite
-MERLIN_PRODUCT_DIR=/var/data/products
-MERLIN_UPLOAD_DIR=/var/data/uploads
-MERLIN_PREVIEW_DIR=/var/data/previews
-```
-
-and a persistent disk mounted at `/var/data`.
+SQLite and product files require persistent storage. Configure `MERLIN_DB_PATH` and `MERLIN_DATA_DIR` / `MERLIN_PRODUCT_DIR` to point to a persistent Render disk if the service is hosted there. Do not rely on an ephemeral filesystem for real business records.
 
 ## Security
 
-V5 contains no AI secret/API key. If the deployment is made publicly accessible, add authentication before entering customer-identifying or commercially sensitive information. The current application is intended as an owner-operated internal business system.
-
-## Tests
-
-Run:
-
-```bash
-npm install
-npm run check
-npm test
-```
-
-GitHub Actions runs the same syntax/test workflow on pushes and pull requests.
+MERLIN contains business records and potentially commercially sensitive files. If exposed beyond the owner’s private use, add authentication and appropriate access controls before storing customer-identifying information.

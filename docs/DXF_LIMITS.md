@@ -1,4 +1,4 @@
-# DXF validation limits — MERLIN V5
+# DXF validation limits — MERLIN V6
 
 MERLIN can deterministically inspect supported vector entities and report factual geometry information. Unitless files remain unitless until the owner confirms their intended units.
 

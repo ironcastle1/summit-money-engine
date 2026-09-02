@@ -26,4 +26,4 @@ services:
       - key: MERLIN_RESEARCH_INTERVAL_HOURS
         value: 12
       - key: MERLIN_RESEARCH_USER_AGENT
-        value: MERLIN-CNC-Research/5.0
+        value: MERLIN-CNC-Research/6.0

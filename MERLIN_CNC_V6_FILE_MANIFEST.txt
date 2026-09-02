@@ -5,7 +5,8 @@
 .node-version
 BACKUP_MERLIN.bat
 Dockerfile
-MERLIN_CNC_V5_FILE_MANIFEST.txt
+MERLIN_CNC_V6_FILE_MANIFEST.txt
+MERLIN_CNC_V6_VERIFICATION.txt
 README.md
 SETUP_MERLIN.bat
 START_MERLIN.bat
@@ -51,8 +52,6 @@ src/products/product-service.js
 src/routes/index.js
 src/services/filesystem.js
 src/services/memory.js
-src/services/orders.js
-src/services/priorities.js
 src/services/production.js
 src/services/sales.js
 src/services/snapshot.js
@@ -62,3 +61,4 @@ tests/dxf.test.js
 tests/id.test.js
 tests/intake.test.js
 tests/inventory.test.js
+tests/product-code.test.js

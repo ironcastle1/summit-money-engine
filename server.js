@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { ensureDirectories } from './src/services/filesystem.js';
 import { openDatabase, migrateDatabase } from './src/db/database.js';
 import { registerRoutes } from './src/routes/index.js';
+import { migrateLegacyProductCodes } from './src/products/product-service.js';
 import { seedCurrentBusiness } from './src/db/seed.js';
 import { startMarketResearchScheduler } from './src/market/scheduler.js';
 
@@ -16,6 +17,7 @@ ensureDirectories();
 const db = openDatabase();
 migrateDatabase(db);
 seedCurrentBusiness(db);
+migrateLegacyProductCodes(db);
 
 const app = express();
 const allowedOrigins = (process.env.MERLIN_ALLOWED_ORIGINS || '').split(',').map(v => v.trim()).filter(Boolean);
@@ -31,6 +33,6 @@ app.use((err, req, res, next) => { console.error(err); if (res.headersSent) retu
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
-  console.log(`MERLIN CNC V5 running on http://localhost:${port}`);
+  console.log(`MERLIN CNC V6 running on http://localhost:${port}`);
   startMarketResearchScheduler(db);
 });

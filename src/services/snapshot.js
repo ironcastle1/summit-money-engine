@@ -16,11 +16,8 @@ export function businessSnapshot(db) {
     FROM products p LEFT JOIN product_revisions r ON r.id=p.active_revision_id
     LEFT JOIN inventory_items i ON i.id=p.primary_material_inventory_item_id
     ORDER BY p.created_at DESC LIMIT 250`).all();
-  const orders = db.prepare("SELECT id,external_order_id,channel,status,customer_reference,gross_total,currency,ordered_at,due_at,notes FROM orders WHERE status NOT IN ('dispatched','cancelled') ORDER BY due_at IS NULL,due_at,ordered_at DESC LIMIT 200").all();
-  const lineStmt=db.prepare(`SELECT ol.id,ol.product_id,ol.description,ol.quantity,ol.unit_price,p.product_code,p.name product_name FROM order_lines ol LEFT JOIN products p ON p.id=ol.product_id WHERE ol.order_id=? ORDER BY ol.id`);
-  const openOrders=orders.map(o=>({...o,lines:lineStmt.all(o.id)}));
   const recentRuns = db.prepare(`SELECT pr.*,p.product_code,p.name product_name FROM production_runs pr LEFT JOIN products p ON p.id=pr.product_id ORDER BY pr.created_at DESC LIMIT 50`).all();
   const recentSales = db.prepare(`SELECT s.*,p.product_code,p.name product_name FROM sales_events s LEFT JOIN products p ON p.id=s.product_id ORDER BY sold_at DESC LIMIT 50`).all();
   const recentMarket = db.prepare('SELECT id,topic,observation,why_valuable,unknowns_json,suggested_test,created_at FROM market_observations WHERE applicable_now=1 ORDER BY created_at DESC LIMIT 20').all().map(o=>({...o,unknowns:safeJson(o.unknowns_json,[])}));
-  return { profile,machines,capabilities,facts,inventory,productCounts,products,openOrders,recentRuns,recentSales,recentMarket };
+  return { profile,machines,capabilities,facts,inventory,productCounts,products,recentRuns,recentSales,recentMarket };
 }

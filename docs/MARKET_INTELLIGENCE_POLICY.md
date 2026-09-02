@@ -1,4 +1,4 @@
-# Market intelligence policy — MERLIN V5
+# Market intelligence policy — MERLIN V6
 
 MERLIN gathers public evidence and must distinguish evidence from conclusions.
 

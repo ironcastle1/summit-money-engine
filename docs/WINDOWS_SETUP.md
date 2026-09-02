@@ -1,6 +1,6 @@
-# Windows setup — MERLIN V5
+# Windows setup — MERLIN V6
 
-V5 has no local model and no AI runtime.
+V6 has no local model and no AI runtime.
 
 1. Install Node.js 20.x if needed.
 2. Extract/copy MERLIN into its working folder.
