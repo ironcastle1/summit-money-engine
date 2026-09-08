@@ -1,5 +1,11 @@
-# MERLIN CNC V8.5 — Full repository
+# MERLIN CNC V8.6 — Full repository
 
+
+## V8.6 — Fusion-safe DXF output
+
+The standalone DXF Resizer now writes AutoCAD R12 ASCII files using classic POLYLINE/VERTEX geometry for maximum CAD compatibility. Every generated DXF is parsed again before MERLIN exposes a download. Dimensions, entity count and contour closure/open state must match the source transformation or MERLIN refuses to release the file. This specifically prevents a correctly-sized but malformed DXF from being offered as usable.
+
+The result panel now separates **FILE FORMAT: PASS** from CNC geometry warnings. A parser-valid Fusion-compatible file is not automatically labelled cut-ready if the design still has open contours or other unresolved production checks.
 This is the complete V7 codebase plus the requested V8 changes in one repository. It is not a patch-only archive.
 
 V8.5 includes the complete V8.2 repository plus a new physical DXF resizing/download tool. Upload a DXF, choose its source units when necessary, enter a target width or height (or fit it to the current table), and MERLIN writes a new proportional millimetre DXF without changing the original. The generated file is immediately re-analysed against the current table before download.

@@ -1,0 +1,70 @@
+MERLIN CNC V8.6 FULL REPOSITORY VERIFICATION
+Date: 2026-09-08
+
+PURPOSE
+V8.6 fixes the DXF resizer so MERLIN does not release a correctly-sized but malformed file.
+
+CORE RESIZER CHANGES
+- Resized output format: AutoCAD R12 ASCII (AC1009).
+- Source LWPOLYLINE/POLYLINE is written as classic POLYLINE + VERTEX + SEQEND.
+- LINE, CIRCLE and ARC are written in R12-compatible structures.
+- Polyline closed/open state is preserved.
+- Polyline bulge values are preserved.
+- Per-vertex widths are scaled and preserved where present.
+- ARC angles from dxf-parser are converted from radians back to DXF degrees before writing.
+- Basic LTYPE and LAYER tables are emitted.
+- EXTMIN/EXTMAX header values are emitted.
+- Generated coordinates are millimetres.
+
+MANDATORY RELEASE GATE
+Before a generated DXF can be stored/downloaded, MERLIN reparses it and requires:
+1. parse succeeds;
+2. output width/height match calculated dimensions within 0.08 mm;
+3. entity count matches source;
+4. closed contour count matches source;
+5. open contour state matches source;
+6. no unsupported output entity appears.
+Failure of any gate means no downloadable file is released.
+
+STATIC VERIFICATION
+- JavaScript files syntax checked by node --check: PASS
+- scripts/preflight.js: PASS
+- External dependencies all declared: PASS
+- Required repository files present: PASS
+- Relative JavaScript imports missing: 0
+- Duplicate HTML IDs: 0
+- package.json version: 8.6.0
+- /api/health version: 8.6.0
+- server startup banner: V8.6
+- Render build now runs npm test before deployment: PASS
+
+LOCAL NODE TESTS THAT DO NOT REQUIRE DOWNLOADED NPM DEPENDENCIES
+- IDs / SHA test: PASS
+- R12 writer classic POLYLINE/VERTEX test: PASS
+- R12 writer ARC radians->degrees test: PASS
+- Store CSV tests: PASS
+6 tests passed, 0 failed.
+
+INDEPENDENT DXF FORMAT AUDIT
+The R12 writer was exercised directly and its output was opened/audited with ezdxf 1.4.4:
+- DXF version read: AC1009
+- Modelspace entity types: POLYLINE, CIRCLE, LINE, ARC
+- Audit errors: 0
+- Audit fixes required: 0
+A second bulged-polyline sample was audited:
+- DXF version: AC1009
+- Entity type: POLYLINE
+- Bulge preserved: 1.0
+- Audit errors: 0
+- Audit fixes required: 0
+
+DEPENDENCY-BACKED FULL npm TEST SUITE
+Not executed in this packaging environment because npm registry access timed out. Render V8.6 now runs `npm test` after `npm install` and before the service starts, so a failing dependency-backed test prevents deployment.
+
+IMPORTANT CNC DISTINCTION
+FILE FORMAT PASS means the generated file parsed back successfully and passed the structural/integrity gates above. It does not automatically mean the artwork is cut-ready. Existing open contours, uncalibrated minimum bridge/hole/slot rules, or retained-island topology remain separately reported.
+Files in repository: 91
+fa44b9664130fcd9a5ded5bed44badf7206aaf356337440f6fa3901909ea7910  src/dxf/resize.js
+eb14d320eaddf1c9083471e5ed0728a94355fa47d0c5d2ccb87529b4cfc7eee9  src/dxf/r12-writer.js
+d4369c1d60f8c3da513df7f3468853869de79dbaa3ec03db9ad92218da919426  package.json
+c42ed73d9cb0d3929482b520ba5f381465e1dad3ca79359892660584557c40d3  render.yaml

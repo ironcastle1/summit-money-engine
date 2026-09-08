@@ -26,7 +26,7 @@ for(const file of files){
 }
 for(const name of external){if(!declared.has(name)){failed=true;console.error(`Missing package.json dependency: ${name}`);}}
 
-const required=['server.js','package.json','render.yaml','public/index.html','public/app.js','public/image-dxf.js','src/dxf/analyse.js','src/routes/index.js','src/market/research.js','src/outreach/outreach-service.js','src/products/product-service.js'];
+const required=['server.js','package.json','render.yaml','public/index.html','public/app.js','public/image-dxf.js','src/dxf/analyse.js','src/dxf/resize.js','src/dxf/r12-writer.js','src/routes/index.js','src/market/research.js','src/outreach/outreach-service.js','src/products/product-service.js'];
 for(const f of required){if(!fs.existsSync(f)){failed=true;console.error(`Required repository file missing: ${f}`);}}
 
 if(failed)process.exit(1);

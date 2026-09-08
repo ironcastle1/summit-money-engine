@@ -3,7 +3,7 @@ services:
     name: merlin-cnc
     runtime: node
     plan: starter
-    buildCommand: npm install --no-audit --no-fund && npm run check && npm ls dxf-parser cheerio better-sqlite3 express multer
+    buildCommand: npm install --no-audit --no-fund && npm run check && npm test && npm ls dxf-parser cheerio better-sqlite3 express multer
     startCommand: npm start
     healthCheckPath: /api/health
     disk:
@@ -28,4 +28,4 @@ services:
       - key: MERLIN_RESEARCH_INTERVAL_HOURS
         value: 12
       - key: MERLIN_RESEARCH_USER_AGENT
-        value: MERLIN-CNC-Research/8.4
+        value: MERLIN-CNC-Research/8.6

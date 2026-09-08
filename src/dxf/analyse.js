@@ -70,8 +70,9 @@ function entityGeometry(entity) {
   if (type === 'ARC') {
     const c = pt(entity.center?.x, entity.center?.y);
     const r = Number(entity.radius || 0);
-    const start = Number(entity.startAngle || 0);
-    const end = Number(entity.endAngle || 0);
+    // dxf-parser exposes ARC angles in radians; MERLIN's bounds helpers use degrees.
+    const start = Number(entity.startAngle || 0) * 180 / Math.PI;
+    const end = Number(entity.endAngle || 0) * 180 / Math.PI;
     let sweep = normalizeAngle(end) - normalizeAngle(start);
     if (sweep < 0) sweep += 360;
     const a = arcPoint(c.x, c.y, r, start);
