@@ -1,0 +1,32 @@
+MERLIN CNC V9.5 FULL REPOSITORY VERIFICATION
+
+Repository files: 98
+JavaScript files: 57
+
+Completed checks:
+- node --check across all JavaScript files: PASS (0 syntax errors)
+- MERLIN scripts/preflight.js: PASS
+- missing relative JavaScript imports: 0
+- duplicate HTML ids: 0
+- UI regression suite tests/ui-v*.test.js: PASS (25 passed, 0 failed)
+- V9.5 direct-pixel colour palette regression: PASS
+- V9.5 global colour application regression: PASS
+- V9.5 frame-aware 4-hole regression: PASS
+- V9.5 smoothed R12 DXF generation regression: PASS
+
+V9.5 changes verified:
+- visible colour/tone palette based on complete source-image pixels
+- every pixel assigned to a dominant colour cluster
+- checked colours can be applied globally to METAL or CUT-OUT
+- canvas colour picker reads pixel colour cluster directly
+- mounting holes use the frame when a frame has been added
+- frame corner pads/connectors are created where needed
+- mask edge cleanup tool present
+- DXF smoothing selector present (None / Light / Medium / Strong)
+- Fusion-compatible AutoCAD R12 / AC1009 export retained
+
+Full dependency-backed `npm test` was also attempted in this environment.
+The dependency-free/UI tests passed, but tests requiring installed packages such as
+`dxf-parser` and `better-sqlite3` could not run because node_modules is not installed
+in this container. Both dependencies remain declared in package.json, and Render's
+build installs dependencies before its checks/tests.

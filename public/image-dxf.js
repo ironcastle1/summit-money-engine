@@ -148,13 +148,48 @@
     for(const p of joined){const q=clean[clean.length-1];if(!q||p.x!==q.x||p.y!==q.y)clean.push(p);}
     return clean;
   }
-  function simplifyLoops(loops,tolerance,minArea){
-    const out=[];
+  function chaikinClosed(loop,iterations=1){
+    let pts=loop.slice();
+    for(let it=0;it<iterations;it++){
+      if(pts.length<3)break;
+      const out=[];
+      for(let i=0;i<pts.length;i++){
+        const a=pts[i],b=pts[(i+1)%pts.length];
+        out.push({x:a.x*0.75+b.x*0.25,y:a.y*0.75+b.y*0.25});
+        out.push({x:a.x*0.25+b.x*0.75,y:a.y*0.25+b.y*0.75});
+      }
+      pts=out;
+    }
+    return pts;
+  }
+  function smoothingSpec(level='medium',detail='medium'){
+    if(level==='none')return {iterations:0,tolerance:detail==='high'?0.45:detail==='low'?1.8:0.9};
+    if(level==='light')return {iterations:1,tolerance:detail==='high'?0.35:detail==='low'?1.35:0.7};
+    if(level==='strong')return {iterations:3,tolerance:detail==='high'?0.28:detail==='low'?0.95:0.48};
+    return {iterations:2,tolerance:detail==='high'?0.30:detail==='low'?1.10:0.55};
+  }
+  function smoothMaskEdges(mask,w,h,passes=1){
+    let cur=new Uint8Array(mask);
+    for(let pass=0;pass<passes;pass++){
+      const out=new Uint8Array(cur);
+      for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+        const at=idx(x,y,w);let n=0;
+        for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)n+=cur[idx(x+xx,y+yy,w)]?1:0;
+        if(cur[at])out[at]=n>=4?1:0;
+        else out[at]=n>=6?1:0;
+      }
+      cur=out;
+    }
+    return cur;
+  }
+  function simplifyLoops(loops,tolerance,minArea,smoothing='medium',detail='medium'){
+    const out=[],spec=smoothingSpec(smoothing,detail);
     for(const loop of loops){
       const closed=loop.slice();
       if(closed.length>1&&closed[0].x===closed[closed.length-1].x&&closed[0].y===closed[closed.length-1].y)closed.pop();
       if(closed.length<4)continue;
-      const simple=simplifyClosedLoop(closed,tolerance);
+      const rounded=spec.iterations?chaikinClosed(closed,spec.iterations):closed;
+      const simple=simplifyClosedLoop(rounded,Math.max(0.15,Number(tolerance||spec.tolerance)));
       if(simple.length<3)continue;
       if(Math.abs(polygonArea(simple))<minArea)continue;
       out.push(simple);
@@ -253,11 +288,12 @@
     const loops=loopsFromConnectedMask(largestConnected.mask,r.w,r.h,detail);if(!loops.length)return null;
     return {method:`high-contrast ${foreground} stencil / structural merge`,mask:largestConnected.mask,loops,fraction,score:1000+fraction*100,threshold:r.otsu,foreground,bridges_added:bridges,components_joined:kept.length,high_contrast:true,max_bridge_px:maxBridge,contrast_fraction:contrast.fraction};
   }
-  function loopsFromConnectedMask(mask,w,h,detail){
+  function loopsFromConnectedMask(mask,w,h,detail,smoothing='light'){
     const rawLoops=stitchEdges(boundaryEdges(mask,w,h));
     const pixelArea=w*h;
     const minArea=detail==='high'?Math.max(5,pixelArea*0.000015):detail==='low'?Math.max(100,pixelArea*0.00018):Math.max(35,pixelArea*0.00007);
-    const loops=simplifyLoops(rawLoops,detail==='high'?0.5:detail==='low'?2.1:1.0,minArea);
+    const spec=smoothingSpec(smoothing,detail);
+    const loops=simplifyLoops(rawLoops,spec.tolerance,minArea,smoothing,detail);
     if(!loops.length)return [];
     const outerArea=Math.abs(polygonArea(loops[0]));if(outerArea<8)return [];
     const retained=[loops[0]];for(const l of loops.slice(1)){const a=Math.abs(polygonArea(l));if(a>outerArea*0.00045)retained.push(l);}
@@ -410,11 +446,41 @@
     }
     all.sort((a,b)=>b.size-a.size);const kept=all.slice(0,maxRegions),regions=[];
     for(let r=0;r<kept.length;r++){const id=r+1,c=kept[r];for(const pi of c.pixels)labels[pi]=id;regions.push({id,size:c.size,meanLum:c.meanLum,meanR:c.meanR,meanG:c.meanG,meanB:c.meanB,band:c.band,minX:c.minX,maxX:c.maxX,minY:c.minY,maxY:c.maxY});}
-    const palette=buildColourPalette(regions,{maxColours:detail==='high'?18:detail==='low'?8:12,tolerance:detail==='high'?30:detail==='low'?52:40});
-    return {labels,regions,thresholds,levels:toneLevels,minPixels,palette};
+    let palette,colourLabels;
+    if(rgba){
+      const direct=buildPixelPalette(rgba,w,h,{maxColours:detail==='high'?16:detail==='low'?8:12,tolerance:detail==='high'?24:detail==='low'?44:32});palette=direct.palette;colourLabels=direct.colourLabels;
+      for(const r of regions){let best=null,bd=Infinity;for(const c of palette){const d=Math.hypot(r.meanR-c.r,r.meanG-c.g,r.meanB-c.b);if(d<bd){bd=d;best=c;}}r.colour_id=best?.id||0;if(best&&!best.region_ids.includes(r.id))best.region_ids.push(r.id);}
+    }else{palette=buildColourPalette(regions,{maxColours:detail==='high'?18:detail==='low'?8:12,tolerance:detail==='high'?30:detail==='low'?52:40});colourLabels=new Int16Array(n);for(let i=0;i<labels.length;i++){const rid=labels[i];if(rid)colourLabels[i]=regions[rid-1]?.colour_id||0;}}
+    return {labels,regions,thresholds,levels:toneLevels,minPixels,palette,colourLabels};
   }
   function colourDistance(a,b){return Math.hypot(Number(a.meanR??a.r)-Number(b.meanR??b.r),Number(a.meanG??a.g)-Number(b.meanG??b.g),Number(a.meanB??a.b)-Number(b.meanB??b.b));}
   function rgbHex(r,g,b){const c=v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0');return `#${c(r)}${c(g)}${c(b)}`;}
+  function buildPixelPalette(rgba,w,h,{maxColours=12,tolerance=34}={}){
+    if(!rgba||!rgba.length)return {palette:[],colourLabels:new Int16Array(w*h)};
+    const bins=new Map(),n=w*h,stride=Math.max(1,Math.floor(Math.sqrt(n/180000)));
+    for(let i=0;i<n;i+=stride){
+      const si=i*4,r=rgba[si],g=rgba[si+1],b=rgba[si+2];
+      const key=((r>>4)<<8)|((g>>4)<<4)|(b>>4);
+      let bin=bins.get(key);if(!bin){bin={count:0,r:0,g:0,b:0};bins.set(key,bin);}
+      bin.count++;bin.r+=r;bin.g+=g;bin.b+=b;
+    }
+    const seeds=[...bins.values()].map(b=>({count:b.count,r:b.r/b.count,g:b.g/b.count,b:b.b/b.count})).sort((a,b)=>b.count-a.count).slice(0,96);
+    const clusters=[];
+    for(const seed of seeds){
+      let best=null,bestD=Infinity;for(const c of clusters){const d=Math.hypot(seed.r-c.r,seed.g-c.g,seed.b-c.b);if(d<bestD){bestD=d;best=c;}}
+      if(!best||bestD>tolerance){clusters.push({id:clusters.length+1,r:seed.r,g:seed.g,b:seed.b,count:seed.count});continue;}
+      const total=best.count+seed.count;best.r=(best.r*best.count+seed.r*seed.count)/total;best.g=(best.g*best.count+seed.g*seed.count)/total;best.b=(best.b*best.count+seed.b*seed.count)/total;best.count=total;
+    }
+    while(clusters.length>maxColours){
+      let ai=0,bi=1,bd=Infinity;for(let i=0;i<clusters.length;i++)for(let j=i+1;j<clusters.length;j++){const d=Math.hypot(clusters[i].r-clusters[j].r,clusters[i].g-clusters[j].g,clusters[i].b-clusters[j].b);if(d<bd){bd=d;ai=i;bi=j;}}
+      const a=clusters[ai],b=clusters[bi],total=a.count+b.count;a.r=(a.r*a.count+b.r*b.count)/total;a.g=(a.g*a.count+b.g*b.count)/total;a.b=(a.b*a.count+b.b*b.count)/total;a.count=total;clusters.splice(bi,1);
+    }
+    clusters.sort((a,b)=>b.count-a.count);clusters.forEach((c,i)=>{c.id=i+1;c.hex=rgbHex(c.r,c.g,c.b);c.region_ids=[];c.pixel_count=0;c.pixel_percent=0;});
+    const colourLabels=new Int16Array(n);
+    for(let i=0;i<n;i++){const si=i*4,r=rgba[si],g=rgba[si+1],b=rgba[si+2];let best=clusters[0],bd=Infinity;for(const c of clusters){const d=(r-c.r)*(r-c.r)+(g-c.g)*(g-c.g)+(b-c.b)*(b-c.b);if(d<bd){bd=d;best=c;}}if(best){colourLabels[i]=best.id;best.pixel_count++;}}
+    for(const c of clusters)c.pixel_percent=c.pixel_count/Math.max(1,n)*100;
+    return {palette:clusters,colourLabels};
+  }
   function buildColourPalette(regions,{maxColours=12,tolerance=40}={}){
     const clusters=[];
     for(const region of [...regions].sort((a,b)=>b.size-a.size)){
@@ -433,6 +499,8 @@
     return clusters;
   }
   function colourRegionIds(regionData,colourIds){const chosen=new Set(Array.from(colourIds||[],Number)),out=[];for(const r of regionData?.regions||[])if(chosen.has(Number(r.colour_id)))out.push(r.id);return out;}
+  function setColourValues(mask,colourLabels,colourIds,value){const chosen=new Set(Array.from(colourIds||[],Number)),out=new Uint8Array(mask);if(!chosen.size)return out;for(let i=0;i<out.length;i++)if(chosen.has(Number(colourLabels?.[i]||0)))out[i]=value?1:0;return out;}
+  function colourAt(colourLabels,w,h,x,y){x=clamp(Math.round(x),0,w-1);y=clamp(Math.round(y),0,h-1);return Number(colourLabels?.[idx(x,y,w)]||0);}
   function snapMaskToRegions(mask,regionData){
     const out=new Uint8Array(mask),metal=new Uint32Array(regionData.regions.length+1),total=new Uint32Array(regionData.regions.length+1);
     for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(!id)continue;total[id]++;if(mask[i])metal[id]++;}
@@ -532,11 +600,26 @@
     for(const [tx,ty] of targets){let best=null,bestD=Infinity;const maxSearch=Math.max(w,h);for(let rad=0;rad<=maxSearch&&!best;rad+=3){for(let a=0;a<Math.PI*2;a+=Math.PI/12){const x=Math.round(tx+Math.cos(a)*rad),y=Math.round(ty+Math.sin(a)*rad);if(x<safeR||y<safeR||x>=w-safeR||y>=h-safeR)continue;if(diskFullyMetal(out,w,h,x,y,safeR)){const d=(x-tx)*(x-tx)+(y-ty)*(y-ty);if(d<bestD){best={x,y};bestD=d;}}}}if(!best)throw new Error(`Could not place all ${count} mounting holes inside retained steel.`);drawDisk(out,w,h,best.x,best.y,holeRadiusPx);for(let y=Math.floor(best.y-holeRadiusPx);y<=Math.ceil(best.y+holeRadiusPx);y++)for(let x=Math.floor(best.x-holeRadiusPx);x<=Math.ceil(best.x+holeRadiusPx);x++)if(x>=0&&y>=0&&x<w&&y<h&&(x-best.x)*(x-best.x)+(y-best.y)*(y-best.y)<=holeRadiusPx*holeRadiusPx)out[idx(x,y,w)]=0;placed.push(best);}
     return {mask:out,placed};
   }
+  function fillRect(mask,w,h,x0,y0,x1,y1,value=1){for(let y=Math.max(0,Math.floor(y0));y<=Math.min(h-1,Math.ceil(y1));y++)for(let x=Math.max(0,Math.floor(x0));x<=Math.min(w-1,Math.ceil(x1));x++)mask[idx(x,y,w)]=value?1:0;}
+  function addFrameMountingHolesMask(mask,w,h,{count=4,holeRadiusPx=4,clearancePx=3,insetPx=14,frameThicknessPx=8}={}){
+    const out=new Uint8Array(mask),safeR=Math.max(holeRadiusPx+clearancePx,holeRadiusPx+1),frame=Math.max(1,frameThicknessPx),inset=Math.max(safeR+1,insetPx);
+    const targets=count===4?[[inset,inset],[w-1-inset,inset],[inset,h-1-inset],[w-1-inset,h-1-inset]]:[[inset,inset],[w-1-inset,inset]];
+    const placed=[];
+    for(const [cx,cy] of targets){
+      const pad=safeR+2;drawDisk(out,w,h,cx,cy,pad);
+      if(cy<h/2)fillRect(out,w,h,cx-pad,0,cx+pad,Math.max(frame,cy));else fillRect(out,w,h,cx-pad,Math.min(cy,h-1-frame),cx+pad,h-1);
+      if(count===4){if(cx<w/2)fillRect(out,w,h,0,cy-pad,Math.max(frame,cx),cy+pad);else fillRect(out,w,h,Math.min(cx,w-1-frame),cy-pad,w-1,cy+pad);}
+      for(let y=Math.floor(cy-holeRadiusPx);y<=Math.ceil(cy+holeRadiusPx);y++)for(let x=Math.floor(cx-holeRadiusPx);x<=Math.ceil(cx+holeRadiusPx);x++)if(x>=0&&y>=0&&x<w&&y<h&&(x-cx)*(x-cx)+(y-cy)*(y-cy)<=holeRadiusPx*holeRadiusPx)out[idx(x,y,w)]=0;
+      placed.push({x:cx,y:cy});
+    }
+    return {mask:out,placed,frame_applied:true};
+  }
   function finalize(state,opts={}){
-    const detail=opts.detail||state.detail||'medium',comps=componentList(state.mask,state.w,state.h,3,500);
+    const detail=opts.detail||state.detail||'medium',smoothing=opts.smoothing||'medium',comps=componentList(state.mask,state.w,state.h,3,500);
     if(!comps.length)throw new Error('There is no retained steel in the editor.');
     if(comps.length>1)throw new Error(`CUT-READY BLOCKED: retained steel has ${comps.length} disconnected pieces. Use Auto-connect steel, paint bridges, or remove islands before creating the DXF.`);
-    const loops=loopsFromConnectedMask(state.mask,state.w,state.h,detail);if(!loops.length)throw new Error('No closed CNC contours could be produced from the edited metal mask.');
+    const vectorMask=smoothing==='none'?state.mask:smoothMaskEdges(state.mask,state.w,state.h,smoothing==='strong'?2:1);
+    const loops=loopsFromConnectedMask(vectorMask,state.w,state.h,detail,smoothing);if(!loops.length)throw new Error('No closed CNC contours could be produced from the edited metal mask.');
     const fitted=fitLoops(loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
     return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,file_format:'AutoCAD R12 ASCII (AC1009)',method:state.method,component_count:1};
   }
@@ -555,5 +638,5 @@
     if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
     return {ok:true,loops:loops.length};
   }
-  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,autoBuildViableNetwork,autoInterpretWholeImage,addFrameMask,addMountingHolesMask,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,regionAt,similarRegionIds,buildColourPalette,colourRegionIds};
+  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,autoBuildViableNetwork,autoInterpretWholeImage,addFrameMask,addMountingHolesMask,addFrameMountingHolesMask,smoothMaskEdges,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,setColourValues,regionAt,colourAt,similarRegionIds,buildColourPalette,buildPixelPalette,colourRegionIds};
 })();

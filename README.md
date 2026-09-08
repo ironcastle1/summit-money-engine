@@ -1,22 +1,30 @@
-# MERLIN CNC V9.4 — Full repository
+# MERLIN CNC V9.5 — Full repository
 
-MERLIN V9.4 keeps the full CNC Business OS and upgrades Image → CNC Editor with automatic whole-image topology and colour/tone selection.
+MERLIN V9.5 keeps the full CNC Business OS and fixes three Image → CNC Editor problems found during live testing:
 
-## V9.4 changes
+1. **Real colour/tone selection**
+   - The palette is now built directly from the complete source image pixels, not merely from already-detected connected regions.
+   - Dominant RGB/tonal groups are always rendered as visible swatches with checkboxes, hex values, image coverage and piece counts.
+   - Selecting a colour applies across the whole image, including disconnected areas of the same colour.
+   - Clicking the canvas in “Pick/toggle colour from image” mode now reads the source pixel’s colour cluster directly.
 
-- Automatic initial topology pass across the whole image.
-- Nearby meaningful retained regions are joined with short bridges.
-- Isolated image islands that cannot sensibly join the main design are discarded automatically.
-- Dominant image colours/tones are clustered into a compact palette.
-- Tick one, several or all detected colours.
-- Apply checked colours to METAL or CUT-OUT in one action.
-- Pick/toggle a colour directly from the image canvas.
-- Existing whole-region selection, green/red overlays, frame tools, fixing-hole tools, Fusion-safe R12 DXF export, product download/delete controls and DXF resizer remain.
+2. **Frame-aware fixing holes**
+   - If an outer frame has been added, 2-top or 4-corner mounting holes are generated in dedicated frame pads and connected back to the frame.
+   - Hole placement is no longer based on arbitrary retained artwork when a frame exists.
+   - The frame metadata is tracked through undo/reset so stale frame state cannot affect later hole placement.
 
-## Deployment
+3. **Smoother DXF geometry**
+   - Added edge cleanup plus selectable DXF vector smoothing: None, Light, Medium, Strong.
+   - Closed raster contours are smoothed with repeated Chaikin corner cutting followed by closed-loop simplification before R12 DXF export.
+   - Medium smoothing is the default.
+   - The existing Fusion-compatible AutoCAD R12 / AC1009 output remains.
 
-Replace the repository working tree with the contents of this package while preserving the hidden `.git` folder. Commit and push. Render installs dependencies and runs preflight/tests before startup.
+Other MERLIN systems remain present: Products, DXF Resizer, Image → CNC Editor, product/file deletion, inventory, market radar, outreach, store imports, sales analytics, Tell MERLIN, finance, activity, dashboard layouts and persistent SQLite storage.
+
+## Upgrade
+
+Replace the existing repository contents with the contents of the full V9.5 ZIP while keeping the hidden `.git` folder. Commit and push to `main`; Render can then redeploy from GitHub.
 
 Suggested commit:
 
-`MERLIN CNC V9.4 colour selection and automatic topology`
+`MERLIN CNC V9.5 colour palette frame holes and smooth vectors`

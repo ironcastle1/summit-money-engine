@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MERLIN — CNC Business OS</title>
-  <link rel="stylesheet" href="./styles.css?v=9.4.0" />
+  <link rel="stylesheet" href="./styles.css?v=9.5.0" />
 </head>
 <body>
 <header class="topbar">
@@ -172,7 +172,8 @@
         <div class="editor-piece-actions"><button type="button" id="editor-piece-metal">Selected → METAL</button><button type="button" id="editor-piece-cut" class="secondary">Selected → CUT-OUT</button></div>
         <div class="editor-piece-actions"><button type="button" id="editor-select-similar" class="secondary">Select similar tone</button><button type="button" id="editor-clear-selection" class="secondary">Clear selection</button></div>
         <h3>Colour / tone selection</h3>
-        <p class="muted">MERLIN groups similar colours into a short palette. Tick one or several colours to select every detected piece using those colours. Tick all if you want every detected colour selected.</p>
+        <p class="muted">MERLIN detects dominant colours/tones across the whole source image. Tick a swatch to select that colour everywhere, not just one connected piece.</p>
+        <div id="editor-colour-summary" class="editor-piece-info">Detecting image colours…</div>
         <div class="editor-piece-actions"><button type="button" id="editor-colour-all" class="secondary">Tick all colours</button><button type="button" id="editor-colour-none" class="secondary">Clear colours</button></div>
         <div id="editor-colour-palette" class="editor-colour-palette"></div>
         <div class="editor-piece-actions"><button type="button" id="editor-colour-metal">Checked → METAL</button><button type="button" id="editor-colour-cut" class="secondary">Checked → CUT-OUT</button></div>
@@ -189,6 +190,9 @@
         <button type="button" id="editor-connect" class="secondary">Auto-connect steel</button>
         <button type="button" id="editor-thicken" class="secondary">Thicken steel</button>
         <button type="button" id="editor-thin" class="secondary">Thin steel</button>
+        <button type="button" id="editor-smooth-mask" class="secondary">Smooth / clean mask edges</button>
+        <label>DXF edge smoothing<select id="editor-vector-smoothing"><option value="none">None — preserve pixels</option><option value="light">Light</option><option value="medium" selected>Medium — recommended</option><option value="strong">Strong — very smooth</option></select></label>
+        <p class="muted">DXF smoothing rounds raster stair-steps before export. It does not change which regions are metal/cut-out.</p>
         <h3>Fine correction brush</h3>
         <label>Canvas action<select id="editor-brush-mode"><option value="select" selected>Select detected piece</option><option value="colour">Pick/toggle colour from image</option><option value="metal">Fine brush: paint metal</option><option value="cut">Fine brush: paint cut-out</option></select></label>
         <label>Brush size px<input id="editor-brush-size" type="range" min="2" max="40" value="10" /></label>
@@ -204,6 +208,6 @@
 <dialog id="product-dialog" class="dialog"><div class="dialog-head"><div><strong id="dialog-code"></strong><span id="dialog-name"></span></div><button id="dialog-close" type="button">×</button></div><div id="product-detail" class="dialog-body"></div></dialog>
 <dialog id="inventory-dialog" class="dialog"><div class="dialog-head"><div><strong id="inv-dialog-name"></strong><span>Inventory record</span></div><button id="inv-dialog-close" type="button">×</button></div><div id="inventory-detail" class="dialog-body"></div></dialog>
 <dialog id="prospect-dialog" class="dialog"><div class="dialog-head"><div><strong id="prospect-dialog-name"></strong><span id="prospect-dialog-sub"></span></div><button id="prospect-dialog-close" type="button">×</button></div><div id="prospect-detail" class="dialog-body"></div></dialog>
-<script src="./config.js?v=9.4.0"></script><script src="./image-dxf.js?v=9.4.0"></script><script src="./app.js?v=9.4.0"></script>
+<script src="./config.js?v=9.5.0"></script><script src="./image-dxf.js?v=9.5.0"></script><script src="./app.js?v=9.5.0"></script>
 </body>
 </html>

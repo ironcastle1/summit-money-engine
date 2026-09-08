@@ -64,3 +64,8 @@ button.danger,.danger{border-color:#7f2e34!important;color:#ffb9be!important}
 .editor-colour-swatch i{display:block;width:28px;height:28px;border:1px solid #7190a2;border-radius:5px;grid-row:1 / span 2}
 .editor-colour-swatch span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;color:#eef5f8}
 .editor-colour-swatch small{font-size:8px;color:var(--muted)}
+/* V9.5: make the detected palette impossible to miss. */
+.editor-colour-palette{min-height:54px;border:1px solid var(--line);border-radius:8px;padding:7px;grid-template-columns:repeat(2,minmax(0,1fr));background:#061018;margin:6px 0 8px}
+.editor-colour-swatch{min-height:50px}
+.editor-colour-swatch:has(input:checked){outline:2px solid #f2d04f;background:#17202a}
+.editor-colour-swatch small{grid-column:3;white-space:normal;line-height:1.2}

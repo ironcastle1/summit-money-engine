@@ -1,9 +1,9 @@
 {
   "name": "merlin-cnc",
-  "version": "9.4.0",
+  "version": "9.5.0",
   "private": true,
   "type": "module",
-  "description": "MERLIN CNC Business OS V9.4 - full CNC operating system with editable image-to-CNC metal/cutout design, Fusion-safe DXF export/download, product deletion, DXF resizing, inventory, market radar, outreach, store imports and analytics",
+  "description": "MERLIN CNC Business OS V9.5 - full CNC operating system with visible colour selection, frame-aware mounting holes and smoothed image-to-CNC vector output, Fusion-safe DXF export/download, product deletion, DXF resizing, inventory, market radar, outreach, store imports and analytics",
   "engines": {
     "node": "20.19.5"
   },

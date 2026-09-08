@@ -1,5 +1,3 @@
-MERLIN CNC V9.4 FULL REPOSITORY FILE MANIFEST
-
 .dockerignore
 .env.example
 .github/workflows/ci.yml
@@ -97,3 +95,4 @@ tests/ui-v91.test.js
 tests/ui-v92.test.js
 tests/ui-v93.test.js
 tests/ui-v94.test.js
+tests/ui-v95.test.js
