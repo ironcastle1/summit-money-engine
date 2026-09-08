@@ -1,9 +1,9 @@
 {
   "name": "merlin-cnc",
-  "version": "8.6.0",
+  "version": "8.7.0",
   "private": true,
   "type": "module",
-  "description": "MERLIN CNC Business OS V8.6 - full product-centred growth system with DXF resizing/download, image-to-DXF generation, global market radar, outreach, store imports, analytics, deterministic intake and inventory control",
+  "description": "MERLIN CNC Business OS V8.7 - full product-centred growth system with DXF resizing/download, image-to-DXF generation, global market radar, outreach, store imports, analytics, deterministic intake and inventory control",
   "engines": {
     "node": "20.19.5"
   },

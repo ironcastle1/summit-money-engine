@@ -40,7 +40,13 @@
           <label>Target width mm<input id="resize-dxf-width" type="number" step="0.1" min="1" placeholder="e.g. 445" /></label>
           <label>Target height mm<input id="resize-dxf-height" type="number" step="0.1" min="1" placeholder="e.g. 580" /></label>
           <label class="check"><input id="resize-dxf-fit-table" type="checkbox" /> Fit as large as possible to current table</label>
+          <label class="check"><input id="resize-dxf-add-holes" type="checkbox" /> Add wall-fixing holes</label>
+          <label>Fixing holes<select id="resize-dxf-hole-count"><option value="2">2 top holes</option><option value="4" selected>4 corner-region holes</option></select></label>
+          <label>Hole diameter mm<input id="resize-dxf-hole-diameter" type="number" step="0.1" min="0.1" placeholder="Enter for your fixings" /></label>
+          <label>Preferred edge inset mm<input id="resize-dxf-hole-inset" type="number" step="0.1" min="0" placeholder="e.g. 15" /></label>
+          <label>Minimum steel around each hole mm<input id="resize-dxf-hole-clearance" type="number" step="0.1" min="0" placeholder="You choose this" /></label>
         </div>
+        <p class="muted">Fixing holes are only released if MERLIN can place the complete hole plus your chosen surrounding-steel allowance inside retained steel. If the requested corner area is empty, MERLIN searches for the nearest valid retained-steel position; if it cannot find enough valid positions, it refuses the download.</p>
         <button type="submit">Create resized DXF</button>
         <div id="dxf-resize-result" class="inline-status hidden"></div>
       </form>

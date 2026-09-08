@@ -35,7 +35,7 @@ function enrichObservationSources(db,o){
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'8.6.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'8.7.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{
@@ -95,7 +95,14 @@ export function registerRoutes(app,db){
       unitOverride:req.body.unit_override||null,
       targetWidthMm:req.body.target_width_mm?Number(req.body.target_width_mm):null,
       targetHeightMm:req.body.target_height_mm?Number(req.body.target_height_mm):null,
-      fitMachine:String(req.body.fit_machine||'').toLowerCase()==='true'
+      fitMachine:String(req.body.fit_machine||'').toLowerCase()==='true',
+      mountingHoles:{
+        enabled:String(req.body.add_mounting_holes||'').toLowerCase()==='true',
+        count:req.body.mounting_hole_count?Number(req.body.mounting_hole_count):null,
+        diameter_mm:req.body.mounting_hole_diameter_mm?Number(req.body.mounting_hole_diameter_mm):null,
+        inset_mm:req.body.mounting_hole_inset_mm!==undefined&&req.body.mounting_hole_inset_mm!==''?Number(req.body.mounting_hole_inset_mm):null,
+        clearance_mm:req.body.mounting_hole_clearance_mm!==undefined&&req.body.mounting_hole_clearance_mm!==''?Number(req.body.mounting_hole_clearance_mm):null
+      }
     });
     const token=id('RSZ').replace(/[^a-zA-Z0-9_-]/g,'');
     const dir=path.resolve(process.env.MERLIN_GENERATED_DIR||'./data/generated/resized-dxf');
@@ -111,6 +118,8 @@ export function registerRoutes(app,db){
       scale_percent:result.scale_percent,
       rotate_for_cut:result.rotate_for_cut,
       scale_reason:result.scale_reason,
+      repairs:result.repairs,
+      mounting_holes:result.mounting_holes,
       download_url:`/api/tools/resize-dxf/${encodeURIComponent(token)}/download`
     });
   });
