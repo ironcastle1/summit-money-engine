@@ -1,0 +1,24 @@
+MERLIN CNC V8.3 FULL REPOSITORY VERIFICATION
+
+V8.3 addition: proportional DXF resize + re-analysis + downloadable generated DXF.
+
+Static verification:
+- JavaScript syntax: PASS (39 files via scripts/preflight.js)
+- package.json dependency audit: PASS
+- required repository files: PASS
+- relative imports: PASS (0 missing)
+- duplicate HTML ids: PASS (0 duplicates)
+- DXF resize API/UI wiring: PASS
+- dxf-parser remains declared: PASS
+
+Runtime test limitation:
+- Full dependency-backed tests were not executed in this container because npm package installation timed out.
+- Existing GitHub/Render install will install declared dependencies before start.
+
+DXF resizer safety:
+- Source file is never overwritten.
+- Output is written in millimetres.
+- Proportions are preserved.
+- LINE, LWPOLYLINE, POLYLINE, CIRCLE and ARC are rewritten.
+- Unsupported entity types cause a refusal rather than silent geometry loss.
+- Generated DXF is parsed again and checked against the active machine envelope.

@@ -1,0 +1,25 @@
+MERLIN CNC V8.1 FULL REPOSITORY VERIFICATION
+
+Base: complete MERLIN V7 repository tree.
+Changes applied together:
+- browser-side Image -> DXF product generator with no new server/runtime package dependencies
+- largest connected foreground retained to remove floating islands
+- enclosed regions become closed cut loops
+- generated DXF uses millimetres and is fitted to the active CrossFire table envelope
+- original uploaded image stored as a product asset after product creation
+- plain-English Global Market Radar cards
+- marketplace-heavy evidence deprioritised in summaries
+- V8.1 worldwide research catalogue across 50+ markets and 24 product families
+- older V7 generic market source catalogue disabled once when V8.1 catalogue is installed
+- business prospect scan gets clearer errors and a public-web fallback if the radius directory is unavailable
+- existing V7 inventory, product, sales, stores, outreach, layout editor, deterministic intake, finance and DXF systems retained
+
+Verification completed in build environment:
+- JavaScript syntax check: PASS (38 JS files)
+- Relative import audit: PASS (0 missing local modules)
+- External import/package audit: PASS
+- No new backend dependencies beyond the known V7 dependency set
+- Package includes dxf-parser, better-sqlite3, cheerio, cors, dotenv, express and multer
+- Render build command remains npm install; start command remains npm start
+
+Full dependency-backed npm tests were not executed in this build environment because package installation from the public npm registry is unavailable/timed out here. The repository keeps the existing GitHub CI workflow and full test suite.

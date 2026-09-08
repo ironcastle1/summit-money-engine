@@ -1,0 +1,16 @@
+MERLIN CNC V8.2 FULL REPOSITORY — VERIFICATION
+
+This package was rebuilt from the complete V8.1/V7 repository tree, not from a patch folder.
+
+PASS — JavaScript syntax: 38 files
+PASS — Relative import audit: 0 missing local imports
+PASS — package.json dependency audit: dxf-parser, cheerio, better-sqlite3, express, multer, cors, dotenv all declared
+PASS — HTML duplicate-ID audit: 0 duplicates
+PASS — Image-to-DXF UI present and public/image-dxf.js loaded before public/app.js
+PASS — Full product/inventory/market/outreach/store/intake/finance modules retained
+PASS — Render build command explicitly verifies critical runtime dependencies after npm install
+
+Runtime dependency-backed tests were not executed in this build environment because npm install could not complete within the environment network timeout. Render is configured to run npm install and the strengthened preflight during deployment.
+
+Important Image -> DXF limitation:
+The browser converter deliberately keeps the largest connected foreground component and turns enclosed gaps into cut-outs. It is intended to remove obvious floating islands and create a DXF product line, but no software should label arbitrary photo conversion definitively cut-ready until the real machine minimum bridge/hole/slot limits have been calibrated from physical cuts. MERLIN therefore still exposes geometry checks and the actual DXF preview.
