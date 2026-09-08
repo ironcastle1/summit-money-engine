@@ -1,0 +1,13 @@
+MERLIN CNC V9.4 FULL REPOSITORY VERIFICATION
+
+package_version: 9.4.0
+file_count_before_verification: 97
+javascript_file_count: 56
+duplicate_html_ids: 0
+missing_relative_imports: 0
+colour_palette_controls: True
+colour_pick_canvas_mode: True
+automatic_connected_design: True
+no_fixing_holes_default: True
+
+Static/preflight and targeted UI regression tests were executed in the build environment. Dependency-backed full npm tests were not executed because node_modules is not installed in this container; Render installs dependencies before its configured checks.

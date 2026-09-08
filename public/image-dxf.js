@@ -389,7 +389,7 @@
     while(thresholds.length<levels-1)thresholds.push(Math.round(255*(thresholds.length+1)/levels));
     return thresholds;
   }
-  function detectImageRegions(gray,w,h,{detail='medium',levels=null,maxRegions=320}={}){
+  function detectImageRegions(gray,w,h,{detail='medium',levels=null,maxRegions=320,rgba=null}={}){
     const toneLevels=levels|| (detail==='high'?5:detail==='low'?3:4),thresholds=luminanceQuantiles(gray,toneLevels),n=w*h;
     const bands=new Uint8Array(n),visited=new Uint8Array(n),labels=new Int32Array(n),queue=new Int32Array(n),all=[];
     for(let i=0;i<n;i++){let band=0;while(band<thresholds.length&&gray[i]>thresholds[band])band++;bands[i]=band;}
@@ -403,12 +403,36 @@
         if(y+1<h){const q=pi+w;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
         if(y>0){const q=pi-w;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
       }
-      if(pixels.length>=minPixels)all.push({pixels,size:pixels.length,meanLum:sum/pixels.length,band,minX,maxX,minY,maxY});
+      if(pixels.length>=minPixels){
+        let sr=0,sg=0,sb=0;if(rgba){for(const pi of pixels){const si=pi*4;sr+=rgba[si];sg+=rgba[si+1];sb+=rgba[si+2];}}
+        all.push({pixels,size:pixels.length,meanLum:sum/pixels.length,meanR:rgba?sr/pixels.length:sum/pixels.length,meanG:rgba?sg/pixels.length:sum/pixels.length,meanB:rgba?sb/pixels.length:sum/pixels.length,band,minX,maxX,minY,maxY});
+      }
     }
     all.sort((a,b)=>b.size-a.size);const kept=all.slice(0,maxRegions),regions=[];
-    for(let r=0;r<kept.length;r++){const id=r+1,c=kept[r];for(const pi of c.pixels)labels[pi]=id;regions.push({id,size:c.size,meanLum:c.meanLum,band:c.band,minX:c.minX,maxX:c.maxX,minY:c.minY,maxY:c.maxY});}
-    return {labels,regions,thresholds,levels:toneLevels,minPixels};
+    for(let r=0;r<kept.length;r++){const id=r+1,c=kept[r];for(const pi of c.pixels)labels[pi]=id;regions.push({id,size:c.size,meanLum:c.meanLum,meanR:c.meanR,meanG:c.meanG,meanB:c.meanB,band:c.band,minX:c.minX,maxX:c.maxX,minY:c.minY,maxY:c.maxY});}
+    const palette=buildColourPalette(regions,{maxColours:detail==='high'?18:detail==='low'?8:12,tolerance:detail==='high'?30:detail==='low'?52:40});
+    return {labels,regions,thresholds,levels:toneLevels,minPixels,palette};
   }
+  function colourDistance(a,b){return Math.hypot(Number(a.meanR??a.r)-Number(b.meanR??b.r),Number(a.meanG??a.g)-Number(b.meanG??b.g),Number(a.meanB??a.b)-Number(b.meanB??b.b));}
+  function rgbHex(r,g,b){const c=v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0');return `#${c(r)}${c(g)}${c(b)}`;}
+  function buildColourPalette(regions,{maxColours=12,tolerance=40}={}){
+    const clusters=[];
+    for(const region of [...regions].sort((a,b)=>b.size-a.size)){
+      let best=null,bestD=Infinity;
+      for(const c of clusters){const d=colourDistance(region,c);if(d<bestD){bestD=d;best=c;}}
+      if(!best||bestD>tolerance){best={id:clusters.length+1,r:region.meanR,g:region.meanG,b:region.meanB,size:0,region_ids:[]};clusters.push(best);}
+      const old=best.size,total=old+region.size;best.r=(best.r*old+region.meanR*region.size)/Math.max(1,total);best.g=(best.g*old+region.meanG*region.size)/Math.max(1,total);best.b=(best.b*old+region.meanB*region.size)/Math.max(1,total);best.size=total;best.region_ids.push(region.id);
+    }
+    while(clusters.length>maxColours){
+      let ai=0,bi=1,bd=Infinity;for(let i=0;i<clusters.length;i++)for(let j=i+1;j<clusters.length;j++){const d=colourDistance(clusters[i],clusters[j]);if(d<bd){bd=d;ai=i;bi=j;}}
+      const a=clusters[ai],b=clusters[bi],total=a.size+b.size;a.r=(a.r*a.size+b.r*b.size)/total;a.g=(a.g*a.size+b.g*b.size)/total;a.b=(a.b*a.size+b.b*b.size)/total;a.size=total;a.region_ids.push(...b.region_ids);clusters.splice(bi,1);
+    }
+    clusters.sort((a,b)=>b.size-a.size);clusters.forEach((c,i)=>{c.id=i+1;c.hex=rgbHex(c.r,c.g,c.b);c.meanLum=.2126*c.r+.7152*c.g+.0722*c.b;});
+    const byRegion={};for(const c of clusters)for(const id of c.region_ids)byRegion[id]=c.id;
+    for(const r of regions)r.colour_id=byRegion[r.id]||0;
+    return clusters;
+  }
+  function colourRegionIds(regionData,colourIds){const chosen=new Set(Array.from(colourIds||[],Number)),out=[];for(const r of regionData?.regions||[])if(chosen.has(Number(r.colour_id)))out.push(r.id);return out;}
   function snapMaskToRegions(mask,regionData){
     const out=new Uint8Array(mask),metal=new Uint32Array(regionData.regions.length+1),total=new Uint32Array(regionData.regions.length+1);
     for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(!id)continue;total[id]++;if(mask[i])metal[id]++;}
@@ -427,6 +451,72 @@
     return 0;
   }
   function similarRegionIds(regionData,regionId,tolerance=18){const base=regionData.regions.find(r=>r.id===Number(regionId));if(!base)return[];return regionData.regions.filter(r=>Math.abs(r.meanLum-base.meanLum)<=tolerance&&Math.abs(r.band-base.band)<=1).map(r=>r.id);}
+  function bboxDistance(a,b){
+    const dx=a.maxX<b.minX?b.minX-a.maxX:b.maxX<a.minX?a.minX-b.maxX:0;
+    const dy=a.maxY<b.minY?b.minY-a.maxY:b.maxY<a.minY?a.minY-b.maxY:0;
+    return Math.hypot(dx,dy);
+  }
+  function autoBuildViableNetwork(mask,w,h,detail='medium'){
+    const area=w*h,minPixels=Math.max(5,Math.floor(area*0.000012));
+    const all=componentList(mask,w,h,minPixels,180);
+    if(!all.length)return {mask:new Uint8Array(mask.length),bridges:0,kept_components:0,dropped_components:0,source_components:0,max_gap_px:0};
+    const largest=all[0],minKeep=Math.max(minPixels,Math.floor(largest.size*0.0012),Math.floor(area*0.000018));
+    const comps=all.filter(c=>c.size>=minKeep).slice(0,120);
+    if(comps.length===1){const out=new Uint8Array(mask.length);for(const pi of comps[0].pixels)out[pi]=1;return {mask:out,bridges:0,kept_components:1,dropped_components:all.length-1,source_components:all.length,max_gap_px:0};}
+    const maxDim=Math.max(w,h),maxGap=Math.max(14,Math.min(detail==='high'?maxDim*0.045:detail==='low'?maxDim*0.085:maxDim*0.065,95));
+    const edges=[];
+    for(let i=0;i<comps.length;i++)for(let j=i+1;j<comps.length;j++){
+      if(bboxDistance(comps[i],comps[j])>maxGap*1.35)continue;
+      const pair=nearestPair(comps[i].boundary,comps[j].boundary);if(pair&&pair.distance<=maxGap)edges.push({i,j,...pair});
+    }
+    const parent=comps.map((_,i)=>i),find=i=>{let x=i;while(parent[x]!==x){parent[x]=parent[parent[x]];x=parent[x];}return x;},join=(a,b)=>{a=find(a);b=find(b);if(a!==b)parent[b]=a;};
+    for(const e of edges)join(e.i,e.j);
+    const groups=new Map();for(let i=0;i<comps.length;i++){const r=find(i);if(!groups.has(r))groups.set(r,[]);groups.get(r).push(i);}
+    let keepIds=[0],bestWeight=-1;
+    for(const ids of groups.values()){
+      const weight=ids.reduce((sum,i)=>sum+comps[i].size,0)*(1+Math.min(ids.length,25)*0.012);
+      if(weight>bestWeight){bestWeight=weight;keepIds=ids;}
+    }
+    const keepSet=new Set(keepIds),out=new Uint8Array(mask.length);for(const ci of keepIds)for(const pi of comps[ci].pixels)out[pi]=1;
+    const candidateEdges=edges.filter(e=>keepSet.has(e.i)&&keepSet.has(e.j)).sort((a,b)=>a.distance-b.distance);
+    const p2=comps.map((_,i)=>i),f2=i=>{let x=i;while(p2[x]!==x){p2[x]=p2[p2[x]];x=p2[x];}return x;};
+    const radius=detail==='high'?1.35:detail==='low'?2.8:2.0;let bridges=0,totalBridge=0;
+    for(const e of candidateEdges){let a=f2(e.i),b=f2(e.j);if(a===b)continue;p2[b]=a;drawBridge(out,w,h,e.a,e.b,radius);bridges++;totalBridge+=e.distance;}
+    const connected=connectedLargest(out,w,h).mask;
+    return {mask:connected,bridges,bridge_length_px:totalBridge,kept_components:keepIds.length,dropped_components:Math.max(0,all.length-keepIds.length),source_components:all.length,max_gap_px:maxGap};
+  }
+  function regionToneMask(state,regionData,foreground){
+    const out=new Uint8Array(state.mask.length),threshold=Number.isFinite(Number(state.threshold))?Number(state.threshold):128;
+    const metal=new Uint32Array(regionData.regions.length+1),total=new Uint32Array(regionData.regions.length+1);
+    for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(!id)continue;total[id]++;if(state.mask[i])metal[id]++;}
+    const assignments={};
+    for(const r of regionData.regions){
+      const overlap=metal[r.id]/Math.max(1,total[r.id]);
+      let value=foreground==='dark'?r.meanLum<=threshold+10:r.meanLum>=threshold-10;
+      if(overlap>=0.72)value=true;
+      if(overlap<=0.04&&Math.abs(r.meanLum-threshold)<7)value=false;
+      assignments[r.id]=value?1:0;
+    }
+    for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(id)out[i]=assignments[id]||0;}
+    return out;
+  }
+  function scoreAutoNetwork(result,w,h){
+    const on=result.mask.reduce((a,v)=>a+v,0),coverage=on/(w*h),border=borderRatio(result.mask,w,h);
+    if(coverage<0.025||coverage>0.82)return -Infinity;
+    return 180-Math.abs(coverage-0.34)*170-border*95+Math.min(result.kept_components,35)*0.7-Math.min(result.bridges,60)*0.28-Math.min(result.dropped_components,100)*0.025;
+  }
+  function autoInterpretWholeImage(state,regionData,{detail='medium'}={}){
+    const requested=state.foreground==='dark'||state.foreground==='light'?state.foreground:null;
+    const choices=requested?[requested]:['dark','light'];let best=null;
+    for(const fg of choices){
+      const regionMask=regionToneMask(state,regionData,fg),network=autoBuildViableNetwork(regionMask,state.w,state.h,detail),score=scoreAutoNetwork(network,state.w,state.h);
+      if(Number.isFinite(score)&&(!best||score>best.score))best={...network,score,foreground:fg};
+    }
+    if(!best){
+      const snapped=snapMaskToRegions(state.mask,regionData).mask,network=autoBuildViableNetwork(snapped,state.w,state.h,detail);best={...network,score:scoreAutoNetwork(network,state.w,state.h),foreground:state.foreground||'auto'};
+    }
+    return best;
+  }
   function componentCount(mask,w,h,minPixels=2){return componentList(mask,w,h,minPixels,500).length;}
   function invertMask(mask){const out=new Uint8Array(mask.length);for(let i=0;i<mask.length;i++)out[i]=mask[i]?0:1;return out;}
   function keepLargestMask(mask,w,h){return connectedLargest(mask,w,h).mask;}
@@ -465,5 +555,5 @@
     if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
     return {ok:true,loops:loops.length};
   }
-  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,addFrameMask,addMountingHolesMask,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,regionAt,similarRegionIds};
+  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,autoBuildViableNetwork,autoInterpretWholeImage,addFrameMask,addMountingHolesMask,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,regionAt,similarRegionIds,buildColourPalette,colourRegionIds};
 })();

@@ -22,8 +22,8 @@ test('V9.1 uses junction-aware boundary stitching and closed-loop RDP anchors',(
 
 test('V9.1 cache-busts browser image converter',()=>{
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
-  assert.match(html,/image-dxf\.js\?v=9\.3\.0/);
-  assert.match(html,/app\.js\?v=9\.3\.0/);
+  assert.match(html,/image-dxf\.js\?v=9\.\d+\.0/);
+  assert.match(html,/app\.js\?v=9\.\d+\.0/);
 });
 
 test('V9.1 checks image geometry engine before processing user images',()=>{

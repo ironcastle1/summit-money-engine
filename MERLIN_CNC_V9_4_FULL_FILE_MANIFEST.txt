@@ -1,3 +1,5 @@
+MERLIN CNC V9.4 FULL REPOSITORY FILE MANIFEST
+
 .dockerignore
 .env.example
 .github/workflows/ci.yml
@@ -5,19 +7,6 @@
 .node-version
 BACKUP_MERLIN.bat
 Dockerfile
-MERLIN_CNC_V8_1_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_1_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_2_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_2_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_3_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_3_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_4_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_4_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_6_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_6_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_7_FULL_FILE_MANIFEST.txt
-MERLIN_CNC_V8_7_FULL_VERIFICATION.txt
-MERLIN_CNC_V8_8_FULL_VERIFICATION.txt
 README.md
 SETUP_MERLIN.bat
 START_MERLIN.bat
@@ -37,6 +26,13 @@ docs/V8_4_DEPLOY_FIX.md
 docs/V8_6_FUSION_SAFE_RESIZER.md
 docs/V8_7_CONTOUR_REPAIR_AND_FIXING_HOLES.md
 docs/V8_8_IMAGE_DXF_AND_NO_HOLES.md
+docs/V8_9_IMAGE_RESCUE.md
+docs/V9_0_ACTUAL_SKULL_TEST.md
+docs/V9_0_HIGH_CONTRAST_STENCIL.md
+docs/V9_1_IMAGE_GEOMETRY_PIPELINE_FIX.md
+docs/V9_2_IMAGE_CNC_EDITOR.md
+docs/V9_3_REGION_EDITOR.md
+docs/V9_4_COLOUR_AND_TOPOLOGY_EDITOR.md
 docs/WINDOWS_SETUP.md
 package.json
 public/app.js
@@ -95,3 +91,9 @@ tests/r12-writer.test.js
 tests/resize-writer.test.js
 tests/store-csv.test.js
 tests/ui-v88.test.js
+tests/ui-v89.test.js
+tests/ui-v90.test.js
+tests/ui-v91.test.js
+tests/ui-v92.test.js
+tests/ui-v93.test.js
+tests/ui-v94.test.js
