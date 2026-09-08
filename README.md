@@ -1,16 +1,17 @@
-# MERLIN CNC V8.8 — Full repository
+# MERLIN CNC V8.9 — Full repository
 
-MERLIN CNC Business OS for the current CNC plasma business.
+MERLIN V8.9 keeps the complete CNC business operating system and adds a stronger Image → DXF conversion path for line drawings, separated details and images that cannot be reduced to one clean filled silhouette.
 
-## V8.8 changes
+## V8.9 changes
 
-- Image -> DXF now uses multiple automatic segmentation passes instead of failing after one threshold attempt.
-- Adds Otsu thresholding, light/dark alternatives, background-colour separation and small-gap closing.
-- Rejects obvious background masks and chooses the strongest connected subject candidate.
-- Image-derived DXFs are emitted as Fusion-friendly AutoCAD R12 ASCII POLYLINE geometry.
-- DXF Resizer fixing-hole selector now has **No fixing holes** as the default option.
-- Hole dimensions are not required unless 2 or 4 holes are selected.
-- All V8.7 contour repair, validated mounting-hole placement and Fusion-safe resized DXF generation remain.
-- Existing Products, Inventory, Market Radar, Outreach, store imports, analytics, Tell MERLIN, finance and persistent database remain.
+- New **Image type** selector: Auto, Line drawing / separated details, Solid silhouette.
+- Auto conversion now has a line-art rescue path when normal silhouette isolation fails.
+- Additional local-contrast masks and wider threshold coverage.
+- Thin-stroke boldening before contour extraction.
+- Multi-component analysis with deterministic connectivity bridges into one retained steel region.
+- Conversion result records how many bridges were added.
+- R12 AC1009 DXF output retained.
+- **No fixing holes** remains the default in the DXF Resizer.
+- All V8.8/V8.7 resizer, Fusion compatibility, contour repair, product, inventory, market, outreach, store, analytics and business-memory systems remain included.
 
-See `docs/V8_8_IMAGE_DXF_AND_NO_HOLES.md` for the detailed change notes.
+For image conversion, start with **Auto**. If a line drawing or separated artwork still cannot be isolated, choose **Line drawing / separated details** explicitly.
