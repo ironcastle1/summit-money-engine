@@ -40,8 +40,7 @@
           <label>Target width mm<input id="resize-dxf-width" type="number" step="0.1" min="1" placeholder="e.g. 445" /></label>
           <label>Target height mm<input id="resize-dxf-height" type="number" step="0.1" min="1" placeholder="e.g. 580" /></label>
           <label class="check"><input id="resize-dxf-fit-table" type="checkbox" /> Fit as large as possible to current table</label>
-          <label class="check"><input id="resize-dxf-add-holes" type="checkbox" /> Add wall-fixing holes</label>
-          <label>Fixing holes<select id="resize-dxf-hole-count"><option value="2">2 top holes</option><option value="4" selected>4 corner-region holes</option></select></label>
+          <label>Fixing holes<select id="resize-dxf-hole-count"><option value="0" selected>No fixing holes</option><option value="2">2 top holes</option><option value="4">4 corner-region holes</option></select></label>
           <label>Hole diameter mm<input id="resize-dxf-hole-diameter" type="number" step="0.1" min="0.1" placeholder="Enter for your fixings" /></label>
           <label>Preferred edge inset mm<input id="resize-dxf-hole-inset" type="number" step="0.1" min="0" placeholder="e.g. 15" /></label>
           <label>Minimum steel around each hole mm<input id="resize-dxf-hole-clearance" type="number" step="0.1" min="0" placeholder="You choose this" /></label>
@@ -52,7 +51,7 @@
       </form>
       <form id="image-dxf-form" class="quick-form dxf-form image-dxf-form">
         <h3>Image → DXF</h3>
-        <p class="muted">Upload a clear image. MERLIN keeps the largest connected shape, removes floating islands, turns enclosed gaps into cut-outs, fits it to the current table and creates a new product line.</p>
+        <p class="muted">Upload an image. MERLIN now tries multiple automatic foreground/background passes, keeps the strongest connected subject, removes floating islands, turns enclosed gaps into cut-outs, fits it to the current table and creates a new product line. If Auto cannot isolate the subject, try Dark subject or Light subject.</p>
         <div class="form-grid upload-grid">
           <label>Image<input type="file" id="image-file" accept="image/*" required /></label>
           <label>Product name<input id="image-name" placeholder="e.g. Stag profile" /></label>

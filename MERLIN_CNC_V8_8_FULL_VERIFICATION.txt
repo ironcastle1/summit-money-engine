@@ -1,0 +1,34 @@
+MERLIN CNC V8.8 FULL REPOSITORY VERIFICATION
+
+Version
+- package.json: 8.8.0
+- /api/health: 8.8.0
+- server startup banner: MERLIN CNC V8.8
+
+Static verification completed
+- 49 JavaScript files checked with node --check: PASS
+- missing relative imports: 0
+- duplicate HTML IDs: 0
+- scripts/preflight.js: PASS (41 runtime JavaScript files; all external dependencies declared; required repository files present)
+- explicit DXF Resizer option `No fixing holes`: PASS
+- obsolete `resize-dxf-add-holes` checkbox removed: PASS
+- hole-dimension inputs disabled when No fixing holes is selected: PASS
+- Image -> DXF Otsu fallback: PRESENT
+- Image -> DXF dark/light threshold alternatives: PRESENT
+- Image -> DXF border/background colour separation: PRESENT
+- Image -> DXF raw + close-1 + close-2 + close-4 segmentation variants: PRESENT
+- Image -> DXF R12 AC1009 POLYLINE output: PRESENT
+- V8.7 Fusion-safe DXF resizer retained: PASS
+- V8.7 near-closed contour repair retained: PASS
+- V8.7 validated fixing-hole placement retained: PASS
+
+Regression test run
+- tests/ui-v88.test.js: 2/2 PASS
+
+Full npm test note
+- Full dependency-backed npm test was attempted in this container but external packages such as dxf-parser and better-sqlite3 are not installed in the execution environment. Tests that do not need those packages passed; dependency-backed suites could not load. The repository declares those dependencies, and Render's build performs npm install before npm run check / npm test.
+
+V8.8 user-facing fixes
+1. Image -> DXF no longer stops after one threshold attempt. It tries multiple deterministic subject-isolation passes and chooses the strongest plausible connected result. If all passes fail, it asks for a closer crop or explicit Dark/Light foreground instead of creating an empty DXF.
+2. Image-derived DXFs are emitted as AutoCAD R12 ASCII POLYLINE/VERTEX geometry for Fusion compatibility.
+3. The DXF Resizer fixing-hole selector now defaults to No fixing holes, with 2 top holes and 4 corner-region holes as optional choices.
