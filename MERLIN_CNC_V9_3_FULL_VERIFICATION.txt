@@ -1,0 +1,42 @@
+MERLIN CNC V9.3 FULL REPOSITORY VERIFICATION
+============================================
+
+Package version: 9.3.0
+Repository file count before this report: 115
+
+V9.3 feature checks
+-------------------
+PASS  Green overlay explicitly means retained steel.
+PASS  Red overlay explicitly means cut-away/hollow.
+PASS  Yellow overlay/outline identifies selected detected image pieces.
+PASS  Whole image-region detection engine present.
+PASS  Whole-region METAL assignment present.
+PASS  Whole-region CUT-OUT assignment present.
+PASS  Similar-tone multi-selection present.
+PASS  Large / Standard / Fine piece detection controls present.
+PASS  Brush editing retained as fine correction only.
+PASS  + Add outer frame button present.
+PASS  + 2 top holes button present.
+PASS  + 4 corner holes button present.
+PASS  Existing Fusion-safe R12 DXF export retained.
+PASS  Existing product DXF download route retained.
+PASS  Existing product and asset deletion routes retained.
+PASS  Existing disconnected-steel export gate retained.
+
+Static verification
+-------------------
+PASS  55 JavaScript files parsed with node --check.
+PASS  MERLIN preflight completed.
+PASS  Required external dependencies are declared in package.json.
+PASS  Required repository files are present.
+PASS  Duplicate HTML IDs: 0.
+PASS  Missing required V9.3 controls: 0.
+
+Targeted browser/UI regression suite
+------------------------------------
+PASS  18 tests passed / 0 failed across V8.8 through V9.3 UI regressions.
+PASS  V9.3 synthetic region test proved distinct tonal regions are detected as whole pieces and can be assigned as complete regions.
+
+Full dependency-backed npm test
+-------------------------------
+NOT COMPLETED in this container because node_modules are not installed here. The attempted full suite reached tests that import dxf-parser and better-sqlite3 and failed with ERR_MODULE_NOT_FOUND. Those packages are declared in package.json and Render installs dependencies before running its build/test commands. This is an environment dependency absence, not a syntax failure.

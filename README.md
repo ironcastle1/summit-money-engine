@@ -1,8 +1,15 @@
-# MERLIN CNC V9.2 — Full repository
+# MERLIN CNC V9.3 — Full repository
 
-MERLIN V9.2 changes Image → DXF into an Image → CNC Editor rather than saving an automatic edge trace as a product.
+MERLIN V9.3 keeps the Image → CNC Editor and adds whole-region detection, explicit steel/cut-out overlays, selectable detected pieces and prominent production-feature controls.
 
-## V9.2 changes
+## V9.3 changes
+
+- Green overlay means retained steel; red overlay means cut-out; selected image pieces are highlighted yellow.
+- Image regions are detected from the original source and can be selected as whole pieces instead of painted pixel-by-pixel.
+- Selected pieces can be assigned to METAL or CUT-OUT, with similar-tone multi-selection.
+- Piece detection can be rerun at large, standard or fine detail.
+- The brush is now a fine-correction tool rather than the main editing workflow.
+- Direct buttons expose outer frame, 2-hole and 4-hole production features.
 
 - Automatic image interpretation is now only a starting mask.
 - New editor explicitly shows retained steel versus hollow/cut-out areas before a product is created.
@@ -21,4 +28,4 @@ Copy the entire repository into the GitHub repository root, preserving the hidde
 
 Recommended commit:
 
-`MERLIN CNC V9.2 editable CNC image designer and product file controls`
+`MERLIN CNC V9.3 region-based metal and cut-out CNC editor`

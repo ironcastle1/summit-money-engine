@@ -45,3 +45,14 @@ main{max-width:1900px;margin:auto;padding:13px 18px 70px}.metrics{display:grid;g
 .product-file-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 button.danger,.danger{border-color:#7f2e34!important;color:#ffb9be!important}
 @media(max-width:850px){.image-editor-layout{grid-template-columns:1fr}.image-editor-tools{max-height:none}}
+
+/* V9.3 CNC piece-selection editor */
+.editor-legend{flex-wrap:wrap}
+.legend-metal{background:#23df78!important;border-color:#70ffae!important}
+.legend-cut{background:#e93b50!important;border-color:#ff8997!important}
+.legend-selected{background:#ffd72d!important;border-color:#fff18a!important}
+.editor-piece-info{border:1px solid var(--line);border-radius:7px;padding:8px;background:#08131c;color:#c7dbe7;font-size:10px;line-height:1.4}
+.editor-piece-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#editor-piece-metal{background:#bdf6d2;border-color:#74d99b;color:#07120c}
+#editor-piece-cut{border-color:#7b3942;color:#ffb9c1}
+#image-editor-canvas{cursor:pointer}

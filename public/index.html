@@ -155,30 +155,39 @@
 
 
 <dialog id="image-editor-dialog" class="dialog image-editor-dialog">
-  <div class="dialog-head"><div><strong>Image → CNC Editor</strong><span id="image-editor-sub">White = retained steel · Black = cut-out</span></div><button id="image-editor-close" type="button">×</button></div>
+  <div class="dialog-head"><div><strong>Image → CNC Editor</strong><span id="image-editor-sub">GREEN = steel stays · RED = cut away · YELLOW = selected detected piece</span></div><button id="image-editor-close" type="button">×</button></div>
   <div class="dialog-body image-editor-body">
-    <div class="editor-status-row"><div id="image-editor-status" class="inline-status"></div><label class="check"><input id="image-editor-show-source" type="checkbox" checked /> Show source under mask</label></div>
+    <div class="editor-status-row"><div id="image-editor-status" class="inline-status"></div><label class="check"><input id="image-editor-show-source" type="checkbox" checked /> Show original image underneath</label></div>
     <div class="image-editor-layout">
-      <div class="image-editor-stage"><canvas id="image-editor-canvas"></canvas><div class="editor-legend"><span><i class="legend-metal"></i> Retained steel</span><span><i class="legend-cut"></i> Cut-out / empty</span></div></div>
+      <div class="image-editor-stage">
+        <canvas id="image-editor-canvas"></canvas>
+        <div class="editor-legend"><span><i class="legend-metal"></i> METAL — stays</span><span><i class="legend-cut"></i> CUT-OUT — removed</span><span><i class="legend-selected"></i> Selected piece</span></div>
+      </div>
       <aside class="image-editor-tools">
-        <h3>Metal / cut-out</h3>
+        <h3>Detected image pieces</h3>
+        <label>Piece detection<select id="editor-piece-detail"><option value="low">Large/simple regions</option><option value="medium" selected>Standard regions</option><option value="high">Fine regions</option></select></label>
+        <button type="button" id="editor-detect-pieces">Detect pieces again</button>
+        <button type="button" id="editor-auto-assign" class="secondary">Auto-assign whole pieces</button>
+        <div id="editor-piece-info" class="editor-piece-info">Click a coloured region in the image to select the whole piece.</div>
+        <div class="editor-piece-actions"><button type="button" id="editor-piece-metal">Selected → METAL</button><button type="button" id="editor-piece-cut" class="secondary">Selected → CUT-OUT</button></div>
+        <div class="editor-piece-actions"><button type="button" id="editor-select-similar" class="secondary">Select similar tone</button><button type="button" id="editor-clear-selection" class="secondary">Clear selection</button></div>
+        <h3>Production features</h3>
+        <button type="button" id="editor-frame">+ Add outer frame</button>
+        <div class="editor-piece-actions"><button type="button" id="editor-quick-hole-2" class="secondary">+ 2 top holes</button><button type="button" id="editor-quick-hole-4" class="secondary">+ 4 corner holes</button></div>
+        <label>Hole diameter mm<input id="editor-hole-diameter" type="number" min="0.5" step="0.1" value="6" /></label>
+        <label>Steel around hole mm<input id="editor-hole-clearance" type="number" min="0" step="0.1" value="3" /></label>
+        <label>Preferred inset mm<input id="editor-hole-inset" type="number" min="0" step="0.1" value="15" /></label>
+        <h3>Whole-design tools</h3>
         <button type="button" id="editor-invert">Invert metal ↔ cut-out</button>
         <button type="button" id="editor-keep-largest" class="secondary">Keep largest steel piece</button>
         <button type="button" id="editor-remove-islands" class="secondary">Remove small steel islands</button>
         <button type="button" id="editor-connect" class="secondary">Auto-connect steel</button>
         <button type="button" id="editor-thicken" class="secondary">Thicken steel</button>
         <button type="button" id="editor-thin" class="secondary">Thin steel</button>
-        <button type="button" id="editor-frame" class="secondary">Add outer frame</button>
-        <h3>Manual edit</h3>
-        <label>Brush action<select id="editor-brush-mode"><option value="metal">Paint metal</option><option value="cut">Paint cut-out</option><option value="fill-metal">Fill clicked region with metal</option><option value="fill-cut">Fill clicked region as cut-out</option></select></label>
-        <label>Brush size px<input id="editor-brush-size" type="range" min="2" max="40" value="12" /></label>
-        <p class="muted">Drag directly on the preview to tell MERLIN exactly what stays as steel or becomes empty.</p>
-        <h3>Mounting holes</h3>
-        <label>Preset<select id="editor-hole-count"><option value="0" selected>No holes</option><option value="2">2 top holes</option><option value="4">4 corner-region holes</option></select></label>
-        <label>Hole diameter mm<input id="editor-hole-diameter" type="number" min="0.5" step="0.1" value="6" /></label>
-        <label>Steel around hole mm<input id="editor-hole-clearance" type="number" min="0" step="0.1" value="3" /></label>
-        <label>Preferred inset mm<input id="editor-hole-inset" type="number" min="0" step="0.1" value="15" /></label>
-        <button type="button" id="editor-apply-holes" class="secondary">Apply hole preset</button>
+        <h3>Fine correction brush</h3>
+        <label>Brush action<select id="editor-brush-mode"><option value="select" selected>Select detected piece</option><option value="metal">Paint metal</option><option value="cut">Paint cut-out</option></select></label>
+        <label>Brush size px<input id="editor-brush-size" type="range" min="2" max="40" value="10" /></label>
+        <p class="muted">Use piece selection for most edits. The brush is only for small cleanup after the whole regions are assigned.</p>
         <h3>History</h3>
         <div class="editor-history-buttons"><button type="button" id="editor-undo" class="secondary">Undo</button><button type="button" id="editor-reset" class="secondary">Reset automatic result</button></div>
       </aside>
@@ -190,6 +199,6 @@
 <dialog id="product-dialog" class="dialog"><div class="dialog-head"><div><strong id="dialog-code"></strong><span id="dialog-name"></span></div><button id="dialog-close" type="button">×</button></div><div id="product-detail" class="dialog-body"></div></dialog>
 <dialog id="inventory-dialog" class="dialog"><div class="dialog-head"><div><strong id="inv-dialog-name"></strong><span>Inventory record</span></div><button id="inv-dialog-close" type="button">×</button></div><div id="inventory-detail" class="dialog-body"></div></dialog>
 <dialog id="prospect-dialog" class="dialog"><div class="dialog-head"><div><strong id="prospect-dialog-name"></strong><span id="prospect-dialog-sub"></span></div><button id="prospect-dialog-close" type="button">×</button></div><div id="prospect-detail" class="dialog-body"></div></dialog>
-<script src="./config.js?v=9.2.0"></script><script src="./image-dxf.js?v=9.2.0"></script><script src="./app.js?v=9.2.0"></script>
+<script src="./config.js?v=9.3.0"></script><script src="./image-dxf.js?v=9.3.0"></script><script src="./app.js?v=9.3.0"></script>
 </body>
 </html>

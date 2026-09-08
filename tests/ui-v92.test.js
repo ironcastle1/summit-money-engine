@@ -5,7 +5,7 @@ import fs from 'node:fs';
 test('V9.2 includes interactive metal/cut-out CNC editor',()=>{
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
-  for(const id of ['image-editor-dialog','image-editor-canvas','editor-invert','editor-connect','editor-frame','editor-apply-holes','image-editor-create']) assert.match(html,new RegExp(`id="${id}"`));
+  for(const id of ['image-editor-dialog','image-editor-canvas','editor-invert','editor-connect','editor-frame','editor-quick-hole-4','image-editor-create']) assert.match(html,new RegExp(`id="${id}"`));
   assert.match(html,/Paint metal/);
   const engine=fs.readFileSync(new URL('../public/image-dxf.js',import.meta.url),'utf8');
   assert.match(engine,/CUT-READY BLOCKED/);

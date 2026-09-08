@@ -379,6 +379,54 @@
     }
     return {w:r.w,h:r.h,rgba:new Uint8ClampedArray(r.rgba),gray:new Float32Array(r.gray),mask:new Uint8Array(best.mask),originalMask:new Uint8Array(best.mask),method:best.method,foreground:best.foreground,threshold:best.threshold,detail,rescue_used:rescueUsed||Number(best.bridges_added||0)>0,bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),source_name:file.name||'image'};
   }
+  function luminanceQuantiles(gray,levels=4){
+    const hist=new Uint32Array(256);for(const g of gray)hist[clamp(Math.round(g),0,255)]++;
+    const thresholds=[],total=gray.length;let cumulative=0,next=1;
+    for(let i=0;i<256&&next<levels;i++){
+      cumulative+=hist[i];
+      while(next<levels&&cumulative>=total*(next/levels)){thresholds.push(i);next++;}
+    }
+    while(thresholds.length<levels-1)thresholds.push(Math.round(255*(thresholds.length+1)/levels));
+    return thresholds;
+  }
+  function detectImageRegions(gray,w,h,{detail='medium',levels=null,maxRegions=320}={}){
+    const toneLevels=levels|| (detail==='high'?5:detail==='low'?3:4),thresholds=luminanceQuantiles(gray,toneLevels),n=w*h;
+    const bands=new Uint8Array(n),visited=new Uint8Array(n),labels=new Int32Array(n),queue=new Int32Array(n),all=[];
+    for(let i=0;i<n;i++){let band=0;while(band<thresholds.length&&gray[i]>thresholds[band])band++;bands[i]=band;}
+    const minPixels=detail==='high'?Math.max(8,Math.floor(n*0.000018)):detail==='low'?Math.max(90,Math.floor(n*0.00022)):Math.max(28,Math.floor(n*0.00007));
+    const dirs=[1,-1,w,-w];
+    for(let seed=0;seed<n;seed++){
+      if(visited[seed])continue;const band=bands[seed];let head=0,tail=0;queue[tail++]=seed;visited[seed]=1;const pixels=[];let sum=0,minX=w,maxX=0,minY=h,maxY=0;
+      while(head<tail){const pi=queue[head++],x=pi%w,y=Math.floor(pi/w);pixels.push(pi);sum+=gray[pi];minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+        if(x+1<w){const q=pi+1;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
+        if(x>0){const q=pi-1;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
+        if(y+1<h){const q=pi+w;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
+        if(y>0){const q=pi-w;if(!visited[q]&&bands[q]===band){visited[q]=1;queue[tail++]=q;}}
+      }
+      if(pixels.length>=minPixels)all.push({pixels,size:pixels.length,meanLum:sum/pixels.length,band,minX,maxX,minY,maxY});
+    }
+    all.sort((a,b)=>b.size-a.size);const kept=all.slice(0,maxRegions),regions=[];
+    for(let r=0;r<kept.length;r++){const id=r+1,c=kept[r];for(const pi of c.pixels)labels[pi]=id;regions.push({id,size:c.size,meanLum:c.meanLum,band:c.band,minX:c.minX,maxX:c.maxX,minY:c.minY,maxY:c.maxY});}
+    return {labels,regions,thresholds,levels:toneLevels,minPixels};
+  }
+  function snapMaskToRegions(mask,regionData){
+    const out=new Uint8Array(mask),metal=new Uint32Array(regionData.regions.length+1),total=new Uint32Array(regionData.regions.length+1);
+    for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(!id)continue;total[id]++;if(mask[i])metal[id]++;}
+    const assignments={};
+    for(const region of regionData.regions){const value=metal[region.id]/Math.max(1,total[region.id])>=0.5?1:0;assignments[region.id]=value?'metal':'cutout';}
+    for(let i=0;i<regionData.labels.length;i++){const id=regionData.labels[i];if(id)out[i]=assignments[id]==='metal'?1:0;}
+    return {mask:out,assignments};
+  }
+  function setRegionValues(mask,labels,regionIds,value){
+    const chosen=new Set(Array.from(regionIds||[],Number)),out=new Uint8Array(mask);if(!chosen.size)return out;
+    for(let i=0;i<labels.length;i++)if(chosen.has(labels[i]))out[i]=value?1:0;return out;
+  }
+  function regionAt(labels,w,h,x,y,searchRadius=7){
+    x=clamp(Math.round(x),0,w-1);y=clamp(Math.round(y),0,h-1);let id=labels[idx(x,y,w)];if(id)return id;
+    for(let r=1;r<=searchRadius;r++)for(let yy=Math.max(0,y-r);yy<=Math.min(h-1,y+r);yy++)for(let xx=Math.max(0,x-r);xx<=Math.min(w-1,x+r);xx++){if(Math.abs(xx-x)!==r&&Math.abs(yy-y)!==r)continue;id=labels[idx(xx,yy,w)];if(id)return id;}
+    return 0;
+  }
+  function similarRegionIds(regionData,regionId,tolerance=18){const base=regionData.regions.find(r=>r.id===Number(regionId));if(!base)return[];return regionData.regions.filter(r=>Math.abs(r.meanLum-base.meanLum)<=tolerance&&Math.abs(r.band-base.band)<=1).map(r=>r.id);}
   function componentCount(mask,w,h,minPixels=2){return componentList(mask,w,h,minPixels,500).length;}
   function invertMask(mask){const out=new Uint8Array(mask.length);for(let i=0;i<mask.length;i++)out[i]=mask[i]?0:1;return out;}
   function keepLargestMask(mask,w,h){return connectedLargest(mask,w,h).mask;}
@@ -417,5 +465,5 @@
     if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
     return {ok:true,loops:loops.length};
   }
-  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,addFrameMask,addMountingHolesMask,dilate,erode};
+  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,addFrameMask,addMountingHolesMask,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,regionAt,similarRegionIds};
 })();
