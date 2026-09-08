@@ -92,26 +92,69 @@
     return edges;
   }
   function stitchEdges(edges){
+    // Boundary edges are directed with retained pixels on their right. At a
+    // junction (common after bridge insertion), blindly taking the first edge
+    // can jump onto the wrong contour. Prefer a right turn, then straight,
+    // then left, which keeps the same retained region on the right-hand side.
     const byStart=new Map(),key=(x,y)=>x+','+y;
-    for(let i=0;i<edges.length;i++){const e=edges[i],k=key(e.x1,e.y1);if(!byStart.has(k))byStart.set(k,[]);byStart.get(k).push(i);}
+    for(let i=0;i<edges.length;i++){
+      const e=edges[i],k=key(e.x1,e.y1);
+      if(!byStart.has(k))byStart.set(k,[]);
+      byStart.get(k).push(i);
+    }
     const used=new Uint8Array(edges.length),loops=[];
+    const direction=e=>e.x2>e.x1?0:e.y2>e.y1?1:e.x2<e.x1?2:3; // E,S,W,N
+    const turnRank=(prev,next)=>{const turn=(next-prev+4)%4;return turn===1?0:turn===0?1:turn===3?2:3;};
     for(let seed=0;seed<edges.length;seed++){
       if(used[seed])continue;
-      const loop=[];let ei=seed,guard=0;const start=edges[seed],sx=start.x1,sy=start.y1;
-      while(ei!=null&&!used[ei]&&guard++<edges.length+10){
+      const start=edges[seed],sx=start.x1,sy=start.y1,loop=[];
+      let ei=seed,prevDir=direction(start),guard=0,closed=false;
+      while(ei!=null&&!used[ei]&&guard++<edges.length+20){
         const e=edges[ei];used[ei]=1;loop.push({x:e.x1,y:e.y1});
-        if(e.x2===sx&&e.y2===sy){loop.push({x:sx,y:sy});break;}
-        const list=byStart.get(key(e.x2,e.y2))||[];let next=null;for(const j of list)if(!used[j]){next=j;break;}ei=next;
+        if(e.x2===sx&&e.y2===sy){loop.push({x:sx,y:sy});closed=true;break;}
+        const available=(byStart.get(key(e.x2,e.y2))||[]).filter(j=>!used[j]);
+        if(!available.length){ei=null;break;}
+        available.sort((a,b)=>turnRank(prevDir,direction(edges[a]))-turnRank(prevDir,direction(edges[b])));
+        ei=available[0];prevDir=direction(edges[ei]);
       }
-      if(loop.length>=5&&loop[0].x===loop[loop.length-1].x&&loop[0].y===loop[loop.length-1].y)loops.push(loop);
+      if(closed&&loop.length>=5)loops.push(loop);
     }
     return loops;
+  }
+  function simplifyClosedLoop(points,tolerance){
+    // RDP cannot be run on [p0...p0] directly: identical endpoints make the
+    // baseline zero-length and collapse a valid closed polygon to two points.
+    // Pick two far-apart anchors, simplify the two open arcs independently,
+    // then join them back into a closed polygon.
+    if(points.length<4)return points.slice();
+    const farthestFrom=start=>{
+      let best=0,bestD=-1;const a=points[start];
+      for(let i=0;i<points.length;i++){
+        const dx=points[i].x-a.x,dy=points[i].y-a.y,d=dx*dx+dy*dy;
+        if(d>bestD){bestD=d;best=i;}
+      }
+      return best;
+    };
+    const a=farthestFrom(0),b=farthestFrom(a);
+    if(a===b)return points.slice();
+    const arc=(from,to)=>{
+      const out=[points[from]];let i=from,guard=0;
+      while(i!==to&&guard++<=points.length){i=(i+1)%points.length;out.push(points[i]);}
+      return out;
+    };
+    const one=rdp(arc(a,b),tolerance),two=rdp(arc(b,a),tolerance);
+    const joined=one.slice(0,-1).concat(two.slice(0,-1));
+    const clean=[];
+    for(const p of joined){const q=clean[clean.length-1];if(!q||p.x!==q.x||p.y!==q.y)clean.push(p);}
+    return clean;
   }
   function simplifyLoops(loops,tolerance,minArea){
     const out=[];
     for(const loop of loops){
-      const closed=loop.slice();closed.pop();if(closed.length<4)continue;
-      let simple=rdp(closed.concat([closed[0]]),tolerance);if(simple.length>1&&simple[0].x===simple[simple.length-1].x&&simple[0].y===simple[simple.length-1].y)simple.pop();
+      const closed=loop.slice();
+      if(closed.length>1&&closed[0].x===closed[closed.length-1].x&&closed[0].y===closed[closed.length-1].y)closed.pop();
+      if(closed.length<4)continue;
+      const simple=simplifyClosedLoop(closed,tolerance);
       if(simple.length<3)continue;
       if(Math.abs(polygonArea(simple))<minArea)continue;
       out.push(simple);
@@ -310,5 +353,19 @@
     const fitted=fitLoops(best.loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
     return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,threshold:best.threshold,foreground:best.foreground,method:best.method,subject_fraction:best.fraction,file_format:'AutoCAD R12 ASCII (AC1009)',bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),rescue_used:rescueUsed||Number(best.bridges_added||0)>0,high_contrast:Boolean(best.high_contrast),max_bridge_px:Number(best.max_bridge_px||0),contrast_fraction:Number(best.contrast_fraction||0)};
   }
-  window.MERLIN_IMAGE_DXF={convert};
+  function selfTestGeometry(){
+    // Pure geometry regression: two retained regions joined by a bridge plus
+    // one enclosed cut-out. This catches the exact V9.0 failure where valid
+    // closed contours were found and then collapsed during simplification.
+    const w=64,h=48,mask=new Uint8Array(w*h);
+    for(let y=6;y<=38;y++)for(let x=5;x<=26;x++)mask[idx(x,y,w)]=1;
+    for(let y=10;y<=34;y++)for(let x=34;x<=56;x++)mask[idx(x,y,w)]=1;
+    drawBridge(mask,w,h,{x:26,y:22},{x:34,y:22},2.5);
+    for(let y=16;y<=24;y++)for(let x=12;x<=19;x++)mask[idx(x,y,w)]=0;
+    const loops=loopsFromConnectedMask(mask,w,h,'medium');
+    if(loops.length<2)throw new Error(`Image-DXF geometry self-test failed: expected outer contour and cut-out, got ${loops.length}.`);
+    if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
+    return {ok:true,loops:loops.length};
+  }
+  window.MERLIN_IMAGE_DXF={convert,selfTest:selfTestGeometry};
 })();

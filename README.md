@@ -1,42 +1,19 @@
-# MERLIN CNC V9.0 — Full repository
+# MERLIN CNC V9.1 — Full repository
 
-MERLIN V9.0 is the complete CNC business operating system with the existing product registry, Fusion-safe DXF resizer, optional mounting holes, image-to-DXF generation, inventory, market radar, outreach, store imports, analytics, deterministic intake, finance and Render deployment configuration.
+MERLIN V9.1 is the complete CNC business operating system: product/DXF registry, Fusion-safe DXF resizer, optional validated mounting holes, Image → DXF generation, inventory, global market radar, business outreach, store imports, sales analytics, deterministic Tell MERLIN intake, finance and Render deployment.
 
-## V9.0 image-to-DXF fix
+## V9.1 Image → DXF fix
 
-V9.0 adds a dedicated **High-contrast black / white stencil** conversion path and makes it part of Auto detection.
+V9.0 was incorrectly blaming images after successful foreground detection. The shared vectorisation stage had two defects: closed polygons could collapse during RDP simplification because the first and last point were identical, and bridge-created boundary junctions could confuse the edge stitcher.
 
-This fixes the real failure found with the uploaded skull JPG: a high-contrast image may contain several large white retained-steel regions rather than one pre-connected silhouette. Earlier versions rejected that image even though it was a very suitable CNC source.
+V9.1 fixes both. It also adds a geometry self-test and cache-busts the browser JavaScript bundle so a new deployment loads the new converter.
 
-The new path:
-1. Detects near-binary black/white artwork from the image histogram.
-2. Infers white or black foreground from the border unless manually overridden.
-3. Uses Otsu thresholding.
-4. Identifies the dominant structural regions.
-5. Retains meaningful nearby detail such as teeth while dropping tiny/outlying floating highlights.
-6. Connects retained regions with a minimum-distance bridge network.
-7. Requires one connected retained-steel component before tracing.
-8. Traces the outside and meaningful internal cut-outs.
-9. Filters tiny texture holes according to Low / Medium / High detail.
-10. Writes Fusion-compatible AutoCAD R12 ASCII DXF.
+The exact uploaded skull regression was run through the V9.1 browser geometry functions after the fix. The high-contrast path returned 12 retained/cut contours, 21 connectivity bridges, and scaled to approximately 449.06 × 480.00 mm. The resulting AutoCAD R12 DXF was independently parsed/audited with zero errors and zero required fixes in the available audit environment.
 
-The actual uploaded skull image was used as a regression case. See `docs/V9_0_ACTUAL_SKULL_TEST.md`.
+## Upgrade
 
-## DXF Resizer
+Copy the complete contents of this repository over the previous MERLIN repository while preserving the hidden `.git` directory and the Render persistent data disk.
 
-The Fusion-safe resizer remains intact:
-- original file is never overwritten;
-- proportional resizing by width/height/bounding box;
-- explicit **No fixing holes** default;
-- optional 2-top or 4-corner-region fixing holes;
-- near-coincident endpoint repair;
-- AutoCAD R12 output;
-- post-generation parse/dimension/entity validation before download.
+Suggested commit:
 
-## Deployment
-
-This ZIP is a full GitHub-root repository. Copy all files from the extracted ZIP into the root of the existing GitHub repository, replacing the previous repository contents while preserving the hidden `.git` folder and Render persistent disk/database.
-
-Recommended commit:
-
-`MERLIN CNC V9.0 high-contrast stencil image conversion`
+`MERLIN CNC V9.1 image geometry pipeline fix`
