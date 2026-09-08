@@ -1,8 +1,8 @@
-# MERLIN CNC V8.4 — Full repository
+# MERLIN CNC V8.5 — Full repository
 
 This is the complete V7 codebase plus the requested V8 changes in one repository. It is not a patch-only archive.
 
-V8.4 includes the complete V8.2 repository plus a new physical DXF resizing/download tool. Upload a DXF, choose its source units when necessary, enter a target width or height (or fit it to the current table), and MERLIN writes a new proportional millimetre DXF without changing the original. The generated file is immediately re-analysed against the current table before download.
+V8.5 includes the complete V8.2 repository plus a new physical DXF resizing/download tool. Upload a DXF, choose its source units when necessary, enter a target width or height (or fit it to the current table), and MERLIN writes a new proportional millimetre DXF without changing the original. The generated file is immediately re-analysed against the current table before download.
 
 See `docs/DXF_RESIZER.md` for the exact resizing behaviour.
 
@@ -171,3 +171,6 @@ MERLIN must:
 - never auto-email prospects;
 - preserve a do-not-contact state;
 - avoid assuming future machinery/capability before the owner actually adds it.
+
+## V8.5 DXF resizer correction
+V8.5 fixes the R2000 DXF writer used by the standalone resizer. Resized LINE, LWPOLYLINE, CIRCLE and ARC entities now include the required AutoCAD subclass markers (AcDbEntity / AcDbLine / AcDbPolyline / AcDbCircle / AcDbArc). This avoids the malformed-LWPOLYLINE problem found during the first Joker resize test. The resizer result panel also surfaces geometry-validation failures instead of showing a green result solely because the dimensions fit the table.

@@ -16,12 +16,12 @@ function point(v,minX,minY,unitScale,scale){return {x:mm(v?.x,minX,unitScale,sca
 function lineEntity(e,ctx){
   const a=point(e.vertices?.[0],ctx.minX,ctx.minY,ctx.unitScale,ctx.scale);
   const b=point(e.vertices?.[1],ctx.minX,ctx.minY,ctx.unitScale,ctx.scale);
-  return ['0','LINE','8',safeLayer(e.layer),'10',fmt(a.x),'20',fmt(a.y),'30','0','11',fmt(b.x),'21',fmt(b.y),'31','0'].join('\n');
+  return ['0','LINE','100','AcDbEntity','8',safeLayer(e.layer),'100','AcDbLine','10',fmt(a.x),'20',fmt(a.y),'30','0','11',fmt(b.x),'21',fmt(b.y),'31','0'].join('\n');
 }
 function polylineEntity(e,ctx){
   const vs=e.vertices||[];
   const closed=Boolean(e.shape||e.closed);
-  const out=['0','LWPOLYLINE','8',safeLayer(e.layer),'90',String(vs.length),'70',closed?'1':'0'];
+  const out=['0','LWPOLYLINE','100','AcDbEntity','8',safeLayer(e.layer),'100','AcDbPolyline','90',String(vs.length),'70',closed?'1':'0'];
   for(const v of vs){
     const p=point(v,ctx.minX,ctx.minY,ctx.unitScale,ctx.scale);
     out.push('10',fmt(p.x),'20',fmt(p.y));
@@ -34,12 +34,12 @@ function polylineEntity(e,ctx){
 function circleEntity(e,ctx){
   const c=point(e.center,ctx.minX,ctx.minY,ctx.unitScale,ctx.scale);
   const r=Number(e.radius||0)*ctx.unitScale*ctx.scale;
-  return ['0','CIRCLE','8',safeLayer(e.layer),'10',fmt(c.x),'20',fmt(c.y),'30','0','40',fmt(r)].join('\n');
+  return ['0','CIRCLE','100','AcDbEntity','8',safeLayer(e.layer),'100','AcDbCircle','10',fmt(c.x),'20',fmt(c.y),'30','0','40',fmt(r)].join('\n');
 }
 function arcEntity(e,ctx){
   const c=point(e.center,ctx.minX,ctx.minY,ctx.unitScale,ctx.scale);
   const r=Number(e.radius||0)*ctx.unitScale*ctx.scale;
-  return ['0','ARC','8',safeLayer(e.layer),'10',fmt(c.x),'20',fmt(c.y),'30','0','40',fmt(r),'50',fmt(e.startAngle||0),'51',fmt(e.endAngle||0)].join('\n');
+  return ['0','ARC','100','AcDbEntity','8',safeLayer(e.layer),'100','AcDbCircle','10',fmt(c.x),'20',fmt(c.y),'30','0','40',fmt(r),'100','AcDbArc','50',fmt(e.startAngle||0),'51',fmt(e.endAngle||0)].join('\n');
 }
 function entityToDxf(e,ctx){
   if(e.type==='LINE')return lineEntity(e,ctx);
