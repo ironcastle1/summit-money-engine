@@ -361,3 +361,27 @@ export function listProducts(db) {
     ORDER BY p.created_at ASC,p.product_code ASC
   `).all();
 }
+
+export function deleteProduct(db, productId) {
+  const product = db.prepare('SELECT * FROM products WHERE id=?').get(productId);
+  if (!product) return null;
+  const dependencies = {
+    sales: Number(db.prepare('SELECT COUNT(*) n FROM sales_events WHERE product_id=?').get(productId)?.n || 0),
+    production: Number(db.prepare('SELECT COUNT(*) n FROM production_runs WHERE product_id=?').get(productId)?.n || 0),
+    order_lines: Number(db.prepare('SELECT COUNT(*) n FROM order_lines WHERE product_id=?').get(productId)?.n || 0)
+  };
+  if (dependencies.sales || dependencies.production || dependencies.order_lines) {
+    const error = new Error(`This product has recorded business history (${dependencies.sales} sale record(s), ${dependencies.production} production run(s), ${dependencies.order_lines} order line(s)). MERLIN will not erase historical records. Archive it instead.`);
+    error.status = 409;
+    error.code = 'PRODUCT_HAS_HISTORY';
+    throw error;
+  }
+  const root = productRoot(product.product_code);
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE inventory_items SET linked_product_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE linked_product_id=?").run(productId);
+    db.prepare('DELETE FROM products WHERE id=?').run(productId);
+  });
+  tx();
+  try { if (fs.existsSync(root)) fs.rmSync(root, { recursive:true, force:true }); } catch {}
+  return { deleted:true, product_id:productId, product_code:product.product_code, name:product.name };
+}

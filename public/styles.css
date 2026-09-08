@@ -24,3 +24,24 @@ main{max-width:1900px;margin:auto;padding:13px 18px 70px}.metrics{display:grid;g
 @media(max-width:1200px){.market-controls,.scan-form{grid-template-columns:1fr 1fr 1fr}.mini-metrics{grid-template-columns:repeat(3,1fr)}.store-grid{grid-template-columns:1fr}.chart-grid{grid-template-columns:1fr}.layout-row{grid-template-columns:1fr}.opportunity-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.market-controls,.scan-form,.mini-metrics,.store-imports{grid-template-columns:1fr}.store-card{grid-template-columns:1fr}.bar-row{grid-template-columns:70px 1fr 70px}}
 .ad-summary{border-bottom:1px solid var(--line);padding:8px 2px}.ad-summary strong,.ad-summary span{display:block}.ad-summary strong{font-size:11px}.ad-summary span{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* V9.2 Image -> CNC Editor */
+.image-editor-dialog{width:min(1180px,96vw);max-width:1180px}
+.image-editor-body{padding:14px}
+.editor-status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.image-editor-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:14px;align-items:start}
+.image-editor-stage{min-width:0;background:#07121a;border:1px solid #244355;border-radius:8px;padding:10px;overflow:auto}
+#image-editor-canvas{display:block;max-width:100%;height:auto;margin:auto;background:#000;cursor:crosshair;image-rendering:auto}
+.image-editor-tools{display:flex;flex-direction:column;gap:8px;max-height:72vh;overflow:auto;padding-right:4px}
+.image-editor-tools h3{margin:10px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9ed8ff}
+.image-editor-tools label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#a9c7d9}
+.image-editor-tools input,.image-editor-tools select{width:100%}
+.editor-history-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.editor-legend{display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;color:#a9c7d9}
+.editor-legend i{display:inline-block;width:14px;height:14px;border:1px solid #6c8798;vertical-align:middle;margin-right:5px}
+.legend-metal{background:#f7f7f7}.legend-cut{background:#050505}
+.editor-final-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+.asset-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #1e3441}
+.product-file-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button.danger,.danger{border-color:#7f2e34!important;color:#ffb9be!important}
+@media(max-width:850px){.image-editor-layout{grid-template-columns:1fr}.image-editor-tools{max-height:none}}

@@ -22,12 +22,12 @@ test('V9.1 uses junction-aware boundary stitching and closed-loop RDP anchors',(
 
 test('V9.1 cache-busts browser image converter',()=>{
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
-  assert.match(html,/image-dxf\.js\?v=9\.1\.0/);
-  assert.match(html,/app\.js\?v=9\.1\.0/);
+  assert.match(html,/image-dxf\.js\?v=9\.2\.0/);
+  assert.match(html,/app\.js\?v=9\.2\.0/);
 });
 
 test('V9.1 checks image geometry engine before processing user images',()=>{
   const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
-  assert.match(app,/MERLIN_IMAGE_DXF\?\.selfTest/);
+  assert.match(app,/MERLIN_IMAGE_DXF\.selfTest/);
   assert.match(app,/engine version mismatch/);
 });

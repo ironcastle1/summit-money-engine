@@ -19,7 +19,7 @@
   <section id="dashboard-grid" class="dashboard-grid">
 
     <article class="widget span-2" data-widget-id="products" data-span="2" data-title="Products">
-      <header class="widget-head"><span class="section-mark">PRODUCTS</span><div><h2>Products</h2><p>Every DXF is a permanent product line with a short workshop ID and complete production history.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
+      <header class="widget-head"><span class="section-mark">PRODUCTS</span><div><h2>Products</h2><p>Every DXF is a tracked product line with a short workshop ID and production history. Unused uploads can be deleted; products with recorded business history are protected.</p></div><button class="span-toggle secondary compact" type="button">↔</button></header>
       <form id="dxf-form" class="quick-form dxf-form">
         <div class="form-grid upload-grid">
           <label>DXF file(s)<input type="file" id="dxf-file" accept=".dxf" multiple required /></label>
@@ -50,21 +50,21 @@
         <div id="dxf-resize-result" class="inline-status hidden"></div>
       </form>
       <form id="image-dxf-form" class="quick-form dxf-form image-dxf-form">
-        <h3>Image → DXF</h3>
-        <p class="muted">Upload an image. Auto first looks for a clean solid subject. If the artwork is made from thin or separated lines, MERLIN can thicken and bridge meaningful components into one retained steel piece before vectorising it. Use Line drawing / separated details to force that rescue mode.</p>
+        <h3>Image → CNC Editor → DXF</h3>
+        <p class="muted">Upload an image and MERLIN creates an initial retained-steel interpretation, then opens the CNC Editor. White/bright overlay = metal to keep; black = hollow/cut-out. Nothing becomes a product until you approve the edited geometry.</p>
         <div class="form-grid upload-grid">
           <label>Image<input type="file" id="image-file" accept="image/*" required /></label>
           <label>Product name<input id="image-name" placeholder="e.g. Stag profile" /></label>
           <label>Category<input id="image-category" value="wall art" /></label>
           <label>Material<select id="image-material"><option value="">Not assigned</option></select></label>
-          <label>Image type<select id="image-conversion-mode"><option value="auto" selected>Auto</option><option value="stencil">High-contrast black / white stencil</option><option value="lineart">Line drawing / separated details</option><option value="silhouette">Solid silhouette</option></select></label>
-          <label>Foreground<select id="image-foreground"><option value="auto" selected>Auto detect</option><option value="dark">Dark subject</option><option value="light">Light subject</option></select></label>
+          <label>Image type<select id="image-conversion-mode"><option value="auto" selected>Auto</option><option value="photo">Photo stencil + connected frame</option><option value="stencil">High-contrast black / white stencil</option><option value="lineart">Line drawing / separated details</option><option value="silhouette">Solid silhouette</option></select></label>
+          <label>Retained steel starts from<select id="image-foreground"><option value="auto" selected>MERLIN decides</option><option value="dark">Dark areas</option><option value="light">Light areas</option></select></label>
           <label>Detail<select id="image-detail"><option value="low">Low / bold</option><option value="medium" selected>Medium</option><option value="high">High</option></select></label>
           <label>Maximum width mm<input id="image-width" type="number" step="0.1" placeholder="Fit table automatically" /></label>
           <label>Maximum height mm<input id="image-height" type="number" step="0.1" placeholder="Fit table automatically" /></label>
           <label>Rights<select id="image-legal"><option value="review_required">Rights not established</option><option value="original">Original</option><option value="licensed">Commercial licence</option><option value="public_domain">Public domain</option></select></label>
         </div>
-        <button type="submit">Generate DXF product</button><span id="image-result" class="result"></span>
+        <button type="submit">Prepare CNC design</button><span id="image-result" class="result"></span>
       </form>
       <div class="section-toolbar">
         <input id="product-search" class="toolbar-input" placeholder="Search ID, title, category or material" />
@@ -72,9 +72,10 @@
         <select id="product-sort"><option value="created">Product number</option><option value="name">Title A–Z</option><option value="sales">Units sold</option><option value="revenue">Revenue</option><option value="cut">Average cut time</option></select>
         <button id="analyse-selected" class="secondary" type="button">Analyse selected</button>
         <button id="analyse-all" class="secondary" type="button">Analyse all DXFs</button>
+        <button id="delete-selected-products" class="secondary danger" type="button">Delete selected uploads</button>
       </div>
       <div id="analysis-result" class="inline-status hidden"></div>
-      <div class="table-wrap product-table-wrap"><table class="product-table"><thead><tr><th><input id="select-all-products" type="checkbox" /></th><th>ID</th><th>Product</th><th>Category</th><th>Material</th><th>Production size</th><th>Rev</th><th>DXF check</th><th>Avg cut</th><th>Sold</th><th>Revenue</th></tr></thead><tbody id="products-body"></tbody></table></div>
+      <div class="table-wrap product-table-wrap"><table class="product-table"><thead><tr><th><input id="select-all-products" type="checkbox" /></th><th>ID</th><th>Product</th><th>Category</th><th>Material</th><th>Production size</th><th>Rev</th><th>DXF file</th><th>DXF check</th><th>Avg cut</th><th>Sold</th><th>Revenue</th></tr></thead><tbody id="products-body"></tbody></table></div>
     </article>
 
     <article class="widget span-2" data-widget-id="market" data-span="2" data-title="Global Market Radar">
@@ -152,10 +153,43 @@
   </section>
 </main>
 
+
+<dialog id="image-editor-dialog" class="dialog image-editor-dialog">
+  <div class="dialog-head"><div><strong>Image → CNC Editor</strong><span id="image-editor-sub">White = retained steel · Black = cut-out</span></div><button id="image-editor-close" type="button">×</button></div>
+  <div class="dialog-body image-editor-body">
+    <div class="editor-status-row"><div id="image-editor-status" class="inline-status"></div><label class="check"><input id="image-editor-show-source" type="checkbox" checked /> Show source under mask</label></div>
+    <div class="image-editor-layout">
+      <div class="image-editor-stage"><canvas id="image-editor-canvas"></canvas><div class="editor-legend"><span><i class="legend-metal"></i> Retained steel</span><span><i class="legend-cut"></i> Cut-out / empty</span></div></div>
+      <aside class="image-editor-tools">
+        <h3>Metal / cut-out</h3>
+        <button type="button" id="editor-invert">Invert metal ↔ cut-out</button>
+        <button type="button" id="editor-keep-largest" class="secondary">Keep largest steel piece</button>
+        <button type="button" id="editor-remove-islands" class="secondary">Remove small steel islands</button>
+        <button type="button" id="editor-connect" class="secondary">Auto-connect steel</button>
+        <button type="button" id="editor-thicken" class="secondary">Thicken steel</button>
+        <button type="button" id="editor-thin" class="secondary">Thin steel</button>
+        <button type="button" id="editor-frame" class="secondary">Add outer frame</button>
+        <h3>Manual edit</h3>
+        <label>Brush action<select id="editor-brush-mode"><option value="metal">Paint metal</option><option value="cut">Paint cut-out</option><option value="fill-metal">Fill clicked region with metal</option><option value="fill-cut">Fill clicked region as cut-out</option></select></label>
+        <label>Brush size px<input id="editor-brush-size" type="range" min="2" max="40" value="12" /></label>
+        <p class="muted">Drag directly on the preview to tell MERLIN exactly what stays as steel or becomes empty.</p>
+        <h3>Mounting holes</h3>
+        <label>Preset<select id="editor-hole-count"><option value="0" selected>No holes</option><option value="2">2 top holes</option><option value="4">4 corner-region holes</option></select></label>
+        <label>Hole diameter mm<input id="editor-hole-diameter" type="number" min="0.5" step="0.1" value="6" /></label>
+        <label>Steel around hole mm<input id="editor-hole-clearance" type="number" min="0" step="0.1" value="3" /></label>
+        <label>Preferred inset mm<input id="editor-hole-inset" type="number" min="0" step="0.1" value="15" /></label>
+        <button type="button" id="editor-apply-holes" class="secondary">Apply hole preset</button>
+        <h3>History</h3>
+        <div class="editor-history-buttons"><button type="button" id="editor-undo" class="secondary">Undo</button><button type="button" id="editor-reset" class="secondary">Reset automatic result</button></div>
+      </aside>
+    </div>
+    <div class="dialog-actions editor-final-actions"><button id="image-editor-cancel" class="secondary" type="button">Cancel</button><button id="image-editor-create" type="button">Create product & download DXF</button></div>
+  </div>
+</dialog>
 <dialog id="layout-dialog" class="dialog layout-dialog"><div class="dialog-head"><div><strong>Edit dashboard layout</strong><span>Move sections without dragging or scrolling. Changes save when you press Save layout.</span></div><button id="layout-close" type="button">×</button></div><div class="dialog-body"><div id="layout-editor"></div><div class="dialog-actions"><button id="layout-default" class="secondary">Default layout</button><button id="layout-save">Save layout</button></div></div></dialog>
 <dialog id="product-dialog" class="dialog"><div class="dialog-head"><div><strong id="dialog-code"></strong><span id="dialog-name"></span></div><button id="dialog-close" type="button">×</button></div><div id="product-detail" class="dialog-body"></div></dialog>
 <dialog id="inventory-dialog" class="dialog"><div class="dialog-head"><div><strong id="inv-dialog-name"></strong><span>Inventory record</span></div><button id="inv-dialog-close" type="button">×</button></div><div id="inventory-detail" class="dialog-body"></div></dialog>
 <dialog id="prospect-dialog" class="dialog"><div class="dialog-head"><div><strong id="prospect-dialog-name"></strong><span id="prospect-dialog-sub"></span></div><button id="prospect-dialog-close" type="button">×</button></div><div id="prospect-detail" class="dialog-body"></div></dialog>
-<script src="./config.js?v=9.1.0"></script><script src="./image-dxf.js?v=9.1.0"></script><script src="./app.js?v=9.1.0"></script>
+<script src="./config.js?v=9.2.0"></script><script src="./image-dxf.js?v=9.2.0"></script><script src="./app.js?v=9.2.0"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ingestDxf, addDxfRevision, getProduct, listProducts, syncProductSnapshot, updateProduct, reconfirmRevisionUnits, reanalyseProducts } from '../products/product-service.js';
+import { ingestDxf, addDxfRevision, getProduct, listProducts, syncProductSnapshot, updateProduct, reconfirmRevisionUnits, reanalyseProducts, deleteProduct } from '../products/product-service.js';
 import { createInventoryItem, moveInventory, listInventory, inventoryAlerts, updateInventoryItem, getInventoryItem } from '../inventory/inventory-service.js';
 import { businessSnapshot } from '../services/snapshot.js';
 import { upsertFact } from '../services/memory.js';
@@ -35,7 +35,7 @@ function enrichObservationSources(db,o){
 }
 
 export function registerRoutes(app,db){
-  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'9.1.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
+  app.get('/api/health',(req,res)=>res.json({ok:true,system:'MERLIN',version:'9.2.0',domain:'cnc-business-os-deterministic',now:new Date().toISOString(),intake:'deterministic-parser',research:marketResearchStatus(db)}));
   app.get('/api/state',(req,res)=>res.json(businessSnapshot(db)));
 
   app.get('/api/preferences/dashboard-layout',(req,res)=>{
@@ -183,6 +183,19 @@ export function registerRoutes(app,db){
     const p=db.prepare('SELECT active_revision_id FROM products WHERE id=?').get(req.params.id);if(!p)return res.status(404).end();
     const r=db.prepare('SELECT preview_path FROM product_revisions WHERE id=?').get(p.active_revision_id);if(!r?.preview_path||!fs.existsSync(r.preview_path))return res.status(404).end();
     res.type('image/svg+xml').sendFile(path.resolve(r.preview_path));
+  });
+  app.get('/api/products/:id/dxf',(req,res)=>{
+    const p=db.prepare('SELECT product_code,name,active_revision_id FROM products WHERE id=?').get(req.params.id);if(!p)return res.status(404).json({error:'Product not found'});
+    const r=db.prepare('SELECT stored_path,original_filename,revision_number FROM product_revisions WHERE id=?').get(p.active_revision_id);
+    if(!r?.stored_path||!fs.existsSync(r.stored_path))return res.status(404).json({error:'DXF file is unavailable'});
+    const safe=(p.product_code+'_'+String(p.name||'product').replace(/[^A-Za-z0-9_-]+/g,'_')+'_R'+(r.revision_number||1)+'.dxf').replace(/_+/g,'_');
+    res.download(path.resolve(r.stored_path),safe);
+  });
+  app.delete('/api/products/:id',(req,res)=>{const result=deleteProduct(db,req.params.id);if(!result)return res.status(404).json({error:'Product not found'});res.json(result);});
+  app.delete('/api/product-assets/:id',(req,res)=>{
+    const a=db.prepare('SELECT * FROM product_assets WHERE id=?').get(req.params.id);if(!a)return res.status(404).json({error:'Asset not found'});
+    db.prepare('DELETE FROM product_assets WHERE id=?').run(a.id);try{if(a.stored_path&&fs.existsSync(a.stored_path))fs.rmSync(a.stored_path,{force:true});}catch{}syncProductSnapshot(db,a.product_id);
+    res.json({deleted:true,id:a.id,filename:a.original_filename});
   });
   app.post('/api/revisions/:id/validate',(req,res)=>{
     if(req.body.validation_status!=='validated')return res.status(400).json({error:'Only explicit owner validation to validated is supported'});

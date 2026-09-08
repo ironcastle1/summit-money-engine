@@ -33,6 +33,6 @@ app.use((err, req, res, next) => { console.error(err); if (res.headersSent) retu
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
-  console.log(`MERLIN CNC V9.1 running on http://localhost:${port}`);
+  console.log(`MERLIN CNC V9.2 running on http://localhost:${port}`);
   startMarketResearchScheduler(db);
 });

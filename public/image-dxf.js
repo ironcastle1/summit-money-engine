@@ -282,7 +282,7 @@
       const loops=loopsFromConnectedMask(largest.mask,r.w,r.h,detail);if(!loops.length)continue;
       const br=borderRatio(largest.mask,r.w,r.h),coverageScore=fraction<=0.68?fraction*100:68-(fraction-0.68)*135;
       const score=coverageScore+(Math.min(largest.size,70000)/70000*8)+(Math.min(loops.length,24)*0.12)-(br*75)-(fraction>0.90?30:0);
-      const result={...c,method:`${c.method} / ${v.name}`,loops,fraction,score,bridges_added:0};if(!best||result.score>best.score)best=result;
+      const result={...c,mask:largest.mask,method:`${c.method} / ${v.name}`,loops,fraction,score,bridges_added:0};if(!best||result.score>best.score)best=result;
     }
     return best;
   }
@@ -325,8 +325,32 @@
       const loops=loopsFromConnectedMask(joined.mask,r.w,r.h,detail);if(!loops.length)continue;
       const br=borderRatio(joined.mask,r.w,r.h);if(br>0.55)continue;
       const score=joined.fraction*100-Math.min(22,joined.bridges*0.8)-Math.min(18,joined.bridgeLength/Math.max(r.w,r.h)*8)-br*40;
-      const result={...c,method:`${c.method} / ${base.name} / connectivity rescue`,loops,fraction:joined.fraction,score,bridges_added:joined.bridges,components_joined:joined.kept};
+      const result={...c,mask:joined.mask,method:`${c.method} / ${base.name} / connectivity rescue`,loops,fraction:joined.fraction,score,bridges_added:joined.bridges,components_joined:joined.kept};
       if(!best||result.score>best.score)best=result;
+    }
+    return best;
+  }
+  function photoStencilCandidate(r,opts,detail){
+    const requested=opts.foreground==='dark'||opts.foreground==='light'?opts.foreground:null;
+    const foreground=requested||(r.borderLum<=r.avg?'dark':'light');
+    const thresholds=[r.otsu,clamp(Math.round((r.otsu+r.avg)/2),25,230),clamp(r.otsu+(foreground==='dark'?18:-18),25,230)];
+    let best=null;
+    for(const t of thresholds){
+      let mask=thresholdMask(r.gray,t,foreground);
+      const minKeep=Math.max(18,Math.floor(r.w*r.h*(detail==='high'?0.00006:detail==='low'?0.00035:0.00016)));
+      mask=removeSmallIslandsMask(mask,r.w,r.h,minKeep);
+      if(detail!=='high')mask=closeMask(mask,r.w,r.h,1);
+      const framePx=Math.max(3,Math.round(Math.min(r.w,r.h)*0.012));
+      mask=addFrameMask(mask,r.w,r.h,framePx);
+      let bridges=0;
+      const comps=componentList(mask,r.w,r.h,4,160);
+      if(comps.length>1){try{const joined=autoConnectMask(mask,r.w,r.h,detail);mask=joined.mask;bridges=joined.bridges;}catch{continue;}}
+      const largest=connectedLargest(mask,r.w,r.h),fraction=largest.size/(r.w*r.h);
+      if(fraction<0.04||fraction>0.82)continue;
+      const loops=loopsFromConnectedMask(largest.mask,r.w,r.h,detail);if(!loops.length)continue;
+      const score=180-Math.abs(fraction-0.34)*140-Math.min(35,loops.length*.4)-bridges*.35;
+      const cand={mask:largest.mask,loops,method:`photo stencil ${foreground} / threshold ${t} / connected frame`,foreground,threshold:t,fraction,score,bridges_added:bridges,components_joined:Math.max(1,comps.length),photo_stencil:true};
+      if(!best||cand.score>best.score)best=cand;
     }
     return best;
   }
@@ -339,20 +363,46 @@
     lines.push('0','SEQEND','8','0');return lines.join('\n');
   }
   function makeDxf(loops){return `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${loops.map(dxfPolylineR12).join('\n')}\n0\nENDSEC\n0\nEOF\n`;}
-  async function convert(file,opts={}){
+  async function prepare(file,opts={}){
     const r=await raster(file,opts),candidates=candidateMasks(r,opts),mode=opts.mode||'auto',detail=opts.detail||'medium';let best=null;
-    if(mode==='stencil'||mode==='auto'){
-      const stencil=highContrastStencilCandidate(r,opts,detail);if(stencil)best=stencil;
-    }
-    if(!best&&mode!=='lineart'){for(const c of candidates){const e=evaluateCandidate(c,r,detail);if(e&&(!best||e.score>best.score))best=e;}}
+    if(mode==='stencil'||mode==='auto'){const stencil=highContrastStencilCandidate(r,opts,detail);if(stencil)best=stencil;}
+    if(!best&&(mode==='photo'||mode==='auto')){const photo=photoStencilCandidate(r,opts,detail);if(photo)best=photo;}
+    if(!best&&mode!=='lineart'&&mode!=='photo'){for(const c of candidates){const e=evaluateCandidate(c,r,detail);if(e&&(!best||e.score>best.score))best=e;}}
     let rescueUsed=Boolean(best?.high_contrast);
-    if(!best&&(mode==='lineart'||mode==='auto')){
-      let rescued=null;for(const c of candidates){const e=rescueCandidate(c,r,detail);if(e&&(!rescued||e.score>rescued.score))rescued=e;}if(rescued){best=rescued;rescueUsed=true;}
+    if(!best&&(mode==='lineart'||mode==='auto')){let rescued=null;for(const c of candidates){const e=rescueCandidate(c,r,detail);if(e&&(!rescued||e.score>rescued.score))rescued=e;}if(rescued){best=rescued;rescueUsed=true;}}
+    if(!best||!best.mask){
+      const foreground=opts.foreground==='dark'||opts.foreground==='light'?opts.foreground:(r.borderLum<=r.avg?'dark':'light');
+      let mask=thresholdMask(r.gray,r.otsu,foreground);
+      const on=mask.reduce((a,v)=>a+v,0);
+      if(on<8||on>mask.length-8)mask=thresholdMask(r.gray,r.otsu,foreground==='dark'?'light':'dark');
+      best={mask,method:`editable fallback ${foreground} / Otsu ${r.otsu}`,foreground,threshold:r.otsu,bridges_added:0,components_joined:componentList(mask,r.w,r.h,3,500).length||1};
     }
-    if(!best||!best.loops?.length)throw new Error('MERLIN could not isolate usable geometry from this image. For black/white stencil art choose Image type = High-contrast stencil. For ordinary photos, crop closer or choose Dark/Light foreground manually.');
-    const fitted=fitLoops(best.loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
-    return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,threshold:best.threshold,foreground:best.foreground,method:best.method,subject_fraction:best.fraction,file_format:'AutoCAD R12 ASCII (AC1009)',bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),rescue_used:rescueUsed||Number(best.bridges_added||0)>0,high_contrast:Boolean(best.high_contrast),max_bridge_px:Number(best.max_bridge_px||0),contrast_fraction:Number(best.contrast_fraction||0)};
+    return {w:r.w,h:r.h,rgba:new Uint8ClampedArray(r.rgba),gray:new Float32Array(r.gray),mask:new Uint8Array(best.mask),originalMask:new Uint8Array(best.mask),method:best.method,foreground:best.foreground,threshold:best.threshold,detail,rescue_used:rescueUsed||Number(best.bridges_added||0)>0,bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),source_name:file.name||'image'};
   }
+  function componentCount(mask,w,h,minPixels=2){return componentList(mask,w,h,minPixels,500).length;}
+  function invertMask(mask){const out=new Uint8Array(mask.length);for(let i=0;i<mask.length;i++)out[i]=mask[i]?0:1;return out;}
+  function keepLargestMask(mask,w,h){return connectedLargest(mask,w,h).mask;}
+  function removeSmallIslandsMask(mask,w,h,minPixels){const comps=componentList(mask,w,h,1,1000),out=new Uint8Array(mask.length);for(const c of comps)if(c.size>=minPixels)for(const pi of c.pixels)out[pi]=1;return out;}
+  function autoConnectMask(mask,w,h,detail='medium'){const comps=componentList(mask,w,h,4,100);if(comps.length<=1)return {mask:new Uint8Array(mask),bridges:0};const joined=bridgeComponents(mask,w,h,detail);if(!joined)throw new Error('MERLIN could not safely auto-connect all retained-steel islands. Paint a bridge manually or remove the unwanted islands.');return {mask:joined.mask,bridges:joined.bridges};}
+  function addFrameMask(mask,w,h,thicknessPx=8){const out=new Uint8Array(mask);const t=Math.max(1,Math.round(thicknessPx));for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(x<t||y<t||x>=w-t||y>=h-t)out[idx(x,y,w)]=1;return out;}
+  function maskBounds(mask,w,h){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity,count=0;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[idx(x,y,w)]){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);count++;}return count?{minX,minY,maxX,maxY,width:maxX-minX+1,height:maxY-minY+1}:null;}
+  function diskFullyMetal(mask,w,h,cx,cy,r){for(let y=Math.floor(cy-r);y<=Math.ceil(cy+r);y++)for(let x=Math.floor(cx-r);x<=Math.ceil(cx+r);x++){if(x<0||y<0||x>=w||y>=h)return false;if((x-cx)*(x-cx)+(y-cy)*(y-cy)<=r*r&&!mask[idx(x,y,w)])return false;}return true;}
+  function addMountingHolesMask(mask,w,h,{count=2,holeRadiusPx=4,clearancePx=3,insetPx=14}={}){
+    const out=new Uint8Array(mask),safeR=holeRadiusPx+clearancePx,b=maskBounds(mask,w,h);if(!b)throw new Error('No retained steel exists for mounting holes.');
+    const targets=count===4?[[b.minX+insetPx,b.minY+insetPx],[b.maxX-insetPx,b.minY+insetPx],[b.minX+insetPx,b.maxY-insetPx],[b.maxX-insetPx,b.maxY-insetPx]]:[[b.minX+insetPx,b.minY+insetPx],[b.maxX-insetPx,b.minY+insetPx]];
+    const placed=[];
+    for(const [tx,ty] of targets){let best=null,bestD=Infinity;const maxSearch=Math.max(w,h);for(let rad=0;rad<=maxSearch&&!best;rad+=3){for(let a=0;a<Math.PI*2;a+=Math.PI/12){const x=Math.round(tx+Math.cos(a)*rad),y=Math.round(ty+Math.sin(a)*rad);if(x<safeR||y<safeR||x>=w-safeR||y>=h-safeR)continue;if(diskFullyMetal(out,w,h,x,y,safeR)){const d=(x-tx)*(x-tx)+(y-ty)*(y-ty);if(d<bestD){best={x,y};bestD=d;}}}}if(!best)throw new Error(`Could not place all ${count} mounting holes inside retained steel.`);drawDisk(out,w,h,best.x,best.y,holeRadiusPx);for(let y=Math.floor(best.y-holeRadiusPx);y<=Math.ceil(best.y+holeRadiusPx);y++)for(let x=Math.floor(best.x-holeRadiusPx);x<=Math.ceil(best.x+holeRadiusPx);x++)if(x>=0&&y>=0&&x<w&&y<h&&(x-best.x)*(x-best.x)+(y-best.y)*(y-best.y)<=holeRadiusPx*holeRadiusPx)out[idx(x,y,w)]=0;placed.push(best);}
+    return {mask:out,placed};
+  }
+  function finalize(state,opts={}){
+    const detail=opts.detail||state.detail||'medium',comps=componentList(state.mask,state.w,state.h,3,500);
+    if(!comps.length)throw new Error('There is no retained steel in the editor.');
+    if(comps.length>1)throw new Error(`CUT-READY BLOCKED: retained steel has ${comps.length} disconnected pieces. Use Auto-connect steel, paint bridges, or remove islands before creating the DXF.`);
+    const loops=loopsFromConnectedMask(state.mask,state.w,state.h,detail);if(!loops.length)throw new Error('No closed CNC contours could be produced from the edited metal mask.');
+    const fitted=fitLoops(loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
+    return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,file_format:'AutoCAD R12 ASCII (AC1009)',method:state.method,component_count:1};
+  }
+  async function convert(file,opts={}){const state=await prepare(file,opts);return finalize(state,opts);}
   function selfTestGeometry(){
     // Pure geometry regression: two retained regions joined by a bridge plus
     // one enclosed cut-out. This catches the exact V9.0 failure where valid
@@ -367,5 +417,5 @@
     if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
     return {ok:true,loops:loops.length};
   }
-  window.MERLIN_IMAGE_DXF={convert,selfTest:selfTestGeometry};
+  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,addFrameMask,addMountingHolesMask,dilate,erode};
 })();
