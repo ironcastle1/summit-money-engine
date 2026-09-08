@@ -1,0 +1,47 @@
+MERLIN CNC V9.0 FULL REPOSITORY VERIFICATION
+
+Version alignment
+- package.json: 9.0.0
+- /api/health: 9.0.0
+- server startup banner: MERLIN CNC V9.0
+
+Static/runtime-independent checks
+- JavaScript syntax: PASS for all repository JavaScript files
+- MERLIN preflight: PASS
+- external dependencies declared: better-sqlite3, cheerio, cors, dotenv, dxf-parser, express, multer
+- required repository files: PASS
+- targeted V8.8/V8.9/V9.0 UI regression tests: 6/6 PASS
+
+V9.0 high-contrast image changes
+- dedicated High-contrast black / white stencil UI option: PASS
+- Auto mode attempts high-contrast stencil path first when the image histogram is near-binary: PASS
+- foreground polarity inferred from image border unless manually overridden: PASS
+- Otsu threshold path: PASS
+- dominant structural component detection: PASS
+- meaningful nearby detail retention: PASS
+- tiny/outlying floating highlight filtering: PASS
+- minimum-distance component bridge network: PASS
+- connected retained-steel requirement before tracing: PASS
+- pixel-scale texture-hole filtering by detail mode: PASS
+- AutoCAD R12 ASCII (AC1009) image DXF writer retained: PASS
+
+Actual uploaded skull JPG regression
+- source size: 736 x 806 pixels
+- near black/near white pixel fraction: approximately 97.9%
+- Otsu threshold: approximately 124
+- two dominant white structural regions: approximately 76,415 and 61,558 pixels
+- meaningful retained components in local prototype: 23
+- short joins required to make retained steel one piece: 22
+- longest join after filtering: approximately 12.53 source pixels
+- medium-detail traced contours: 21
+- proportional output at 480 mm max height: approximately 449.0 x 480.0 mm
+- independently generated R12 regression DXF audit: 0 errors, 0 fixes required
+
+Existing DXF resizer
+- explicit No fixing holes default retained: PASS
+- optional 2-top / 4-corner-region holes retained: PASS
+- Fusion-safe R12 writer retained: PASS
+- proportional resize and post-generation validation retained: PASS
+
+Limitation
+The exact source image proves the new segmentation strategy can create connected vector geometry from this image class. Machine-specific minimum bridge/hole/slot dimensions remain uncalibrated, so MERLIN must not claim plasma cut-readiness solely from image segmentation. Visual/product preview and current CNC validation rules remain required before production.

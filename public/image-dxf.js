@@ -162,9 +162,59 @@
     for(const t of [16,24,32,44])list.push({method:`local contrast ${t}`,mask:localContrastMask(r,t),threshold:t,foreground:'local-contrast'});
     return list;
   }
+
+  function highContrastFraction(r){
+    let extreme=0,dark=0,light=0;
+    for(const g of r.gray){if(g<64){dark++;extreme++;}else if(g>192){light++;extreme++;}}
+    return {fraction:extreme/r.gray.length,dark:dark/r.gray.length,light:light/r.gray.length};
+  }
+  function centerOfComponent(c){return {x:(c.minX+c.maxX)/2,y:(c.minY+c.maxY)/2};}
+  function componentUnionBounds(comps){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const c of comps){minX=Math.min(minX,c.minX);minY=Math.min(minY,c.minY);maxX=Math.max(maxX,c.maxX);maxY=Math.max(maxY,c.maxY);}
+    return {minX,minY,maxX,maxY};
+  }
+  function highContrastStencilCandidate(r,opts,detail){
+    const contrast=highContrastFraction(r);if(contrast.fraction<0.90)return null;
+    const requested=opts.foreground==='dark'||opts.foreground==='light'?opts.foreground:null;
+    const foreground=requested||(r.borderLum<128?'light':'dark');
+    let mask=thresholdMask(r.gray,r.otsu,foreground);
+    const minPixels=Math.max(4,Math.floor(r.w*r.h*0.000006));
+    const comps=componentList(mask,r.w,r.h,minPixels,180);if(!comps.length)return null;
+    const largest=comps[0],imageArea=r.w*r.h;
+    const coreMin=Math.max(imageArea*0.015,largest.size*0.12);
+    const core=comps.filter(c=>c.size>=coreMin);if(!core.length)core.push(largest);
+    const cb=componentUnionBounds(core),ex=r.w*0.02,ey=r.h*0.02;
+    const minKeep=Math.max(24,imageArea*0.00035,largest.size*0.0025);
+    const kept=comps.filter(c=>{
+      if(c.size<minKeep)return false;const cc=centerOfComponent(c);
+      return cc.x>=cb.minX-ex&&cc.x<=cb.maxX+ex&&cc.y>=cb.minY-ey&&cc.y<=cb.maxY+ey;
+    }).slice(0,42);
+    if(!kept.length)return null;
+    const out=new Uint8Array(mask.length);for(const c of kept)for(const pi of c.pixels)out[pi]=1;
+    let bridges=0,maxBridge=0;
+    if(kept.length>1){
+      const edges=[];
+      for(let i=0;i<kept.length;i++)for(let j=i+1;j<kept.length;j++){
+        const pair=nearestPair(kept[i].boundary,kept[j].boundary);if(pair)edges.push({i,j,...pair});
+      }
+      edges.sort((a,b)=>a.distance-b.distance);
+      const parent=kept.map((_,i)=>i),find=i=>{let x=i;while(parent[x]!==x){parent[x]=parent[parent[x]];x=parent[x];}return x;};
+      const maxGap=Math.max(24,Math.min(Math.max(r.w,r.h)*0.10,95));
+      const radius=detail==='high'?2.5:detail==='low'?4.5:3.5;
+      for(const e of edges){const ra=find(e.i),rb=find(e.j);if(ra===rb)continue;if(e.distance>maxGap)continue;parent[rb]=ra;drawBridge(out,r.w,r.h,e.a,e.b,radius);bridges++;maxBridge=Math.max(maxBridge,e.distance);if(bridges===kept.length-1)break;}
+      const root=find(0);if(kept.some((_,i)=>find(i)!==root))return null;
+    }
+    const largestConnected=connectedLargest(out,r.w,r.h),fraction=largestConnected.size/imageArea;
+    if(largestConnected.size<Math.max(40,imageArea*0.01)||fraction>0.90)return null;
+    const loops=loopsFromConnectedMask(largestConnected.mask,r.w,r.h,detail);if(!loops.length)return null;
+    return {method:`high-contrast ${foreground} stencil / structural merge`,mask:largestConnected.mask,loops,fraction,score:1000+fraction*100,threshold:r.otsu,foreground,bridges_added:bridges,components_joined:kept.length,high_contrast:true,max_bridge_px:maxBridge,contrast_fraction:contrast.fraction};
+  }
   function loopsFromConnectedMask(mask,w,h,detail){
     const rawLoops=stitchEdges(boundaryEdges(mask,w,h));
-    const loops=simplifyLoops(rawLoops,detail==='high'?0.5:detail==='low'?2.1:1.0,detail==='high'?2:detail==='low'?20:6);
+    const pixelArea=w*h;
+    const minArea=detail==='high'?Math.max(5,pixelArea*0.000015):detail==='low'?Math.max(100,pixelArea*0.00018):Math.max(35,pixelArea*0.00007);
+    const loops=simplifyLoops(rawLoops,detail==='high'?0.5:detail==='low'?2.1:1.0,minArea);
     if(!loops.length)return [];
     const outerArea=Math.abs(polygonArea(loops[0]));if(outerArea<8)return [];
     const retained=[loops[0]];for(const l of loops.slice(1)){const a=Math.abs(polygonArea(l));if(a>outerArea*0.00045)retained.push(l);}
@@ -247,17 +297,18 @@
   }
   function makeDxf(loops){return `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${loops.map(dxfPolylineR12).join('\n')}\n0\nENDSEC\n0\nEOF\n`;}
   async function convert(file,opts={}){
-    const r=await raster(file,opts),candidates=candidateMasks(r,opts),mode=opts.mode||'auto';let best=null;
-    if(mode!=='lineart'){for(const c of candidates){const e=evaluateCandidate(c,r,opts.detail||'medium');if(e&&(!best||e.score>best.score))best=e;}}
-    let rescueUsed=false;
-    if(mode==='lineart'||(mode==='auto'&&(!best||!best.loops?.length||best.fraction<0.001))){
-      let rescued=null;
-      for(const c of candidates){const e=rescueCandidate(c,r,opts.detail||'medium');if(e&&(!rescued||e.score>rescued.score))rescued=e;}
-      if(rescued){best=rescued;rescueUsed=true;}
+    const r=await raster(file,opts),candidates=candidateMasks(r,opts),mode=opts.mode||'auto',detail=opts.detail||'medium';let best=null;
+    if(mode==='stencil'||mode==='auto'){
+      const stencil=highContrastStencilCandidate(r,opts,detail);if(stencil)best=stencil;
     }
-    if(!best||!best.loops?.length)throw new Error('MERLIN could not isolate enough usable geometry from this image. Try Image type = Line drawing / separated details, then Dark or Light foreground if needed. A very busy photo may still need a tighter crop.');
+    if(!best&&mode!=='lineart'){for(const c of candidates){const e=evaluateCandidate(c,r,detail);if(e&&(!best||e.score>best.score))best=e;}}
+    let rescueUsed=Boolean(best?.high_contrast);
+    if(!best&&(mode==='lineart'||mode==='auto')){
+      let rescued=null;for(const c of candidates){const e=rescueCandidate(c,r,detail);if(e&&(!rescued||e.score>rescued.score))rescued=e;}if(rescued){best=rescued;rescueUsed=true;}
+    }
+    if(!best||!best.loops?.length)throw new Error('MERLIN could not isolate usable geometry from this image. For black/white stencil art choose Image type = High-contrast stencil. For ordinary photos, crop closer or choose Dark/Light foreground manually.');
     const fitted=fitLoops(best.loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
-    return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,threshold:best.threshold,foreground:best.foreground,method:best.method,subject_fraction:best.fraction,file_format:'AutoCAD R12 ASCII (AC1009)',bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),rescue_used:rescueUsed||Number(best.bridges_added||0)>0};
+    return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,threshold:best.threshold,foreground:best.foreground,method:best.method,subject_fraction:best.fraction,file_format:'AutoCAD R12 ASCII (AC1009)',bridges_added:Number(best.bridges_added||0),components_joined:Number(best.components_joined||1),rescue_used:rescueUsed||Number(best.bridges_added||0)>0,high_contrast:Boolean(best.high_contrast),max_bridge_px:Number(best.max_bridge_px||0),contrast_fraction:Number(best.contrast_fraction||0)};
   }
   window.MERLIN_IMAGE_DXF={convert};
 })();
