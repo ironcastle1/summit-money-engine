@@ -1,4 +1,8 @@
-# MERLIN CNC V9.5 — Full repository
+# MERLIN CNC V9.7
+
+V9.7 fixes the Image → CNC Editor export path so a preview containing real design geometry cannot silently become a frame-only DXF. Internal cut-outs are preserved and validated before any product/download is released.
+
+See `docs/V9_7_EXPORT_INTEGRITY.md`.
 
 MERLIN V9.5 keeps the full CNC Business OS and fixes three Image → CNC Editor problems found during live testing:
 

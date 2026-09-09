@@ -18,6 +18,7 @@
     return [first,last];
   }
   function polygonArea(loop){let a=0;for(let i=0;i<loop.length;i++){const p=loop[i],q=loop[(i+1)%loop.length];a+=p.x*q.y-q.x*p.y;}return a/2;}
+  function polygonPerimeter(loop){let p=0;for(let i=0;i<loop.length;i++){const a=loop[i],b=loop[(i+1)%loop.length];p+=Math.hypot(b.x-a.x,b.y-a.y);}return p;}
   function bounds(loops){let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const loop of loops)for(const p of loop){if(p.x<minX)minX=p.x;if(p.y<minY)minY=p.y;if(p.x>maxX)maxX=p.x;if(p.y>maxY)maxY=p.y;}return {minX,minY,maxX,maxY,width:maxX-minX,height:maxY-minY};}
   function connectedLargest(mask,w,h){
     const seen=new Uint8Array(mask.length);let best=[];
@@ -289,6 +290,10 @@
     return {method:`high-contrast ${foreground} stencil / structural merge`,mask:largestConnected.mask,loops,fraction,score:1000+fraction*100,threshold:r.otsu,foreground,bridges_added:bridges,components_joined:kept.length,high_contrast:true,max_bridge_px:maxBridge,contrast_fraction:contrast.fraction};
   }
   function loopsFromConnectedMask(mask,w,h,detail,smoothing='light'){
+    // Trace the FINAL binary metal mask. Small/noisy contours are removed by
+    // the absolute min-area rule below; do not apply a second percentage-of-
+    // outer-loop filter because that can silently delete legitimate internal
+    // artwork from a large framed panel.
     const rawLoops=stitchEdges(boundaryEdges(mask,w,h));
     const pixelArea=w*h;
     const minArea=detail==='high'?Math.max(5,pixelArea*0.000015):detail==='low'?Math.max(100,pixelArea*0.00018):Math.max(35,pixelArea*0.00007);
@@ -296,8 +301,7 @@
     const loops=simplifyLoops(rawLoops,spec.tolerance,minArea,smoothing,detail);
     if(!loops.length)return [];
     const outerArea=Math.abs(polygonArea(loops[0]));if(outerArea<8)return [];
-    const retained=[loops[0]];for(const l of loops.slice(1)){const a=Math.abs(polygonArea(l));if(a>outerArea*0.00045)retained.push(l);}
-    return retained;
+    return loops;
   }
   function borderRatio(mask,w,h){let hits=0;for(let x=0;x<w;x++){if(mask[idx(x,0,w)])hits++;if(mask[idx(x,h-1,w)])hits++;}for(let y=1;y<h-1;y++){if(mask[idx(0,y,w)])hits++;if(mask[idx(w-1,y,w)])hits++;}return hits/Math.max(1,2*w+2*h-4);}
   function evaluateCandidate(c,r,detail){
@@ -586,6 +590,24 @@
     return best;
   }
   function componentCount(mask,w,h,minPixels=2){return componentList(mask,w,h,minPixels,500).length;}
+  function enclosedVoidComponents(mask,w,h,minPixels=8){
+    // Count meaningful zero-valued regions that do NOT touch the image edge.
+    // For one connected retained-steel piece, each such region requires a
+    // corresponding internal DXF contour. This is the release gate that stops
+    // a frame-only DXF being offered when the editor visibly contains artwork.
+    const seen=new Uint8Array(mask.length),dirs=[[1,0],[-1,0],[0,1],[0,-1]],holes=[];
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const at=idx(x,y,w);if(mask[at]||seen[at])continue;
+      const qx=[x],qy=[y];seen[at]=1;let size=0,touchesEdge=false,minX=x,maxX=x,minY=y,maxY=y,perimeterEdges=0;
+      for(let q=0;q<qx.length;q++){
+        const cx=qx[q],cy=qy[q];size++;minX=Math.min(minX,cx);maxX=Math.max(maxX,cx);minY=Math.min(minY,cy);maxY=Math.max(maxY,cy);
+        if(cx===0||cy===0||cx===w-1||cy===h-1)touchesEdge=true;
+        for(const [dx,dy] of dirs){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=w||ny>=h){perimeterEdges++;continue;}const ni=idx(nx,ny,w);if(mask[ni]){perimeterEdges++;continue;}if(!seen[ni]){seen[ni]=1;qx.push(nx);qy.push(ny);}}
+      }
+      if(!touchesEdge&&size>=minPixels)holes.push({size,minX,maxX,minY,maxY,perimeter_edges:perimeterEdges});
+    }
+    holes.sort((a,b)=>b.size-a.size);return holes;
+  }
   function invertMask(mask){const out=new Uint8Array(mask.length);for(let i=0;i<mask.length;i++)out[i]=mask[i]?0:1;return out;}
   function keepLargestMask(mask,w,h){return connectedLargest(mask,w,h).mask;}
   function removeSmallIslandsMask(mask,w,h,minPixels){const comps=componentList(mask,w,h,1,1000),out=new Uint8Array(mask.length);for(const c of comps)if(c.size>=minPixels)for(const pi of c.pixels)out[pi]=1;return out;}
@@ -618,10 +640,73 @@
     const detail=opts.detail||state.detail||'medium',smoothing=opts.smoothing||'medium',comps=componentList(state.mask,state.w,state.h,3,500);
     if(!comps.length)throw new Error('There is no retained steel in the editor.');
     if(comps.length>1)throw new Error(`CUT-READY BLOCKED: retained steel has ${comps.length} disconnected pieces. Use Auto-connect steel, paint bridges, or remove islands before creating the DXF.`);
-    const vectorMask=smoothing==='none'?state.mask:smoothMaskEdges(state.mask,state.w,state.h,smoothing==='strong'?2:1);
-    const loops=loopsFromConnectedMask(vectorMask,state.w,state.h,detail,smoothing);if(!loops.length)throw new Error('No closed CNC contours could be produced from the edited metal mask.');
+
+    // IMPORTANT: do not blur/erode the binary mask at export time. The editor
+    // mask is the owner's final metal/cut-out decision. Earlier versions ran a
+    // morphology pass here and could erase the internal design while leaving
+    // the large outer frame intact. Smoothing now happens on traced vectors.
+    const holeMin=detail==='high'?5:detail==='low'?80:24;
+    const expectedVoids=enclosedVoidComponents(state.mask,state.w,state.h,holeMin);
+    const rawLoops=stitchEdges(boundaryEdges(state.mask,state.w,state.h));
+    if(!rawLoops.length)throw new Error('DXF EXPORT BLOCKED: the final metal mask has no closed boundary.');
+
+    const loops=loopsFromConnectedMask(state.mask,state.w,state.h,detail,smoothing);
+    if(!loops.length)throw new Error('DXF EXPORT BLOCKED: no closed CNC contours could be produced from the edited metal mask.');
+
+    // One connected steel body has one outer boundary plus one contour for
+    // every meaningful enclosed cut-out. If those internal contours vanish,
+    // releasing the file would produce exactly the bad frame-only DXF seen in
+    // Fusion, so fail hard instead of offering a download.
+    const requiredContours=1+expectedVoids.length;
+    if(loops.length<requiredContours){
+      throw new Error(`DXF EXPORT BLOCKED: the editor contains ${expectedVoids.length} meaningful internal cut-out${expectedVoids.length===1?'':'s'}, but only ${loops.length-1} survived vector export. No download was released.`);
+    }
+    if(opts.requireInternalContours&&expectedVoids.length===0){
+      throw new Error('DXF EXPORT BLOCKED: a framed image design must contain meaningful internal design/cut-out geometry. The current result would export as an empty frame, so no download was released.');
+    }
+
+    // A frame is not a design. Require a meaningful amount of retained steel
+    // well inside the frame. This prevents mounting pads/frame pixels from
+    // satisfying the gate when the actual image geometry has disappeared.
+    let designZoneMetal=null;
+    if(opts.requireInternalContours){
+      const frameT=Math.max(1,Number(opts.frameThicknessPx||0));
+      const inset=Math.max(4,Math.ceil(frameT*2.2));let interior=0,metal=0;
+      for(let y=inset;y<state.h-inset;y++)for(let x=inset;x<state.w-inset;x++){interior++;if(state.mask[idx(x,y,state.w)])metal++;}
+      designZoneMetal=metal;
+      const minimum=Math.max(24,Math.floor(interior*0.001));
+      if(metal<minimum)throw new Error('DXF EXPORT BLOCKED: the outer frame exists but the actual image design is missing from the retained-steel mask. No frame-only DXF was released.');
+    }
+
+    // Compare the hole geometry in the final binary mask with the vector
+    // contours. This catches exporters that technically write an inner loop
+    // but simplify away most of the artwork, leaving a near-rectangular frame.
+    const expectedVoidArea=expectedVoids.reduce((a,h)=>a+h.size,0);
+    const expectedVoidPerimeter=expectedVoids.reduce((a,h)=>a+Number(h.perimeter_edges||0),0);
+    const vectorInnerArea=loops.slice(1).reduce((a,l)=>a+Math.abs(polygonArea(l)),0);
+    const vectorInnerPerimeter=loops.slice(1).reduce((a,l)=>a+polygonPerimeter(l),0);
+    if(expectedVoidArea>0){
+      const areaError=Math.abs(vectorInnerArea-expectedVoidArea)/expectedVoidArea;
+      const areaLimit=smoothing==='strong'?0.34:smoothing==='medium'?0.27:0.22;
+      if(areaError>areaLimit)throw new Error(`DXF EXPORT BLOCKED: internal design area changed by ${(areaError*100).toFixed(1)}% during vector export. No download was released.`);
+    }
+    if(expectedVoidPerimeter>0){
+      const minPerimeterRatio=smoothing==='strong'?0.40:smoothing==='medium'?0.48:0.56;
+      if(vectorInnerPerimeter<expectedVoidPerimeter*minPerimeterRatio)throw new Error('DXF EXPORT BLOCKED: too much internal design detail disappeared during vector export. No download was released.');
+    }
+
     const fitted=fitLoops(loops,opts.targetWidth,opts.targetHeight,opts.machineWidth,opts.machineHeight,Number(opts.margin||0));
-    return {dxf:makeDxf(fitted.loops),width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,file_format:'AutoCAD R12 ASCII (AC1009)',method:state.method,component_count:1};
+    const dxf=makeDxf(fitted.loops);
+    const entityCount=(dxf.match(/\n0\nPOLYLINE\n/g)||[]).length;
+    if(entityCount!==fitted.loops.length)throw new Error('DXF EXPORT BLOCKED: generated entity count does not match the validated contour set.');
+    if(opts.requireInternalContours&&entityCount<2)throw new Error('DXF EXPORT BLOCKED: generated DXF contains only the outer frame. No download was released.');
+
+    return {
+      dxf,width_mm:fitted.width,height_mm:fitted.height,loops:fitted.loops.length,
+      internal_contours:Math.max(0,fitted.loops.length-1),expected_internal_contours:expectedVoids.length,
+      file_format:'AutoCAD R12 ASCII (AC1009)',method:state.method,component_count:1,
+      export_validation:{passed:true,raw_boundaries:rawLoops.length,expected_internal_contours:expectedVoids.length,written_entities:entityCount,design_zone_metal_pixels:designZoneMetal,expected_void_area_px:expectedVoidArea,vector_void_area_px:vectorInnerArea,expected_void_perimeter_px:expectedVoidPerimeter,vector_void_perimeter_px:vectorInnerPerimeter}
+    };
   }
   async function convert(file,opts={}){const state=await prepare(file,opts);return finalize(state,opts);}
   function selfTestGeometry(){
@@ -638,5 +723,5 @@
     if(loops.some(loop=>loop.length<3))throw new Error('Image-DXF geometry self-test failed: degenerate contour.');
     return {ok:true,loops:loops.length};
   }
-  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,autoBuildViableNetwork,autoInterpretWholeImage,addFrameMask,addMountingHolesMask,addFrameMountingHolesMask,smoothMaskEdges,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,setColourValues,regionAt,colourAt,similarRegionIds,buildColourPalette,buildPixelPalette,colourRegionIds};
+  window.MERLIN_IMAGE_DXF={convert,prepare,finalize,selfTest:selfTestGeometry,componentCount,enclosedVoidComponents,invertMask,keepLargestMask,removeSmallIslandsMask,autoConnectMask,autoBuildViableNetwork,autoInterpretWholeImage,addFrameMask,addMountingHolesMask,addFrameMountingHolesMask,smoothMaskEdges,dilate,erode,detectImageRegions,snapMaskToRegions,setRegionValues,setColourValues,regionAt,colourAt,similarRegionIds,buildColourPalette,buildPixelPalette,colourRegionIds};
 })();

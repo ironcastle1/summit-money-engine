@@ -12,7 +12,7 @@ function engine(){
 test('V9.5 exposes visible colour palette, smoothing and production controls',()=>{
   const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
   for(const id of ['editor-colour-summary','editor-colour-palette','editor-vector-smoothing','editor-smooth-mask','editor-frame','editor-quick-hole-4']) assert.match(html,new RegExp(`id="${id}"`));
-  assert.match(html,/v=9\.5\.0/);
+  assert.match(html,/v=9\.[0-9]+\.0/);
 });
 
 test('V9.5 builds colour palette from all pixels and can apply a colour globally',()=>{
